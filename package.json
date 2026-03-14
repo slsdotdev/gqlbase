@@ -1,7 +1,7 @@
 {
-  "name": "appsync-powertools",
+  "name": "gqlbase",
   "version": "1.0.0",
-  "description": "Appsync powertools for better developer experience",
+  "description": "GraphQL powertools for better developer experience",
   "main": "turbo.json",
   "type": "module",
   "scripts": {
@@ -15,7 +15,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/slsdotdev/appsync-powertools.git"
+    "url": "git+https://github.com/slsdotdev/gqlbase.git"
   },
   "keywords": [
     "aws",
@@ -29,9 +29,9 @@
   },
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/slsdotdev/appsync-powertools/issues"
+    "url": "https://github.com/slsdotdev/gqlbase/issues"
   },
-  "homepage": "https://github.com/slsdotdev/appsync-powertools#readme",
+  "homepage": "https://github.com/slsdotdev/gqlbase#readme",
   "packageManager": "^npm@8.19.2",
   "engines": {
     "node": ">=18.0.0",

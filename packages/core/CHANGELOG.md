@@ -1,4 +1,4 @@
-# @appsync-powertools/core
+# @gqlbase/core
 
 ## 0.0.1
 
