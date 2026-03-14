@@ -1,10 +1,9 @@
+import { performance } from "node:perf_hooks";
 import { Source } from "graphql";
 import { ITransformerContext } from "../context";
-// import { TransformerValidationError } from "../utils/errors";
-import { Logger } from "../utils/logger";
 import { DocumentNode } from "../definition";
+import { Logger } from "../utils/logger";
 import { TransformerValidationError } from "../utils/errors";
-import { performance } from "perf_hooks";
 
 export interface GraphQLTransformerOptions {
   logger: Logger;

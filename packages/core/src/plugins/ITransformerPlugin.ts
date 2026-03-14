@@ -1,3 +1,5 @@
+import { DefinitionNode } from "../definition";
+
 export interface ITransformerPlugin {
   /**
    * A unique name for the plugin. Used for error reporting and debugging.
@@ -25,31 +27,31 @@ export interface ITransformerPlugin {
    * @param definition - The GraphQL definition to check.
    * @returns `true` if the plugin should be applied, `false` otherwise.
    */
-  match(definition: unknown): boolean;
+  match(definition: DefinitionNode): boolean;
 
   /**
    * An optional function that performs normalization transformations on the GraphQL document.
    * This is called before any execution transformations and can be used to prepare the document
    * for subsequent plugins.
-   * @param definition - The GraphQL definition to transform.
+   * @param {DefinitionNode} definition - The GraphQL definition to transform.
    */
-  normalize?(definition: unknown): void;
+  normalize?(definition: DefinitionNode): void;
 
   /**
    * An optional function that performs execution transformations on the GraphQL document.
    * This is called after all normalization transformations have been applied and can be used
    * to perform final modifications to the document before it is finalized.
-   * @param definition - The GraphQL definition to transform.
+   * @param {DefinitionNode} definition - The GraphQL definition to transform.
    */
-  execute?(definition: unknown): void;
+  execute?(definition: DefinitionNode): void;
 
   /**
    * An optional function that performs cleanup operations on the GraphQL document after all
    * transformations have been applied. This can be used to remove any temporary fields or
    * directives added during normalization or execution.
-   * @param definition - The GraphQL definition to clean up.
+   * @param {DefinitionNode} definition - The GraphQL definition to clean up.
    */
-  cleanup?(definition: unknown): void;
+  cleanup?(definition: DefinitionNode): void;
 
   /**
    * An optional function that generates output artifacts based on the transformed GraphQL document.

@@ -1,0 +1,37 @@
+{
+  "name": "@gqlbase/cli",
+  "version": "0.0.1",
+  "sideEffects": false,
+  "type": "module",
+  "license": "MIT",
+  "author": {
+    "name": "sls.dev",
+    "email": "dev@sls.dev",
+    "url": "https://wwww.sls.dev"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "homepage": "https://www.sls.dev",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/slsdotdev/gqlbase.git",
+    "directory": "packages/cli"
+  },
+  "bugs": {
+    "url": "https://github.com/slsdotdev/gqlbase/issues"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "../../LICENSE"
+  ],
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "lint": "eslint 'src/**/*.{ts,tsx}' --fix",
+    "test": "vitest run"
+  }
+}
