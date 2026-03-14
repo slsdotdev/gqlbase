@@ -6,3 +6,10 @@ export class TransformerValidationError extends Error {
     this.name = "TransformerValidationError";
   }
 }
+
+export class InvalidDefinitionError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "InvalidDefinitionError";
+  }
+}

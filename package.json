@@ -1,5 +1,5 @@
 {
-  "name": "gqlbase",
+  "name": "gqlbase-monorepo",
   "version": "1.0.0",
   "description": "GraphQL powertools for better developer experience",
   "main": "turbo.json",
