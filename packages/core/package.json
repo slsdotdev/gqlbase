@@ -1,6 +1,6 @@
 {
   "name": "@appsync-powertools/core",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "Core utilities for AppSync Powertools",
   "sideEffects": false,
   "type": "module",
