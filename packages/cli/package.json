@@ -26,6 +26,9 @@
     "README.md",
     "../../LICENSE"
   ],
+  "bin": {
+    "gqlbase": "bin/index.js"
+  },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -33,5 +36,8 @@
     "dev": "tsc --watch",
     "lint": "eslint 'src/**/*.{ts,tsx}' --fix",
     "test": "vitest run"
+  },
+  "dependencies": {
+    "cac": "^7.0.0"
   }
 }

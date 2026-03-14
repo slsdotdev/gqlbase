@@ -1,0 +1,15 @@
+{
+  "name": "@gqlbase/example",
+  "version": "0.0.1",
+  "description": "Example project for gqlbase, demonstrating how to use the core library and CLI to transform GraphQL schemas.",
+  "main": "src/index.ts",
+  "type": "module",
+  "private": true,
+  "sideEffects": false,
+  "scripts": {
+    "codegen": "gqlbase"
+  },
+  "devDependencies": {
+    "@gqlbase/cli": "*"
+  }
+}
