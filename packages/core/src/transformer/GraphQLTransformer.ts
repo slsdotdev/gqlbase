@@ -33,8 +33,6 @@ export class GraphQLTransformer {
   constructor(context: ITransformerContext, options: GraphQLTransformerOptions) {
     this._context = context;
     this._logger = options.logger;
-
-    this._context.initPlugins();
   }
 
   public transform(): TransformerOutput {

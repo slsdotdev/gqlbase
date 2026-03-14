@@ -7,6 +7,7 @@
   "scripts": {
     "changeset": "changeset",
     "test": "turbo run test",
+    "coverage": "turbo run test -- --coverage",
     "lint": "turbo run lint",
     "dev": "turbo run dev",
     "build": "turbo run build",
@@ -43,6 +44,7 @@
     "@changesets/cli": "^2.30.0",
     "@eslint/js": "^10.0.1",
     "@types/node": "^25.5.0",
+    "@vitest/coverage-v8": "^4.1.0",
     "eslint": "^10.0.3",
     "eslint-config-prettier": "^10.1.8",
     "eslint-config-turbo": "^2.8.17",

@@ -1,3 +1,4 @@
+import { DocumentNode } from "../definition";
 import { ITransformerPlugin } from "../plugins";
 
 export interface ITransformerContext {
@@ -9,7 +10,7 @@ export interface ITransformerContext {
   /**
    * The GraphQL document being transformed. This is a mutable object that plugins can modify during the transformation process.
    */
-  document: unknown;
+  document: DocumentNode;
 
   /**
    * A function that allows plugins to register new transformer plugins. This can be used to add additional functionality or to create plugin chains.
@@ -18,7 +19,13 @@ export interface ITransformerContext {
   registerPlugin(plugin: ITransformerPlugin): void;
 
   /**
-   * A function that initializes all registered plugins. This is called once when the transformation process begins and can be used to set up any necessary state or configuration for the plugins.
+   * A function to start the transformation work by providing the initial GraphQL document. This function initializes the transformation context with the provided document.
+   * @param document - The initial GraphQL document to transform.
    */
-  initPlugins(): void;
+  startWork(document: DocumentNode): DocumentNode;
+
+  /**
+   * A function to finish the transformation work. This can be used to perform any necessary cleanup after the transformation process is complete.
+   */
+  finishWork(): void;
 }

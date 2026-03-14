@@ -177,4 +177,28 @@ export class DocumentNode {
     const { kind, definitions } = parse(source);
     return DocumentNode.fromDefinition({ kind, definitions });
   }
+
+  static create() {
+    return new DocumentNode();
+  }
+
+  static clone(document: DocumentNode) {
+    return DocumentNode.fromDefinition(document.serialize());
+  }
+
+  static merge(...documents: DocumentNode[]) {
+    const mergedDocument = new DocumentNode();
+
+    for (const document of documents) {
+      for (const node of document.definitions.values()) {
+        if (mergedDocument.hasNode(node.name)) {
+          throw new Error(`Node with name ${node.name} already exists.`);
+        }
+
+        mergedDocument.addNode(node);
+      }
+    }
+
+    return mergedDocument;
+  }
 }
