@@ -7,7 +7,7 @@ import {
   TypeExtensionNode,
 } from "graphql";
 import { validateSDL } from "graphql/validation/validate";
-import { InvalidDefinitionError } from "../utils/errors";
+import { InvalidDefinitionError } from "@gqlbase/shared/errors";
 import { ObjectNode } from "./ObjectNode";
 import { InputObjectNode } from "./InputObjectNode";
 import { InterfaceNode } from "./InterfaceNode";

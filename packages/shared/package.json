@@ -1,7 +1,7 @@
 {
-  "name": "@gqlbase/core",
-  "version": "0.0.2",
-  "description": "Core library for gqlbase, providing the GraphQL transformer and plugin system.",
+  "name": "@gqlbase/shared",
+  "description": "Internal utilities used by gqlbase packages",
+  "version": "0.0.1",
   "sideEffects": false,
   "type": "module",
   "license": "MIT",
@@ -17,7 +17,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/slsdotdev/gqlbase.git",
-    "directory": "packages/core"
+    "directory": "packages/shared"
   },
   "bugs": {
     "url": "https://github.com/slsdotdev/gqlbase/issues"
@@ -27,16 +27,14 @@
     "README.md",
     "../../LICENSE"
   ],
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
   "exports": {
-    ".": {
-      "default": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+    "./logger": {
+      "default": "./dist/logger/index.js",
+      "types": "./dist/logger/index.d.ts"
     },
-    "./*": {
-      "default": "./dist/*/index.js",
-      "types": "./dist/*/index.d.ts"
+    "./errors": {
+      "default": "./dist/errors/index.js",
+      "types": "./dist/errors/index.d.ts"
     }
   },
   "scripts": {
@@ -44,9 +42,6 @@
     "dev": "tsc --watch",
     "lint": "eslint 'src/**/*.{ts,tsx}' --fix",
     "test": "vitest run"
-  },
-  "dependencies": {
-    "@gqlbase/shared": "*"
   },
   "peerDependencies": {
     "graphql": ">=16"

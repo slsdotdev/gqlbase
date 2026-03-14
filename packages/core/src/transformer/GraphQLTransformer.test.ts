@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { GraphQLTransformer } from "./GraphQLTransformer";
 import { TransformerContext } from "../context/TransformerContext";
-import { Logger } from "../utils/logger";
+import { Logger } from "@gqlbase/shared/logger";
 import { ITransformerPlugin } from "../plugins";
 import { DefinitionNode } from "../definition";
 
