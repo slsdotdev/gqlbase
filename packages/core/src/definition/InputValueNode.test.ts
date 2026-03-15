@@ -1,9 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { FieldDefinitionNode, InputValueDefinitionNode, Kind } from "graphql";
-import { InputValueNode } from "./InputValueNode";
-import { ListTypeNode, NamedTypeNode, NonNullTypeNode } from "./TypeNode";
-import { ValueNode } from "./ValueNode";
-import { DirectiveNode } from "./DirectiveNode";
+import { InputValueNode } from "./InputValueNode.js";
+import { ListTypeNode, NamedTypeNode, NonNullTypeNode } from "./TypeNode.js";
+import { ValueNode } from "./ValueNode.js";
+import { DirectiveNode } from "./DirectiveNode.js";
 
 describe("InputValueNode", () => {
   it("creates node from values", () => {

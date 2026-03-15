@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { Kind, ScalarTypeDefinitionNode, ScalarTypeExtensionNode } from "graphql";
-import { DirectiveNode } from "./DirectiveNode";
-import { ScalarNode } from "./ScalarNode";
+import { DirectiveNode } from "./DirectiveNode.js";
+import { ScalarNode } from "./ScalarNode.js";
 
 const definition = {
   kind: Kind.SCALAR_TYPE_DEFINITION,

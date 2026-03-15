@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { ConstArgumentNode, Kind } from "graphql";
-import { ArgumentNode } from "./ArgumentNode";
-import { ValueNode } from "./ValueNode";
+import { ArgumentNode } from "./ArgumentNode.js";
+import { ValueNode } from "./ValueNode.js";
 
 const definition = {
   kind: Kind.ARGUMENT,

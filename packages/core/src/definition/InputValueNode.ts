@@ -6,9 +6,9 @@ import {
   Kind,
   TypeNode as TypeNodeDefinition,
 } from "graphql";
-import { WithDirectivesNode } from "./WithDirectivesNode";
-import { DirectiveNode } from "./DirectiveNode";
-import { ListTypeNode, NamedTypeNode, NonNullTypeNode, TypeNode } from "./TypeNode";
+import { WithDirectivesNode } from "./WithDirectivesNode.js";
+import { DirectiveNode } from "./DirectiveNode.js";
+import { ListTypeNode, NamedTypeNode, NonNullTypeNode, TypeNode } from "./TypeNode.js";
 
 export class InputValueNode extends WithDirectivesNode {
   kind: Kind.INPUT_VALUE_DEFINITION = Kind.INPUT_VALUE_DEFINITION;

@@ -1,8 +1,8 @@
 import { InterfaceTypeDefinitionNode, InterfaceTypeExtensionNode, Kind } from "graphql";
-import { WithInterfaceNode } from "./WithInterfaceNode";
-import { FieldNode } from "./FieldNode";
-import { DirectiveNode } from "./DirectiveNode";
-import { NamedTypeNode } from "./TypeNode";
+import { WithInterfaceNode } from "./WithInterfaceNode.js";
+import { FieldNode } from "./FieldNode.js";
+import { DirectiveNode } from "./DirectiveNode.js";
+import { NamedTypeNode } from "./TypeNode.js";
 
 export class InterfaceNode extends WithInterfaceNode {
   kind: Kind.INTERFACE_TYPE_DEFINITION = Kind.INTERFACE_TYPE_DEFINITION;

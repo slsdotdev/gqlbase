@@ -1,1 +1,1 @@
-export { GraphQLTransformer } from "./GraphQLTransformer";
+export { GraphQLTransformer } from "./GraphQLTransformer.js";

@@ -6,9 +6,9 @@ import {
   EnumValueDefinitionNode,
   Kind,
 } from "graphql";
-import { EnumNode } from "./EnumNode";
-import { DirectiveNode } from "./DirectiveNode";
-import { EnumValueNode } from "./EnumValueNode";
+import { EnumNode } from "./EnumNode.js";
+import { DirectiveNode } from "./DirectiveNode.js";
+import { EnumValueNode } from "./EnumValueNode.js";
 
 const definition = {
   kind: Kind.ENUM_TYPE_DEFINITION,

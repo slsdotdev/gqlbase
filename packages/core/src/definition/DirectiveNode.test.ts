@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { Kind } from "graphql";
-import { DirectiveNode } from "./DirectiveNode";
-import { ArgumentNode } from "./ArgumentNode";
-import { ValueNode } from "./ValueNode";
+import { DirectiveNode } from "./DirectiveNode.js";
+import { ArgumentNode } from "./ArgumentNode.js";
+import { ValueNode } from "./ValueNode.js";
 
 describe("DirectiveNode", () => {
   it("creates node from values", () => {

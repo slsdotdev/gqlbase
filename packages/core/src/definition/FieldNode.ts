@@ -1,8 +1,8 @@
 import { FieldDefinitionNode, InputValueDefinitionNode, Kind } from "graphql";
-import { WithDirectivesNode } from "./WithDirectivesNode";
-import { InputValueNode } from "./InputValueNode";
-import { DirectiveNode } from "./DirectiveNode";
-import { ListTypeNode, NamedTypeNode, NonNullTypeNode, TypeNode } from "./TypeNode";
+import { WithDirectivesNode } from "./WithDirectivesNode.js";
+import { InputValueNode } from "./InputValueNode.js";
+import { DirectiveNode } from "./DirectiveNode.js";
+import { ListTypeNode, NamedTypeNode, NonNullTypeNode, TypeNode } from "./TypeNode.js";
 
 export class FieldNode extends WithDirectivesNode {
   readonly kind: Kind.FIELD_DEFINITION = Kind.FIELD_DEFINITION;

@@ -1,7 +1,7 @@
 import { FieldDefinitionNode } from "graphql";
-import { FieldNode } from "./FieldNode";
-import { WithDirectivesNode } from "./WithDirectivesNode";
-import { DirectiveNode } from "./DirectiveNode";
+import { FieldNode } from "./FieldNode.js";
+import { WithDirectivesNode } from "./WithDirectivesNode.js";
+import { DirectiveNode } from "./DirectiveNode.js";
 
 export class WithFieldsNode extends WithDirectivesNode {
   name: string;

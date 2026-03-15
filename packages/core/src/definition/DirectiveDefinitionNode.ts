@@ -3,7 +3,7 @@ import {
   InputValueDefinitionNode,
   Kind,
 } from "graphql";
-import { InputValueNode } from "./InputValueNode";
+import { InputValueNode } from "./InputValueNode.js";
 
 type Location =
   | "SCHEMA"

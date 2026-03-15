@@ -1,9 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { InterfaceTypeDefinitionNode, InterfaceTypeExtensionNode, Kind } from "graphql";
-import { DirectiveNode } from "./DirectiveNode";
-import { FieldNode } from "./FieldNode";
-import { InterfaceNode } from "./InterfaceNode";
-import { NamedTypeNode } from "./TypeNode";
+import { DirectiveNode } from "./DirectiveNode.js";
+import { FieldNode } from "./FieldNode.js";
+import { InterfaceNode } from "./InterfaceNode.js";
+import { NamedTypeNode } from "./TypeNode.js";
 
 const definition = {
   kind: Kind.INTERFACE_TYPE_DEFINITION,

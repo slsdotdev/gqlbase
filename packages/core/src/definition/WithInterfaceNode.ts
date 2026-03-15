@@ -1,9 +1,9 @@
 import { NamedTypeNode as INamedTypeNode } from "graphql";
 
-import { DirectiveNode } from "./DirectiveNode";
-import { FieldNode } from "./FieldNode";
-import { NamedTypeNode } from "./TypeNode";
-import { WithFieldsNode } from "./WithFieldsNode";
+import { DirectiveNode } from "./DirectiveNode.js";
+import { FieldNode } from "./FieldNode.js";
+import { NamedTypeNode } from "./TypeNode.js";
+import { WithFieldsNode } from "./WithFieldsNode.js";
 
 export class WithInterfaceNode extends WithFieldsNode {
   name: string;

@@ -1,5 +1,5 @@
 import { ConstArgumentNode, ConstValueNode, Kind } from "graphql";
-import { ValueNode } from "./ValueNode";
+import { ValueNode } from "./ValueNode.js";
 
 export class ArgumentNode {
   kind: Kind.ARGUMENT = Kind.ARGUMENT;

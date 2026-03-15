@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { Kind } from "graphql";
-import { NamedTypeNode } from "./TypeNode";
-import { UnionNode } from "./UnionNode";
-import { DirectiveNode } from "./DirectiveNode";
+import { NamedTypeNode } from "./TypeNode.js";
+import { UnionNode } from "./UnionNode.js";
+import { DirectiveNode } from "./DirectiveNode.js";
 
 describe("UnionNode", () => {
   it("creates node from values", () => {

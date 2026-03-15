@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { TransformerContext } from "./TransformerContext";
-import { ITransformerPlugin } from "../plugins";
-import { DocumentNode } from "../definition";
+import { TransformerContext } from "./TransformerContext.js";
+import { ITransformerPlugin } from "../plugins/ITransformerPlugin.js";
+import { DocumentNode } from "../definition/DocumentNode.js";
 
 const testPlugin: ITransformerPlugin = {
   name: "TestPlugin",

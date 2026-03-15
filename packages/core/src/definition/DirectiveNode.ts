@@ -1,6 +1,6 @@
 import { ConstArgumentNode, ConstDirectiveNode, Kind } from "graphql";
-import { ArgumentNode } from "./ArgumentNode";
-import { ValueType } from "./ValueNode";
+import { ArgumentNode } from "./ArgumentNode.js";
+import { ValueType } from "./ValueNode.js";
 
 export class DirectiveNode {
   kind: Kind.DIRECTIVE = Kind.DIRECTIVE;

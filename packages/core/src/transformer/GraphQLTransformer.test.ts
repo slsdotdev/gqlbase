@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { GraphQLTransformer } from "./GraphQLTransformer";
-import { TransformerContext } from "../context/TransformerContext";
 import { Logger } from "@gqlbase/shared/logger";
-import { ITransformerPlugin } from "../plugins";
-import { DefinitionNode } from "../definition";
+import { GraphQLTransformer } from "./GraphQLTransformer.js";
+import { TransformerContext } from "../context/TransformerContext.js";
+import { ITransformerPlugin } from "../plugins/ITransformerPlugin.js";
+import { DefinitionNode } from "../definition/DocumentNode.js";
 
 const mockLogger = vi.mockObject(Logger.prototype);
 const testPlugin: ITransformerPlugin = {

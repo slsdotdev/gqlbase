@@ -1,1 +1,1 @@
-export type { ITransformerPlugin } from "./ITransformerPlugin";
+export type { ITransformerPlugin } from "./ITransformerPlugin.js";

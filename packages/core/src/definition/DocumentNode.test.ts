@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { parse } from "graphql";
-import { DocumentNode } from "./DocumentNode";
-import { ObjectNode } from "./ObjectNode";
+import { DocumentNode } from "./DocumentNode.js";
+import { ObjectNode } from "./ObjectNode.js";
 
 const definition = /* GraphQL */ `
   type Query {

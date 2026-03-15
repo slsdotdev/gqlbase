@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { ConstDirectiveNode, EnumValueDefinitionNode, Kind } from "graphql";
-import { EnumValueNode } from "./EnumValueNode";
-import { DirectiveNode } from "./DirectiveNode";
+import { EnumValueNode } from "./EnumValueNode.js";
+import { DirectiveNode } from "./DirectiveNode.js";
 
 const definition = {
   kind: Kind.ENUM_VALUE_DEFINITION,

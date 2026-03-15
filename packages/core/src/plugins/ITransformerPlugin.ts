@@ -1,4 +1,4 @@
-import { DefinitionNode } from "../definition";
+import { DefinitionNode } from "../definition/index.js";
 
 export interface ITransformerPlugin {
   /**

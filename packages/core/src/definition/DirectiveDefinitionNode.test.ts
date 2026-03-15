@@ -4,8 +4,8 @@ import {
   DirectiveDefinitionNode as ASTDirectiveDefinitionNode,
   Kind,
 } from "graphql";
-import { DirectiveDefinitionNode } from "./DirectiveDefinitionNode";
-import { InputValueNode } from "./InputValueNode";
+import { DirectiveDefinitionNode } from "./DirectiveDefinitionNode.js";
+import { InputValueNode } from "./InputValueNode.js";
 
 const definition = {
   kind: Kind.DIRECTIVE_DEFINITION,

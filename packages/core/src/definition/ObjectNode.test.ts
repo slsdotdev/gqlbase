@@ -1,9 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { Kind, ObjectTypeDefinitionNode, ObjectTypeExtensionNode } from "graphql";
-import { DirectiveNode } from "./DirectiveNode";
-import { FieldNode } from "./FieldNode";
-import { ObjectNode } from "./ObjectNode";
-import { NamedTypeNode } from "./TypeNode";
+import { DirectiveNode } from "./DirectiveNode.js";
+import { FieldNode } from "./FieldNode.js";
+import { ObjectNode } from "./ObjectNode.js";
+import { NamedTypeNode } from "./TypeNode.js";
 
 const definition = {
   kind: Kind.OBJECT_TYPE_DEFINITION,

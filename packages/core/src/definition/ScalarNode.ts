@@ -1,6 +1,6 @@
 import { Kind, ScalarTypeDefinitionNode, ScalarTypeExtensionNode } from "graphql";
-import { DirectiveNode } from "./DirectiveNode";
-import { WithDirectivesNode } from "./WithDirectivesNode";
+import { DirectiveNode } from "./DirectiveNode.js";
+import { WithDirectivesNode } from "./WithDirectivesNode.js";
 
 export class ScalarNode extends WithDirectivesNode {
   kind: Kind.SCALAR_TYPE_DEFINITION = Kind.SCALAR_TYPE_DEFINITION;

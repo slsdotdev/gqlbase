@@ -1,8 +1,8 @@
 import { Kind, ObjectTypeDefinitionNode, ObjectTypeExtensionNode } from "graphql";
-import { FieldNode } from "./FieldNode";
-import { DirectiveNode } from "./DirectiveNode";
-import { NamedTypeNode } from "./TypeNode";
-import { WithInterfaceNode } from "./WithInterfaceNode";
+import { FieldNode } from "./FieldNode.js";
+import { DirectiveNode } from "./DirectiveNode.js";
+import { NamedTypeNode } from "./TypeNode.js";
+import { WithInterfaceNode } from "./WithInterfaceNode.js";
 
 export class ObjectNode extends WithInterfaceNode {
   kind: Kind.OBJECT_TYPE_DEFINITION = Kind.OBJECT_TYPE_DEFINITION;

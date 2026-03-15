@@ -4,9 +4,9 @@ import {
   UnionTypeExtensionNode,
   NamedTypeNode as INamedTypeNode,
 } from "graphql";
-import { DirectiveNode } from "./DirectiveNode";
-import { NamedTypeNode } from "./TypeNode";
-import { WithDirectivesNode } from "./WithDirectivesNode";
+import { DirectiveNode } from "./DirectiveNode.js";
+import { NamedTypeNode } from "./TypeNode.js";
+import { WithDirectivesNode } from "./WithDirectivesNode.js";
 
 export class UnionNode extends WithDirectivesNode {
   kind: Kind.UNION_TYPE_DEFINITION = Kind.UNION_TYPE_DEFINITION;

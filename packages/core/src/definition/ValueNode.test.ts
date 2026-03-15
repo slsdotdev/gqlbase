@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { Kind } from "graphql";
-import { ValueNode } from "./ValueNode";
+import { ValueNode } from "./ValueNode.js";
 
 describe("ValueNode", () => {
   it("creates string", () => {

@@ -6,15 +6,15 @@ import {
   Source,
   TypeExtensionNode,
 } from "graphql";
-import { validateSDL } from "graphql/validation/validate";
+import { validateSDL } from "graphql/validation/validate.js";
 import { InvalidDefinitionError } from "@gqlbase/shared/errors";
-import { ObjectNode } from "./ObjectNode";
-import { InputObjectNode } from "./InputObjectNode";
-import { InterfaceNode } from "./InterfaceNode";
-import { EnumNode } from "./EnumNode";
-import { UnionNode } from "./UnionNode";
-import { ScalarNode } from "./ScalarNode";
-import { DirectiveDefinitionNode } from "./DirectiveDefinitionNode";
+import { ObjectNode } from "./ObjectNode.js";
+import { InputObjectNode } from "./InputObjectNode.js";
+import { InterfaceNode } from "./InterfaceNode.js";
+import { EnumNode } from "./EnumNode.js";
+import { UnionNode } from "./UnionNode.js";
+import { ScalarNode } from "./ScalarNode.js";
+import { DirectiveDefinitionNode } from "./DirectiveDefinitionNode.js";
 
 export type DefinitionNode =
   | InterfaceNode

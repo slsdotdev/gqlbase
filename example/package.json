@@ -7,7 +7,7 @@
   "private": true,
   "sideEffects": false,
   "scripts": {
-    "codegen": "gqlbase"
+    "codegen": "gqlbase src/schema/**/*.graphql --o generated"
   },
   "devDependencies": {
     "@gqlbase/cli": "*"

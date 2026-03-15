@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { NamedTypeNode as INamedTypeNode, Kind } from "graphql";
-import { NamedTypeNode } from "./TypeNode";
-import { WithInterfaceNode } from "./WithInterfaceNode";
+import { NamedTypeNode } from "./TypeNode.js";
+import { WithInterfaceNode } from "./WithInterfaceNode.js";
 
 describe("WithInterfaceNode", () => {
   it("checks for interface existance", () => {

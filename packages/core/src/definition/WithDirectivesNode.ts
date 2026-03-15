@@ -1,5 +1,5 @@
 import { ConstDirectiveNode } from "graphql";
-import { DirectiveNode } from "./DirectiveNode";
+import { DirectiveNode } from "./DirectiveNode.js";
 
 export class WithDirectivesNode {
   name: string;

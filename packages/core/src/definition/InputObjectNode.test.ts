@@ -7,8 +7,8 @@ import {
   Kind,
   ObjectTypeDefinitionNode,
 } from "graphql";
-import { InputObjectNode } from "./InputObjectNode";
-import { InputValueNode } from "./InputValueNode";
+import { InputObjectNode } from "./InputObjectNode.js";
+import { InputValueNode } from "./InputValueNode.js";
 
 describe("InputObjectNode", () => {
   it("creates node from values", () => {

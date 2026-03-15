@@ -1,6 +1,6 @@
-import { DocumentNode } from "../definition";
-import { ITransformerPlugin } from "../plugins/ITransformerPlugin";
-import { ITransformerContext } from "./ITransformerContext";
+import { DocumentNode } from "../definition/DocumentNode.js";
+import { ITransformerPlugin } from "../plugins/ITransformerPlugin.js";
+import { ITransformerContext } from "./ITransformerContext.js";
 
 export class TransformerContext implements ITransformerContext {
   readonly plugins: ITransformerPlugin[] = [];

@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { FieldDefinitionNode, Kind } from "graphql";
-import { FieldNode } from "./FieldNode";
-import { NamedTypeNode, NonNullTypeNode } from "./TypeNode";
-import { WithFieldsNode } from "./WithFieldsNode";
+import { FieldNode } from "./FieldNode.js";
+import { NamedTypeNode, NonNullTypeNode } from "./TypeNode.js";
+import { WithFieldsNode } from "./WithFieldsNode.js";
 
 describe("WithFieldsNode", () => {
   it("checks for field existance", () => {

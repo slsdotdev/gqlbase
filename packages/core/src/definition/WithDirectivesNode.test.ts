@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { ConstDirectiveNode, Kind } from "graphql";
-import { WithDirectivesNode } from "./WithDirectivesNode";
-import { DirectiveNode } from "./DirectiveNode";
+import { WithDirectivesNode } from "./WithDirectivesNode.js";
+import { DirectiveNode } from "./DirectiveNode.js";
 
 describe("WithDirectives", () => {
   it("checks for directive existence", () => {

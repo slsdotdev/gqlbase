@@ -1,9 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { FieldDefinitionNode, InputValueDefinitionNode, Kind } from "graphql";
-import { FieldNode } from "./FieldNode";
-import { NamedTypeNode, NonNullTypeNode } from "./TypeNode";
-import { InputValueNode } from "./InputValueNode";
-import { DirectiveNode } from "./DirectiveNode";
+import { FieldNode } from "./FieldNode.js";
+import { NamedTypeNode, NonNullTypeNode } from "./TypeNode.js";
+import { InputValueNode } from "./InputValueNode.js";
+import { DirectiveNode } from "./DirectiveNode.js";
 
 const fieldDefinition = {
   kind: Kind.FIELD_DEFINITION,

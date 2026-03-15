@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { NamedTypeNode as INamedTypeNode, ListTypeNode as IListTypeNode, Kind } from "graphql";
-import { ListTypeNode, NamedTypeNode, NonNullTypeNode } from "./TypeNode";
+import { ListTypeNode, NamedTypeNode, NonNullTypeNode } from "./TypeNode.js";
 
 describe("TypeNode", () => {
   describe("NamedTypeNode", () => {
