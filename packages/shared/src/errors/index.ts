@@ -13,3 +13,10 @@ export class InvalidDefinitionError extends Error {
     this.name = "InvalidDefinitionError";
   }
 }
+
+export class TransformerPluginExecutionError extends Error {
+  constructor(pluginName: string, message: string) {
+    super(`Error in plugin ${pluginName}: ${message}`);
+    this.name = "TransformerPluginExecutionError";
+  }
+}

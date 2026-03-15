@@ -3,6 +3,15 @@ import { ITransformerPlugin } from "../plugins/ITransformerPlugin.js";
 
 export interface ITransformerContext {
   /**
+   * The output directory where the transformed GraphQL documents or generated code will be saved. This can be used by plugins to determine where to write their output files.
+   */
+  readonly outputDirectory: string;
+
+  /** The base GraphQL document that serves as the starting point for transformations. This document can be used py plugin to register new types, fields, or other GraphQL constructs that can be referenced by other plugins during the transformation process.
+   */
+  readonly base: DocumentNode;
+
+  /**
    * An array of registered transformer plugins. Plugins can access this array to interact with other plugins or to add new plugins dynamically.
    */
   readonly plugins: ITransformerPlugin[];

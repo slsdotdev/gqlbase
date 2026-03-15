@@ -1,3 +1,4 @@
+import { ITransformerContext } from "../context/ITransformerContext.js";
 import { DefinitionNode } from "../definition/index.js";
 
 export interface ITransformerPlugin {
@@ -5,6 +6,7 @@ export interface ITransformerPlugin {
    * A unique name for the plugin. Used for error reporting and debugging.
    */
   readonly name: string;
+  readonly context: ITransformerContext;
 
   /**
    * A function that initializes the plugin. This is called once when the plugin is registered and can be used to set up any necessary state or configuration for the plugin.

@@ -45,6 +45,7 @@ export class TransformerContext implements ITransformerContext {
     }
 
     this._workInProgress = DocumentNode.merge(this.base, document);
+    console.log("Starting work with document:", this._workInProgress.toString());
     return this._workInProgress;
   }
 

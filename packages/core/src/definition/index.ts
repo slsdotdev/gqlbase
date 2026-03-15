@@ -12,4 +12,4 @@ export { ObjectNode } from "./ObjectNode.js";
 export { ScalarNode } from "./ScalarNode.js";
 export { type TypeNode, NamedTypeNode, ListTypeNode, NonNullTypeNode } from "./TypeNode.js";
 export { UnionNode } from "./UnionNode.js";
-export { ValueNode } from "./ValueNode.js";
+export { ValueNode, type ValueType } from "./ValueNode.js";
