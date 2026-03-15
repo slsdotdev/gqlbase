@@ -1,6 +1,6 @@
 {
   "name": "@gqlbase/plugins",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Collection of plugins and presets for gqlbase, providing common transformations and utilities that can be used in GraphQL schema transformation processes.",
   "sideEffects": false,
   "type": "module",
