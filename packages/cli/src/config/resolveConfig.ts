@@ -1,7 +1,14 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { stripUndef } from "@gqlbase/shared/utils";
-import { Config } from "./defineConfig.js";
+import { Config, DEFAULT_CONFIG } from "./config.js";
+
+export interface CliOptions {
+  config?: string;
+  output?: string;
+  verbose?: boolean;
+  watch?: boolean;
+}
 
 export const DEFAULT_CONFIG_FILES = [
   // "gqlbase.config.ts",
@@ -9,19 +16,6 @@ export const DEFAULT_CONFIG_FILES = [
   "gqlbase.config.mjs",
   "gqlbase.config.cjs",
 ] as const;
-
-export const DEFAULT_CONFIG = Object.freeze<Config>({
-  schema: "**/*.graphql",
-  output: "generated",
-  verbose: false,
-  watch: false,
-});
-
-export interface ConfigOverrides extends Partial<
-  Pick<Config, "schema" | "output" | "verbose" | "watch">
-> {
-  config?: string;
-}
 
 const resolveConfigFilePath = (filePath?: string): string | null => {
   if (filePath) {
@@ -40,7 +34,7 @@ const resolveConfigFilePath = (filePath?: string): string | null => {
   return null;
 };
 
-export const loadConfigFile = async (filePath?: string): Promise<Config | null> => {
+export const loadConfigFile = async (filePath?: string): Promise<Partial<Config> | null> => {
   try {
     const resolvedFilePath = resolveConfigFilePath(filePath);
 
@@ -58,7 +52,13 @@ export const loadConfigFile = async (filePath?: string): Promise<Config | null> 
   }
 };
 
-export async function parseConfig(overrides: Partial<ConfigOverrides> = {}): Promise<Config> {
+export interface CliOverrides extends CliOptions {
+  source: string | undefined;
+}
+
+export async function resolveConfig(
+  overrides: CliOverrides = { source: undefined }
+): Promise<Config> {
   const configFromFile = await loadConfigFile(overrides.config);
 
   if (!configFromFile) {
@@ -71,5 +71,5 @@ export async function parseConfig(overrides: Partial<ConfigOverrides> = {}): Pro
     ...DEFAULT_CONFIG,
     ...configFromFile,
     ...stripUndef(overrides),
-  };
+  } as Config;
 }

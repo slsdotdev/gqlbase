@@ -1,1 +1,1 @@
-export { transform, type TransformCliOptions } from "./transform.js";
+export { transform, type TransformParams } from "./transform.js";

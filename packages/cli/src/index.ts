@@ -1,13 +1,6 @@
 import { cac } from "cac";
 import { readFileSync } from "node:fs";
-import { transform } from "./transform/index.js";
-
-export interface CliOptions {
-  config?: string;
-  output?: string;
-  verbose?: boolean;
-  watch?: boolean;
-}
+import { run } from "./action.js";
 
 const { version } = JSON.parse(
   readFileSync(new URL("../package.json", import.meta.url)).toString()
@@ -21,7 +14,7 @@ cli
   .option("-v, --verbose", "Enable verbose logging")
   .option("-w, --watch", "Watch schema files for changes and automatically transform them");
 
-cli.command("[...schema]", "Transform a GraphQL schema").action(transform);
+cli.command("[source]", "Transform a GraphQL schema").action(run);
 
 cli.help();
 cli.version(version);

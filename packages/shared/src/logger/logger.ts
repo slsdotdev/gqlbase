@@ -14,7 +14,7 @@ export class Logger {
   }
 
   private _formatMessage(level: string, message: string, ...args: any[]): string {
-    const prefix = `gqlbase ${level} ${this._scope}`;
+    const prefix = `gqlbase ${level} ${pc.dim(this._scope)}`;
 
     const formattedArgs = util
       .format("", message, ...args)

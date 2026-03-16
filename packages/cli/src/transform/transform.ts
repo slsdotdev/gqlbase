@@ -1,50 +1,33 @@
-import { createLogger } from "@gqlbase/shared/logger";
-import { parseConfig } from "../config/parseConfig.js";
-import { createTransformer } from "@gqlbase/core";
+import { createLogger, Logger } from "@gqlbase/shared/logger";
+import { createTransformer, IPluginFactory } from "@gqlbase/core";
 import { definitionFromFiles } from "@gqlbase/shared/definition";
-import path from "node:path";
 
-export interface TransformCliOptions {
-  config?: string;
-  output?: string;
-  verbose?: boolean;
-  watch?: boolean;
+export interface TransformParams {
+  sources: string[];
+  outputDirectory: string;
+  plugins: (IPluginFactory | IPluginFactory[])[];
+  logger?: Logger;
 }
 
-export async function transform(schema: string[], options: TransformCliOptions) {
-  const config = await parseConfig({
-    config: options.config,
-    output: options.output,
-    verbose: options.verbose,
-    watch: options.watch,
-    schema: schema.length ? schema : undefined,
-  });
-
-  const logLevel = config.verbose ? "debug" : "info";
-  const logger = createLogger("transform", logLevel);
-
+export async function transform(params: TransformParams) {
+  const logger = params.logger ?? createLogger("transform");
+  const startTime = performance.now();
   logger.debug("Starting transformation");
-  logger.debug("Input schema", schema);
-  logger.debug("Config", config);
+  logger.debug("Input sources", params.sources);
 
   const transformer = createTransformer({
-    outputDirectory: config.output,
-    plugins: [],
+    outputDirectory: params.outputDirectory,
+    plugins: params.plugins,
     logger,
   });
 
-  const source = Array.isArray(config.schema)
-    ? config.schema.map((s) => path.resolve(process.cwd(), s))
-    : path.resolve(process.cwd(), config.schema);
+  const definition = definitionFromFiles(params.sources);
 
-  logger.debug("Resolved schema source", source);
+  logger.debug("Parsed GraphQL definition\n\n");
+  logger.debug(definition);
 
-  const definition = definitionFromFiles(
-    Array.isArray(config.schema)
-      ? config.schema.map((s) => path.resolve(process.cwd(), s))
-      : path.resolve(process.cwd(), config.schema)
-  );
+  const output = transformer.transform(definition);
 
-  logger.debug("Parsed GraphQL definition\n\n", definition);
-  transformer.transform(definition);
+  logger.success(`Transformation completed in  ${Math.floor(performance.now() - startTime)}ms`);
+  logger.debug("Transformation output\n\n", output);
 }

@@ -1,21 +1,25 @@
+import { createLogger, Logger } from "@gqlbase/shared/logger";
 import { DocumentNode } from "../definition/DocumentNode.js";
 import { ITransformerPlugin } from "../plugins/ITransformerPlugin.js";
 import { ITransformerContext } from "./ITransformerContext.js";
 
 interface TransformerContextOptions {
   outputDirectory?: string;
+  logger?: Logger;
 }
 
 export class TransformerContext implements ITransformerContext {
   readonly plugins: ITransformerPlugin[] = [];
   readonly base: DocumentNode;
   readonly outputDirectory: string;
+  readonly logger: Logger;
 
   private _workInProgress: DocumentNode | null = null;
 
   constructor(options: TransformerContextOptions = {}) {
     this.base = DocumentNode.create();
     this.outputDirectory = options.outputDirectory || "generated";
+    this.logger = options.logger ?? createLogger("TransformerContext", "error");
   }
 
   get document() {
@@ -45,7 +49,7 @@ export class TransformerContext implements ITransformerContext {
     }
 
     this._workInProgress = DocumentNode.merge(this.base, document);
-    console.log("Starting work with document:", this._workInProgress.toString());
+    this.logger.debug("Starting work with document:", this._workInProgress.toString());
     return this._workInProgress;
   }
 

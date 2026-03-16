@@ -1,6 +1,7 @@
 {
-  "name": "@gqlbase/cli",
-  "version": "0.0.2",
+  "name": "gqlbase",
+  "version": "0.0.1",
+  "description": "A modular GraphQL schema transformation framework that allows developers to define and apply a series of transformations to their GraphQL schemas in a flexible and composable manner.",
   "sideEffects": false,
   "type": "module",
   "license": "MIT",
@@ -16,46 +17,36 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/slsdotdev/gqlbase.git",
-    "directory": "packages/cli"
+    "directory": "packages/gqlbase"
   },
   "bugs": {
     "url": "https://github.com/slsdotdev/gqlbase/issues"
   },
+  "keywords": [
+    "GraphQL"
+  ],
   "files": [
     "dist",
-    "bin",
     "README.md",
     "../../LICENSE"
   ],
-  "bin": {
-    "gqlbase": "bin/index.js"
-  },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
-    ".": {
-      "default": "./dist/index.js",
-      "types": "./dist/index.d.ts"
-    },
-    "./config": {
-      "default": "./dist/config/index.js",
-      "types": "./dist/config/index.d.ts"
+    "./*": {
+      "default": "./dist/*/index.js",
+      "types": "./dist/*/index.d.ts"
     }
   },
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "lint": "eslint 'src/**/*.{ts,tsx}' --fix",
-    "test": "vitest run"
+    "lint": "eslint 'src/**/*.{ts,tsx}' --fix"
   },
   "dependencies": {
+    "@gqlbase/cli": "*",
     "@gqlbase/core": "*",
-    "@gqlbase/shared": "*",
-    "cac": "^7.0.0",
-    "chokidar": "^5.0.0",
-    "tinyglobby": "^0.2.15"
-  },
-  "devDependencies": {
-    "@gqlbase/plugins": "*"
+    "@gqlbase/plugins": "*",
+    "@gqlbase/shared": "*"
   }
 }

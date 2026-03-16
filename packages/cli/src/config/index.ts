@@ -1,2 +1,3 @@
-export { defineConfig, type Config } from "./defineConfig.js";
-export { parseConfig, type ConfigOverrides } from "./parseConfig.js";
+export type { Config } from "./config.js";
+export { defineConfig } from "./defineConfig.js";
+export { resolveConfig, type CliOptions } from "./resolveConfig.js";
