@@ -42,7 +42,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@gqlbase/core": "^0.0.2",
+    "@gqlbase/core": "^0.0.3",
     "@gqlbase/shared": "^0.0.2"
   },
   "peerDependencies": {

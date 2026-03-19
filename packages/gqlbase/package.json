@@ -45,7 +45,7 @@
   },
   "dependencies": {
     "@gqlbase/cli": "^0.0.2",
-    "@gqlbase/core": "^0.0.2",
+    "@gqlbase/core": "^0.0.3",
     "@gqlbase/plugins": "^0.0.2",
     "@gqlbase/shared": "^0.0.2"
   }
