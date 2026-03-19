@@ -12,50 +12,16 @@ import {
 } from "@gqlbase/core/definition";
 import { TransformerPluginExecutionError } from "@gqlbase/shared/errors";
 import { camelCase, pascalCase } from "@gqlbase/shared/format";
-
-export const RelationDirective = {
-  HAS_ONE: "hasOne",
-  HAS_MANY: "hasMany",
-} as const;
-
-export interface FieldRelationship {
-  type: "oneToOne" | "oneToMany";
-  target: ObjectNode | InterfaceNode | UnionNode;
-  key?: string;
-}
-
-export const isOneRelationship = (field: FieldNode): boolean => {
-  return field.hasDirective(RelationDirective.HAS_ONE);
-};
-
-export const isManyRelationship = (field: FieldNode): boolean => {
-  return field.hasDirective(RelationDirective.HAS_MANY);
-};
-
-export const isRelationField = (field: FieldNode): boolean => {
-  return isOneRelationship(field) || isManyRelationship(field);
-};
-
-export const isConnectionNode = (node: DefinitionNode): boolean => {
-  if (node instanceof ObjectNode) {
-    if (!node.name.endsWith("Connection")) return false;
-    if (!node.fields || node.fields.length < 2) return false;
-    if (!node.hasField("items") || !node.hasField("nextToken")) return false;
-    return true;
-  }
-
-  return false;
-};
-
-export const isValidRelationTarget = (
-  node: DefinitionNode
-): node is ObjectNode | InterfaceNode | UnionNode => {
-  return node instanceof ObjectNode || node instanceof InterfaceNode || node instanceof UnionNode;
-};
-
-interface RelationPluginOptions {
-  useConnections?: boolean;
-}
+import {
+  FieldRelationship,
+  isConnectionNode,
+  isManyRelationship,
+  isOneRelationship,
+  isRelationField,
+  isValidRelationTarget,
+  RelationDirective,
+  RelationPluginOptions,
+} from "./RelationsPlugin.utils.js";
 
 /**
  *  This plugin is responsible for adding the `@hasOne` and `@hasMany` directives to the schema, which can be used to define relationships between types. It also adds the necessary fields and arguments to the schema to support these directives.

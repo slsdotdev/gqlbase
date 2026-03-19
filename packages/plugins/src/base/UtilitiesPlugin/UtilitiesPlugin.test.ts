@@ -1,7 +1,8 @@
-import { TransformerContext } from "@gqlbase/core";
-import { UtilitiesPlugin, UtilityDirective } from "./UtilitiesPlugin.js";
 import { beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { TransformerContext } from "@gqlbase/core";
 import { DefinitionNode, DocumentNode, ObjectNode } from "@gqlbase/core/definition";
+import { UtilitiesPlugin } from "./UtilitiesPlugin.js";
+import { UtilityDirective } from "./UtilitiesPlugin.utils.js";
 
 describe("UtilitiesPlugin", () => {
   let plugin: UtilitiesPlugin;

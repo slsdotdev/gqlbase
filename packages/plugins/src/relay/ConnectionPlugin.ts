@@ -15,7 +15,7 @@ import {
 import { TransformerPluginExecutionError } from "@gqlbase/shared/errors";
 import { camelCase, pascalCase } from "@gqlbase/shared/format";
 import { UtilityDirective } from "../base/index.js";
-import { isRelationField } from "../base/RelationsPlugin.js";
+import { isRelationField } from "../base/RelationsPlugin/index.js";
 
 export const ConnectionDirective = {
   HAS_ONE: "hasOne",

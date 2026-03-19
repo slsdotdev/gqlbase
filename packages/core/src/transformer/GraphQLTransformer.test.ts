@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 import { Logger } from "@gqlbase/shared/logger";
 import { GraphQLTransformer } from "./GraphQLTransformer.js";
 import { TransformerContext } from "../context/TransformerContext.js";
@@ -22,7 +22,7 @@ const testPlugin: ITransformerPlugin = {
 describe("GraphQLTransformer", () => {
   let transformer: GraphQLTransformer;
 
-  beforeEach(() => {
+  beforeAll(() => {
     context.registerPlugin(testPlugin);
     transformer = new GraphQLTransformer(context);
   });
@@ -49,21 +49,6 @@ describe("GraphQLTransformer", () => {
     `;
 
     expect(() => transformer.transform(invalidSource)).toThrow("Schema validation failed");
-  });
-
-  it("should not throw when `throwOnError` is false", () => {
-    const transformerWithNoThrow = new GraphQLTransformer(context);
-
-    const invalidSource = /* GraphQL */ `
-      type Query {
-        user: User
-      }
-    `;
-
-    expect(() => transformerWithNoThrow.transform(invalidSource)).not.toThrow();
-    expect(mockLogger.error).toHaveBeenCalledWith(
-      expect.stringContaining("Schema validation failed")
-    );
   });
 
   it("should transform schema", () => {

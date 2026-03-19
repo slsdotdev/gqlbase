@@ -1,7 +1,10 @@
-export type { ITransformerContext } from "./context/index.js";
-export { TransformerContext } from "./context/index.js";
-export type { ITransformerPlugin, IPluginFactory } from "./plugins/index.js";
-export { createPluginFactory } from "./plugins/index.js";
+export { TransformerContext, type ITransformerContext } from "./context/index.js";
+export {
+  TransformerPluginBase,
+  createPluginFactory,
+  type ITransformerPlugin,
+  type IPluginFactory,
+} from "./plugins/index.js";
 export {
   GraphQLTransformer,
   createTransformer,

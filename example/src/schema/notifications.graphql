@@ -25,18 +25,14 @@ type Notification implements Node & Timestamped @model @scope(allow: [ADMIN, VEN
   title: String! @constraint(maxLength: 200)
   body: String! @constraint(maxLength: 1000)
 
-  """
-  Structured payload for client-side rendering and deep-linking.
-  """
+  " Structured payload for client-side rendering and deep-linking. "
   payload: NotificationPayload!
 
   readAt: DateTime
   dismissedAt: DateTime
   clickedAt: DateTime
 
-  """
-  External delivery identifier (e.g. email message-id, push receipt).
-  """
+  " External delivery identifier (e.g. email message-id, push receipt). "
   deliveryRef: String @serverOnly @constraint(maxLength: 200)
   deliveryStatus: DeliveryStatus! @readOnly
 

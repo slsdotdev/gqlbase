@@ -18,60 +18,80 @@ import {
 import { createPluginFactory, getTypeHint, InternalDirective } from "@gqlbase/core/plugins";
 import { TransformerPluginExecutionError } from "@gqlbase/shared/errors";
 import { camelCase, pascalCase, pluralize } from "@gqlbase/shared/format";
-import { isClientOnly, isReadOnly, isServerOnly, isWriteOnly } from "./UtilitiesPlugin.js";
 import { isBuildInScalar } from "@gqlbase/shared/definition";
-import { isRelationField } from "./RelationsPlugin.js";
+import {
+  DEFAULT_READ_OPERATIONS,
+  DEFAULT_WRITE_OPERATIONS,
+  isModel,
+  isObjectLike,
+  ModelDirective,
+  ModelOperation,
+  ModelPluginOptions,
+  OperationType,
+  shouldSkipFieldFromFilterInput,
+  shouldSkipFieldFromMutationInput,
+} from "./ModelPlugin.utils.js";
 
-export const ModelDirective = {
-  MODEL: "model",
-} as const;
-
-export const ModelOperation = {
-  // Shorthand for read operations (get, list)
-  READ: "read",
-
-  // Shorthand for write operations (create, update, delete)
-  WRITE: "write",
-
-  // Query operations
-  GET: "get",
-  LIST: "list",
-
-  // Mutation operations
-  CREATE: "create",
-  UPDATE: "update",
-  UPSERT: "upsert",
-  DELETE: "delete",
-
-  // TBD
-  // SYNC: "sync",
-  // SUBSCRIBE: "subscribe",
-} as const;
-
-type OperationType = (typeof ModelOperation)[keyof typeof ModelOperation];
-
-export const DEFAULT_READ_OPERATIONS: OperationType[] = ["get", "list"];
-export const DEFAULT_WRITE_OPERATIONS: OperationType[] = ["create", "update", "delete"];
-
-export const isModel = (definition: DefinitionNode): definition is ObjectNode => {
-  return definition instanceof ObjectNode && definition.hasDirective(ModelDirective.MODEL);
-};
-
-export const shouldSkipFieldFromMutationInput = (field: FieldNode): boolean => {
-  return isReadOnly(field) || isServerOnly(field) || isClientOnly(field) || isRelationField(field);
-};
-
-export const shouldSkipFieldFromFilterInput = (field: FieldNode): boolean => {
-  return isWriteOnly(field) || isServerOnly(field) || isClientOnly(field) || isRelationField(field);
-};
-
-export const shouldSkipFieldFromSortInput = (field: FieldNode): boolean => {
-  return isServerOnly(field) || isClientOnly(field);
-};
-
-export interface ModelPluginOptions {
-  operations: OperationType[];
-}
+/**
+ * `@model` directive plugin.
+ *
+ * Automatically generates query and mutation fields for types annotated with `@model` directive.
+ * Supports customization of generated operations via directive arguments and plugin options.
+ *
+ * @important Depends on `RelationsPlugin` for handling relation fields, annotated with `@hasOne` and `@hasMany`.
+ *
+ * @example
+ *
+ * ```graphql
+ * # Before
+ *
+ * type Post `@model` {
+ *   id: ID!
+ *   title: String!
+ *   content: String
+ * }
+ *
+ * # After
+ *
+ * type Post {
+ *   id: ID!
+ *   title: String!
+ *   content: String
+ * }
+ *
+ * input PostFilterInput {
+ *   id: IDFilterInput
+ *   title: StringFilterInput
+ *   content: StringFilterInput
+ *   and: [PostFilterInput]
+ *   or: [PostFilterInput]
+ *   not: PostFilterInput
+ * }
+ *
+ * input CreatePostInput {
+ *   id: ID
+ *   title: String!
+ *   content: String
+ * }
+ *
+ * input UpdatePostInput {
+ *   id: ID!
+ *   title: String
+ *   content: String
+ * }
+ *
+ * type Query {
+ *   getPost(id: ID!): Post `@hasOne`
+ *   listPosts(filter: PostFilterInput): [Post] `@hasMany`
+ * }
+ *
+ * type Mutation {
+ *   createPost(input: CreatePostInput!): Post
+ *   updatePost(input: UpdatePostInput!): Post
+ *   deletePost(id: ID!): Post
+ * }
+ * ```
+ */
 
 export class ModelPlugin implements ITransformerPlugin {
   public readonly name = "ModelPlugin";
@@ -266,22 +286,46 @@ export class ModelPlugin implements ITransformerPlugin {
           continue;
         }
 
-        const typeDef = this.context.document.getNodeOrThrow(typeName);
-
-        if (typeDef instanceof ScalarNode) {
-          const scalarFilterInputName = pascalCase(typeDef.name, "filter", "input");
-
-          if (!this.context.document.hasNode(scalarFilterInputName)) {
-            const scalarFilterInput = this._createScalarFilterInput(typeDef, scalarFilterInputName);
-
-            if (scalarFilterInput) {
-              this.context.document.addNode(scalarFilterInput);
-            }
-          }
+        if (this.context.document.hasNode(inputName)) {
+          filterInput.addField(InputValueNode.create(field.name, NamedTypeNode.create(inputName)));
+          continue;
         }
 
-        if (field.type instanceof ListTypeNode && typeDef instanceof ScalarNode) {
+        const typeDef = this.context.document.getNodeOrThrow(typeName);
+
+        if (isObjectLike(typeDef)) {
+          continue;
+        }
+
+        this.context.logger.debug(
+          `Processing filter input for field ${field.name} of type ${typeName}. Filter input name: ${inputName}`
+        );
+
+        if (typeDef instanceof ScalarNode) {
+          this.context.logger.debug(
+            `Creating scalar filter input ${inputName} for scalar ${typeDef.name}`
+          );
+
+          const scalarFilterInput = this._createScalarFilterInput(typeDef, inputName);
+
+          if (scalarFilterInput) {
+            this.context.document.addNode(scalarFilterInput);
+            filterInput.addField(
+              InputValueNode.create(field.name, NamedTypeNode.create(inputName))
+            );
+          }
+
+          continue;
+        }
+
+        if (
+          field.type instanceof ListTypeNode &&
+          (typeDef instanceof ScalarNode || typeDef instanceof EnumNode)
+        ) {
           const listFilterInputName = pascalCase(typeDef.name, "list", "filter", "input");
+          this.context.logger.debug(
+            `Creating list filter input ${listFilterInputName} for list of type ${typeDef.name}`
+          );
 
           if (!this.context.document.hasNode(listFilterInputName)) {
             const listFilterInput = this._createListLikeFilterInput(listFilterInputName, typeName);
@@ -296,15 +340,16 @@ export class ModelPlugin implements ITransformerPlugin {
         }
 
         if (typeDef instanceof EnumNode) {
-          if (!this.context.document.hasNode(inputName)) {
-            this.context.document.addNode(this._createEnumLikeFilterInput(inputName, typeDef.name));
-          }
+          this.context.logger.debug(
+            `Creating enum filter input ${inputName} for enum ${typeDef.name}`
+          );
+          const enumFilterInput = this._createEnumLikeFilterInput(inputName, typeDef.name);
+          this.context.document.addNode(enumFilterInput);
 
           filterInput.addField(InputValueNode.create(field.name, NamedTypeNode.create(inputName)));
-        }
 
-        // TODO: handle custom scalars filter inputs based on @gqlbase_typehint directive
-        // TODO: handle nested objects filtering
+          continue;
+        }
       }
 
       filterInput.addField(InputValueNode.create("and", ListTypeNode.create(filterInputName)));

@@ -1,7 +1,7 @@
-import { modelPlugin } from "./ModelPlugin.js";
-import { relationPlugin } from "./RelationsPlugin.js";
+import { utilsPlugin } from "./UtilitiesPlugin/index.js";
+import { modelPlugin } from "./ModelPlugin/index.js";
+import { relationPlugin } from "./RelationsPlugin/index.js";
 import { schemaGeneratorPlugin } from "./SchemaGeneratorPlugin.js";
-import { utilsPlugin } from "./UtilitiesPlugin.js";
 
 /**
  * A preset that includes all the base plugins

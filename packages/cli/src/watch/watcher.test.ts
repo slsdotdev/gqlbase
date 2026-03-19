@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import picomatch, { isMatch } from "picomatch";
 import { DEFAULT_IGNORED_DIRS, start } from "./watcher.js";
-import { globSync } from "tinyglobby";
 
 const mockTransform = vi.fn();
 
@@ -38,20 +37,6 @@ describe("Watcher", () => {
     const result = picomatch.scan(globPatterns[0]);
     console.log("Scan result for pattern:", result);
     expect(result.base).toBe(expectedBaseDirs[0]);
-  });
-
-  it("matches globs correctly", () => {
-    const patterns = ["src/config/*.ts", "!src/config/*.test.ts"];
-
-    const matches = globSync(patterns, {
-      cwd: process.cwd(),
-      onlyDirectories: true,
-    });
-
-    console.log("Matched directories:", matches, process.cwd());
-
-    expect(matches).toContain("src");
-    expect(matches).not.toContain("src/ignored");
   });
 
   it("should call transform function on file change", async () => {

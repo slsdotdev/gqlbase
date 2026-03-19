@@ -5,7 +5,17 @@ export {
   ModelOperation,
   modelPlugin,
   isModel,
-} from "./ModelPlugin.js";
+} from "./ModelPlugin/index.js";
+export {
+  RelationsPlugin,
+  relationPlugin,
+  RelationDirective,
+  isRelationField,
+  isOneRelationship,
+  isManyRelationship,
+  type FieldRelationship,
+  type RelationPluginOptions,
+} from "./RelationsPlugin/index.js";
 export {
   UtilitiesPlugin,
   UtilityDirective,
@@ -17,6 +27,6 @@ export {
   isServerOnly,
   isUpdateOnly,
   isWriteOnly,
-} from "./UtilitiesPlugin.js";
-
+} from "./UtilitiesPlugin/index.js";
+export { SchemaGeneratorPlugin, schemaGeneratorPlugin } from "./SchemaGeneratorPlugin.js";
 export { basePreset } from "./basePreset.js";
