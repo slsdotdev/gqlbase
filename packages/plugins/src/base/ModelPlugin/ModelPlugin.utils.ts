@@ -1,8 +1,13 @@
 import {
   DefinitionNode,
+  EnumNode,
   FieldNode,
   InterfaceNode,
+  ListTypeNode,
+  NonNullTypeNode,
   ObjectNode,
+  ScalarNode,
+  TypeNode,
   UnionNode,
 } from "@gqlbase/core/definition";
 import { isClientOnly, isReadOnly, isServerOnly, isWriteOnly } from "../UtilitiesPlugin/index.js";
@@ -55,6 +60,22 @@ export const isObjectLike = (
   type: DefinitionNode
 ): type is ObjectNode | InterfaceNode | UnionNode => {
   return type instanceof ObjectNode || type instanceof InterfaceNode || type instanceof UnionNode;
+};
+
+export const isListTypeNode = (node: TypeNode): boolean => {
+  if (node instanceof NonNullTypeNode && node.type instanceof ListTypeNode) {
+    return true;
+  }
+
+  return node instanceof ListTypeNode;
+};
+
+export const isScalar = (node: DefinitionNode): node is ScalarNode => {
+  return node instanceof ScalarNode;
+};
+
+export const isEnum = (node: DefinitionNode): node is EnumNode => {
+  return node instanceof EnumNode;
 };
 
 export const shouldSkipFieldFromMutationInput = (field: FieldNode): boolean => {

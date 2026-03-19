@@ -22,8 +22,11 @@ import { isBuildInScalar } from "@gqlbase/shared/definition";
 import {
   DEFAULT_READ_OPERATIONS,
   DEFAULT_WRITE_OPERATIONS,
+  isEnum,
+  isListTypeNode,
   isModel,
   isObjectLike,
+  isScalar,
   ModelDirective,
   ModelOperation,
   ModelPluginOptions,
@@ -301,27 +304,7 @@ export class ModelPlugin implements ITransformerPlugin {
           `Processing filter input for field ${field.name} of type ${typeName}. Filter input name: ${inputName}`
         );
 
-        if (typeDef instanceof ScalarNode) {
-          this.context.logger.debug(
-            `Creating scalar filter input ${inputName} for scalar ${typeDef.name}`
-          );
-
-          const scalarFilterInput = this._createScalarFilterInput(typeDef, inputName);
-
-          if (scalarFilterInput) {
-            this.context.document.addNode(scalarFilterInput);
-            filterInput.addField(
-              InputValueNode.create(field.name, NamedTypeNode.create(inputName))
-            );
-          }
-
-          continue;
-        }
-
-        if (
-          field.type instanceof ListTypeNode &&
-          (typeDef instanceof ScalarNode || typeDef instanceof EnumNode)
-        ) {
+        if (isListTypeNode(field.type) && (isScalar(typeDef) || isEnum(typeDef))) {
           const listFilterInputName = pascalCase(typeDef.name, "list", "filter", "input");
           this.context.logger.debug(
             `Creating list filter input ${listFilterInputName} for list of type ${typeDef.name}`
@@ -339,7 +322,24 @@ export class ModelPlugin implements ITransformerPlugin {
           continue;
         }
 
-        if (typeDef instanceof EnumNode) {
+        if (isScalar(typeDef)) {
+          this.context.logger.debug(
+            `Creating scalar filter input ${inputName} for scalar ${typeDef.name}`
+          );
+
+          const scalarFilterInput = this._createScalarFilterInput(typeDef, inputName);
+
+          if (scalarFilterInput) {
+            this.context.document.addNode(scalarFilterInput);
+            filterInput.addField(
+              InputValueNode.create(field.name, NamedTypeNode.create(inputName))
+            );
+          }
+
+          continue;
+        }
+
+        if (isEnum(typeDef)) {
           this.context.logger.debug(
             `Creating enum filter input ${inputName} for enum ${typeDef.name}`
           );
