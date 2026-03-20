@@ -6,9 +6,11 @@ export class SchemaGeneratorPlugin extends TransformerPluginBase {
     super("SchemaGeneratorPlugin", context);
   }
 
-  public generate() {
+  public output() {
     const schema = this.context.document.print();
     writeOutputFile(this.context.outputDirectory, "schema.graphql", schema);
+
+    return {};
   }
 }
 

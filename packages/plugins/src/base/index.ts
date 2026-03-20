@@ -29,4 +29,8 @@ export {
   isWriteOnly,
 } from "./UtilitiesPlugin/index.js";
 export { SchemaGeneratorPlugin, schemaGeneratorPlugin } from "./SchemaGeneratorPlugin.js";
+export {
+  ModelTypesGeneratorPlugin,
+  modelTypesGeneratorPlugin,
+} from "./ModelTypesGeneratorPlugin/index.js";
 export { basePreset } from "./basePreset.js";

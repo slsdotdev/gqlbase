@@ -41,11 +41,10 @@ export async function start(params: StartWatcherParams): Promise<Watcher> {
   });
 
   watcher.on("all", async (type, file) => {
-    const isMatch = params.paths.some((pattern) => pm.isMatch(file, pattern));
+    // const isMatch = params.paths.some((pattern) => pm.isMatch(file, pattern));
+    logger.debug(`File ${type}: ${file}`);
 
-    if (["add", "change", "unlink"].includes(type) && isMatch) {
-      logger.debug(`File ${type}: ${file}`);
-
+    if (["add", "change", "unlink"].includes(type)) {
       try {
         params.transform();
       } catch (err) {

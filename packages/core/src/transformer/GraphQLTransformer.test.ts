@@ -17,6 +17,7 @@ const testPlugin: ITransformerPlugin = {
   execute: vi.fn(),
   cleanup: vi.fn(),
   generate: vi.fn(),
+  output: vi.fn(),
 };
 
 describe("GraphQLTransformer", () => {
@@ -64,11 +65,12 @@ describe("GraphQLTransformer", () => {
     `;
 
     const output = transformer.transform(source);
-    expect(testPlugin.match).toHaveBeenCalledTimes(6);
+    expect(testPlugin.match).toHaveBeenCalledTimes(8);
     expect(testPlugin.normalize).toHaveBeenCalledTimes(2);
     expect(testPlugin.execute).toHaveBeenCalledTimes(2);
     expect(testPlugin.cleanup).toHaveBeenCalledTimes(2);
-    expect(testPlugin.generate).toHaveBeenCalledTimes(1);
+    expect(testPlugin.generate).toHaveBeenCalledTimes(2);
+    expect(testPlugin.output).toHaveBeenCalledTimes(1);
     expect(output.schema).toContain("type Query");
   });
 
@@ -98,7 +100,7 @@ describe("GraphQLTransformer", () => {
 
     transformer.transform(source);
 
-    expect(nonMatchingPlugin.match).toHaveBeenCalledTimes(6);
+    expect(nonMatchingPlugin.match).toHaveBeenCalledTimes(8);
     expect(nonMatchingPlugin.normalize).toHaveBeenCalledTimes(1);
     expect(nonMatchingPlugin.execute).toHaveBeenCalledTimes(1);
   });

@@ -250,15 +250,18 @@ export class ModelPlugin implements ITransformerPlugin {
     switch (scalarType) {
       case "string":
         return this._createStringLikeFilterInput(inputName, node.name);
-      case "int":
-      case "float":
+      case "number":
         return this._createNumberLikeFilterInput(inputName, node.name);
       case "boolean":
         return this._createBooleanLikeFilterInput(inputName, node.name);
       case "id":
         return this._createIDLikeFilterInput(inputName, node.name);
-      default:
-        return null;
+      default: {
+        this.context.logger.warn(
+          `Unknown type for scalar ${node.name}. Defaulting to minimal, bolean like, filter input.`
+        );
+        return this._createBooleanLikeFilterInput(inputName, node.name);
+      }
     }
   }
 

@@ -3,9 +3,11 @@ export type { ITransformerPlugin } from "./ITransformerPlugin.js";
 export { TransformerPluginBase } from "./TransformerPluginBase.js";
 export { createPluginFactory } from "./createPluginFactory.js";
 export {
-  InternalDirective,
   InternalUtilsPlugin,
+  InternalDirective,
+  TypeHintValue,
   internalPlugin,
   isInternal,
   getTypeHint,
-} from "./InternalUtilsPlugin.js";
+  type TypeHintValueType,
+} from "./InternalUtilsPlugin/index.js";

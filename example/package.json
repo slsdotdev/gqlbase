@@ -7,8 +7,8 @@
   "private": true,
   "sideEffects": false,
   "scripts": {
-    "codegen": "gqlbase",
-    "dev": "gqlbase --watch --verbose"
+    "codegen": "gqlbase --verbose",
+    "watch": "gqlbase --watch --verbose"
   },
   "devDependencies": {
     "@gqlbase/cli": "*"

@@ -14,12 +14,12 @@
 """
 ISO 8601 date-time string (e.g. `2025-03-18T14:30:00.000Z`).
 """
-scalar DateTime
+scalar DateTime @gqlbase_typehint(type: string)
 
 """
 ISO 8601 date string without time (e.g. `2025-03-18`).
 """
-scalar Date
+scalar Date @gqlbase_typehint(type: string)
 
 """
 Fixed-precision decimal encoded as a string to avoid floating-point drift.
@@ -52,7 +52,7 @@ scalar JSON
 """
 UUID v4 string (e.g. `550e8400-e29b-41d4-a716-446655440000`).
 """
-scalar UUID
+scalar UUID @gqlbase_typehint(type: id)
 
 # ------------------------------------------------------------------------------
 # Domain Directives

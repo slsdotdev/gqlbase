@@ -2,6 +2,7 @@ import { utilsPlugin } from "./UtilitiesPlugin/index.js";
 import { modelPlugin } from "./ModelPlugin/index.js";
 import { relationPlugin } from "./RelationsPlugin/index.js";
 import { schemaGeneratorPlugin } from "./SchemaGeneratorPlugin.js";
+import { modelTypesGeneratorPlugin } from "./ModelTypesGeneratorPlugin/index.js";
 
 /**
  * A preset that includes all the base plugins
@@ -16,5 +17,11 @@ import { schemaGeneratorPlugin } from "./SchemaGeneratorPlugin.js";
  */
 
 export function basePreset() {
-  return [utilsPlugin(), modelPlugin(), relationPlugin(), schemaGeneratorPlugin()];
+  return [
+    utilsPlugin(),
+    modelPlugin(),
+    relationPlugin(),
+    schemaGeneratorPlugin(),
+    modelTypesGeneratorPlugin(),
+  ];
 }

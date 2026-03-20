@@ -32,8 +32,9 @@ export class GraphQLTransformer {
   }
 
   public transform(source: string | Source): TransformerOutput {
-    const startTime = performance.now();
     this._context.logger.debug("Starting transformation process...");
+    const startTime = performance.now();
+
     const document = this._context.startWork(DocumentNode.fromSource(source));
 
     const errors = document.validate();
@@ -42,8 +43,9 @@ export class GraphQLTransformer {
       throw new TransformerValidationError(errors);
     }
 
+    const validateStamp = performance.now();
     this._context.logger.debug(
-      `Validation completed in ${(performance.now() - startTime).toFixed(2)}ms.`
+      `Validation completed in ${(validateStamp - startTime).toFixed(2)}ms.`
     );
 
     this._context.logger.debug(`Document contains ${document.definitions.size} definitions.`);
@@ -53,7 +55,10 @@ export class GraphQLTransformer {
         plugin.before();
       }
     }
-
+    const beforeStamp = performance.now();
+    this._context.logger.debug(
+      "Before phase completed. Time taken: " + (beforeStamp - validateStamp).toFixed(2) + "ms"
+    );
     this._context.logger.debug("Starting normalization phase...");
 
     for (const definition of document.definitions.values()) {
@@ -64,8 +69,9 @@ export class GraphQLTransformer {
       }
     }
 
+    const normalizeStamp = performance.now();
     this._context.logger.debug(
-      `Normalization phase completed in ${(performance.now() - startTime).toFixed(2)}ms.`
+      `Normalization phase completed. Time taken: ${(normalizeStamp - beforeStamp).toFixed(2)}ms.`
     );
 
     this._context.logger.debug("Starting execution phase...");
@@ -78,9 +84,18 @@ export class GraphQLTransformer {
       }
     }
 
+    const executeStamp = performance.now();
     this._context.logger.debug(
-      `Execution phase completed in ${(performance.now() - startTime).toFixed(2)}ms.`
+      `Execution phase completed. Time taken: ${(executeStamp - normalizeStamp).toFixed(2)}ms.`
     );
+
+    for (const definition of document.definitions.values()) {
+      for (const plugin of this._context.plugins) {
+        if (plugin.match(definition) && typeof plugin.generate === "function") {
+          plugin.generate(definition);
+        }
+      }
+    }
 
     for (const definition of document.definitions.values()) {
       for (const plugin of this._context.plugins) {
@@ -93,12 +108,6 @@ export class GraphQLTransformer {
     for (const plugin of this._context.plugins) {
       if (typeof plugin.after === "function") {
         plugin.after();
-      }
-    }
-
-    for (const plugin of this._context.plugins) {
-      if (typeof plugin.generate === "function") {
-        plugin.generate();
       }
     }
 

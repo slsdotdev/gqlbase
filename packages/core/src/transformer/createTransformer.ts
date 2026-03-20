@@ -1,8 +1,7 @@
-import { IPluginFactory } from "../plugins/IPluginFactory.js";
-import { TransformerContext } from "../context/TransformerContext.js";
+import { type Logger, createLogger } from "@gqlbase/shared/logger";
+import { type IPluginFactory, internalPlugin } from "../plugins/index.js";
+import { TransformerContext } from "../context/index.js";
 import { GraphQLTransformer } from "./GraphQLTransformer.js";
-import { createLogger, Logger } from "@gqlbase/shared/logger";
-import { internalPlugin } from "../plugins/InternalUtilsPlugin.js";
 
 export interface GraphQLTransformerOptions {
   /**
