@@ -1,5 +1,13 @@
 # @gqlbase/core
 
+## 0.0.6
+
+### Patch Changes
+
+- dc22a95: Add README files for all packages
+- Updated dependencies [dc22a95]
+  - @gqlbase/shared@0.0.6
+
 ## 0.0.5
 
 ### Patch Changes
