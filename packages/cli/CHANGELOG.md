@@ -1,5 +1,13 @@
 # @gqlbase/cli
 
+## 0.0.5
+
+### Patch Changes
+
+- 41852e8: fix watcher paths ignore
+  - @gqlbase/core@0.0.5
+  - @gqlbase/shared@0.0.5
+
 ## 0.0.4
 
 ### Patch Changes

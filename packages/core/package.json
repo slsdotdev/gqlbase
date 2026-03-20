@@ -1,6 +1,6 @@
 {
   "name": "@gqlbase/core",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Core library for gqlbase, providing the GraphQL transformer and plugin system.",
   "sideEffects": false,
   "type": "module",
@@ -46,7 +46,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@gqlbase/shared": "^0.0.4"
+    "@gqlbase/shared": "^0.0.5"
   },
   "peerDependencies": {
     "graphql": ">=16"
