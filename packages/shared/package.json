@@ -1,6 +1,6 @@
 {
   "name": "@gqlbase/shared",
-  "description": "Internal utilities used by gqlbase packages",
+  "description": "Shared utilities used by gqlbase packages",
   "version": "0.0.5",
   "sideEffects": false,
   "type": "module",

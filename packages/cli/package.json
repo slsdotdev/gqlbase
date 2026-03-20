@@ -1,5 +1,6 @@
 {
   "name": "@gqlbase/cli",
+  "description": "Command-line interface for gqlbase, providing tools for schema transformation and development workflow",
   "version": "0.0.5",
   "sideEffects": false,
   "type": "module",
