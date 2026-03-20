@@ -1,5 +1,14 @@
 # @gqlbase/plugins
 
+## 0.0.5
+
+### Patch Changes
+
+- acf3f62: Added ScalarsPlugin
+- a53c785: Added ModelTypesGeneratorPlugin
+  - @gqlbase/core@0.0.5
+  - @gqlbase/shared@0.0.5
+
 ## 0.0.4
 
 ### Patch Changes
