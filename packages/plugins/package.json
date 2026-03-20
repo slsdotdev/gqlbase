@@ -1,7 +1,7 @@
 {
   "name": "@gqlbase/plugins",
   "description": "Collection of plugins and presets for gqlbase, providing common transformations and utilities that can be used in GraphQL schema transformation processes.",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "sideEffects": false,
   "type": "module",
   "license": "MIT",
@@ -42,8 +42,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@gqlbase/core": "^0.0.5",
-    "@gqlbase/shared": "^0.0.5"
+    "@gqlbase/core": "^0.0.6",
+    "@gqlbase/shared": "^0.0.6"
   },
   "peerDependencies": {
     "graphql": ">=16"
