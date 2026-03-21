@@ -128,4 +128,103 @@ describe("isSemanticNullable", () => {
     // default level = 0, which is in the levels array → not nullable
     expect(isSemanticNullable(field)).toBe(false);
   });
+
+  it("detects NonNull inside a list at level 1: [String!]", () => {
+    // [String!] — the list is nullable, but the inner String! is non-null at level 1
+    const field = FieldNode.create("tags", ListTypeNode.create(NonNullTypeNode.create("String")));
+
+    expect(isSemanticNullable(field, 0)).toBe(true); // list itself is nullable
+    expect(isSemanticNullable(field, 1)).toBe(false); // String! is non-null
+  });
+
+  it("detects NonNull list wrapper at level 0: [String]!", () => {
+    // [String]! — the list is non-null, but inner String is nullable
+    const field = FieldNode.create(
+      "tags",
+      NonNullTypeNode.create(ListTypeNode.create(NamedTypeNode.create("String")))
+    );
+
+    expect(isSemanticNullable(field, 0)).toBe(false); // [String]! is non-null
+    expect(isSemanticNullable(field, 1)).toBe(true); // String is nullable
+  });
+
+  it("handles fully non-null list: [String!]!", () => {
+    // [String!]! — both levels are non-null
+    const field = FieldNode.create(
+      "tags",
+      NonNullTypeNode.create(ListTypeNode.create(NonNullTypeNode.create("String")))
+    );
+
+    expect(isSemanticNullable(field, 0)).toBe(false);
+    expect(isSemanticNullable(field, 1)).toBe(false);
+  });
+
+  it("combines schema NonNull with @semanticNonNull on lists", () => {
+    // [String] @semanticNonNull — list is semantically non-null, inner String is nullable
+    const directive = DirectiveNode.create(RfcDirective.SEMANTIC_NON_NULL).addArgument(
+      ArgumentNode.create("levels", ValueNode.list([ValueNode.int(0)]))
+    );
+
+    const field = FieldNode.create(
+      "tags",
+      ListTypeNode.create(NamedTypeNode.create("String")),
+      null,
+      [directive]
+    );
+
+    expect(isSemanticNullable(field, 0)).toBe(false); // covered by @semanticNonNull
+    expect(isSemanticNullable(field, 1)).toBe(true); // not covered
+  });
+
+  it("uses @semanticNonNull at level 1 for inner list items", () => {
+    // [String] @semanticNonNull(levels: [1]) — list is nullable, inner items are semantically non-null
+    const directive = DirectiveNode.create(RfcDirective.SEMANTIC_NON_NULL).addArgument(
+      ArgumentNode.create("levels", ValueNode.list([ValueNode.int(1)]))
+    );
+
+    const field = FieldNode.create(
+      "tags",
+      ListTypeNode.create(NamedTypeNode.create("String")),
+      null,
+      [directive]
+    );
+
+    expect(isSemanticNullable(field, 0)).toBe(true); // level 0 not in levels
+    expect(isSemanticNullable(field, 1)).toBe(false); // level 1 is in levels
+  });
+
+  it("handles deeply nested lists: [[String]] @semanticNonNull(levels: [0, 2])", () => {
+    // [[String]] — level 0 = outer list, level 1 = inner list, level 2 = String
+    const directive = DirectiveNode.create(RfcDirective.SEMANTIC_NON_NULL).addArgument(
+      ArgumentNode.create("levels", ValueNode.list([ValueNode.int(0), ValueNode.int(2)]))
+    );
+
+    const field = FieldNode.create(
+      "matrix",
+      ListTypeNode.create(ListTypeNode.create(NamedTypeNode.create("String"))),
+      null,
+      [directive]
+    );
+
+    expect(isSemanticNullable(field, 0)).toBe(false); // outer list — covered
+    expect(isSemanticNullable(field, 1)).toBe(true); // inner list — not covered
+    expect(isSemanticNullable(field, 2)).toBe(false); // String — covered
+  });
+
+  it("schema NonNull takes precedence over missing @semanticNonNull level", () => {
+    // [String!] @semanticNonNull(levels: [0]) — level 1 is non-null via schema, not directive
+    const directive = DirectiveNode.create(RfcDirective.SEMANTIC_NON_NULL).addArgument(
+      ArgumentNode.create("levels", ValueNode.list([ValueNode.int(0)]))
+    );
+
+    const field = FieldNode.create(
+      "tags",
+      ListTypeNode.create(NonNullTypeNode.create("String")),
+      null,
+      [directive]
+    );
+
+    expect(isSemanticNullable(field, 0)).toBe(false); // covered by directive
+    expect(isSemanticNullable(field, 1)).toBe(false); // covered by schema NonNull
+  });
 });
