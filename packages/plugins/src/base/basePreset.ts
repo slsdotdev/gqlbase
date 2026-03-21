@@ -2,6 +2,7 @@ import { utilsPlugin } from "./UtilitiesPlugin/index.js";
 import { scalarsPlugin } from "./ScalarsPlugin/index.js";
 import { modelPlugin } from "./ModelPlugin/index.js";
 import { relationPlugin } from "./RelationsPlugin/index.js";
+import { rfcFeaturesPlugin } from "./RfcFeaturesPlugin/index.js";
 import { schemaGeneratorPlugin } from "./SchemaGeneratorPlugin.js";
 import { modelTypesGeneratorPlugin } from "./ModelTypesGeneratorPlugin/index.js";
 
@@ -13,6 +14,7 @@ import { modelTypesGeneratorPlugin } from "./ModelTypesGeneratorPlugin/index.js"
  * - `ScalarsPlugin`
  * - `ModelPlugin`
  * - `RelationsPlugin`
+ * - `RfcFeaturesPlugin`
  * - `SchemaGeneratorPlugin`
  * - `ModelTypesGeneratorPlugin`
  *
@@ -25,6 +27,7 @@ export function basePreset() {
     scalarsPlugin(),
     modelPlugin(),
     relationPlugin(),
+    rfcFeaturesPlugin(),
     schemaGeneratorPlugin(),
     modelTypesGeneratorPlugin(),
   ];

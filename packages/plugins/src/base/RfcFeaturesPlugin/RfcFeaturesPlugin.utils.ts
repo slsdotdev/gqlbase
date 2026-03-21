@@ -10,11 +10,10 @@ export const isSemanticNullable = (field: FieldNode, level = 0) => {
   }
 
   if (field.hasDirective(RfcDirective.SEMANTIC_NON_NULL)) {
-    const args = field
-      .getDirective(RfcDirective.SEMANTIC_NON_NULL)
-      ?.getArgumentsJSON<{ levels: number[] }>();
+    const directive = field.getDirective(RfcDirective.SEMANTIC_NON_NULL);
+    const { levels = [0] } = directive?.getArgumentsJSON<{ levels: number[] }>() ?? {};
 
-    return !args?.levels?.includes(level);
+    return !levels?.includes(level);
   }
 
   return true;

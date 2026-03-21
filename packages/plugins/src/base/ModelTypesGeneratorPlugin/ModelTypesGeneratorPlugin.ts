@@ -12,15 +12,12 @@ import {
   TypeNode,
   UnionNode,
 } from "@gqlbase/core/definition";
-import {
-  getBuildinScalarTypeKeyword,
-  isNonNullableField,
-  isOperationNode,
-} from "./ModelTypesGeneratorPlugin.utils.js";
+import { getBuildinScalarTypeKeyword, isOperationNode } from "./ModelTypesGeneratorPlugin.utils.js";
 import { isEnum, isObjectLike, isScalar } from "../ModelPlugin/ModelPlugin.utils.js";
 import { isRelationField } from "../RelationsPlugin/RelationsPlugin.utils.js";
 import { isBuildInScalar } from "@gqlbase/shared/definition";
 import { getTypeHint, isInternal } from "@gqlbase/core/plugins";
+import { isSemanticNullable } from "../RfcFeaturesPlugin/RfcFeaturesPlugin.utils.js";
 
 /**
  * This plugin generates TypeScript types for all objects defined in the schema.
@@ -104,13 +101,14 @@ export class ModelTypesGeneratorPlugin extends TransformerPluginBase {
         continue;
       }
 
-      const questionToken = isNonNullableField(field)
-        ? undefined
-        : ts.factory.createToken(ts.SyntaxKind.QuestionToken);
+      const questionToken = isSemanticNullable(field)
+        ? ts.factory.createToken(ts.SyntaxKind.QuestionToken)
+        : undefined;
 
-      const typeNode = isNonNullableField(field)
-        ? this._createValueTypeReference(field.type)
-        : ts.factory.createTypeReferenceNode("Maybe", [this._createValueTypeReference(field.type)]);
+      // TODO: handle semantic nullability based on levels
+      const typeNode = isSemanticNullable(field)
+        ? ts.factory.createTypeReferenceNode("Maybe", [this._createValueTypeReference(field.type)])
+        : this._createValueTypeReference(field.type);
 
       const propertySignature = ts.factory.createPropertySignature(
         [ts.factory.createModifier(ts.SyntaxKind.ReadonlyKeyword)],

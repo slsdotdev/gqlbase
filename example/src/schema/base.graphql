@@ -65,8 +65,8 @@ interface Node {
 Standard timestamp pair. All @model types should implement this.
 """
 interface Timestamped {
-  createdAt: DateTime! @readOnly
-  updatedAt: DateTime! @readOnly
+  createdAt: DateTime @readOnly @semanticNonNull
+  updatedAt: DateTime @readOnly @semanticNonNull
 }
 
 """

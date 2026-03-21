@@ -7,7 +7,7 @@
   "private": true,
   "sideEffects": false,
   "scripts": {
-    "codegen": "gqlbase --verbose",
+    "codegen": "gqlbase",
     "watch": "gqlbase --watch --verbose"
   },
   "devDependencies": {

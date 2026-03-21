@@ -121,9 +121,7 @@ describe("isSemanticNullable", () => {
   });
 
   it("defaults to level 0 when no level argument is passed", () => {
-    const directive = DirectiveNode.create(RfcDirective.SEMANTIC_NON_NULL).addArgument(
-      ArgumentNode.create("levels", ValueNode.list([ValueNode.int(0)]))
-    );
+    const directive = DirectiveNode.create(RfcDirective.SEMANTIC_NON_NULL);
 
     const field = FieldNode.create("name", NamedTypeNode.create("String"), null, [directive]);
 
