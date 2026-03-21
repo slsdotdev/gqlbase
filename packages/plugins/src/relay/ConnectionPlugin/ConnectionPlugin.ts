@@ -10,12 +10,15 @@ import {
   ListTypeNode,
   NamedTypeNode,
   DirectiveNode,
+  ArgumentNode,
+  ValueNode,
 } from "@gqlbase/core/definition";
 import { TransformerPluginExecutionError } from "@gqlbase/shared/errors";
 import { pascalCase } from "@gqlbase/shared/format";
-import { UtilityDirective } from "../../base/index.js";
+import { RfcDirective, UtilityDirective } from "../../base/index.js";
 import {
   FieldRelationship,
+  isPaginationConnection,
   isRelationField,
   isValidRelationTarget,
   parseFieldRelation,
@@ -53,7 +56,7 @@ import { isRelayConnection, isRelayEdge } from "./ConnectionPlugin.utils.js";
  *
  * type PostConnection {
  *   edges: [PostEdge]
- *   pageInfo: PageInfo
+ *   pageInfo: PageInfo!
  * }
  *
  * type PostEdge {
@@ -62,8 +65,8 @@ import { isRelayConnection, isRelayEdge } from "./ConnectionPlugin.utils.js";
  * }
  *
  * type PageInfo {
- *   hasNextPage: Boolean
- *   hasPreviousPage: Boolean
+ *   hasNextPage: Boolean!
+ *   hasPreviousPage: Boolean!
  *   startCursor: String
  *   endCursor: String
  * }
@@ -86,6 +89,13 @@ export class ConnectionPlugin extends TransformerPluginBase {
       );
     }
 
+    if (isPaginationConnection(target)) {
+      throw new TransformerPluginExecutionError(
+        this.name,
+        `Unexpected conflicting pagination connection type ${target.name} used as a connection target for ${object.name}.${field.name}. Make sure you set "usePaginationTypes" to "false" when using relay ConnectionPlugin.`
+      );
+    }
+
     return target;
   }
 
@@ -93,7 +103,7 @@ export class ConnectionPlugin extends TransformerPluginBase {
     object: ObjectNode | InterfaceNode,
     field: FieldNode
   ): Required<FieldRelationship> | null {
-    if (isRelationField(field)) {
+    if (!isRelationField(field)) {
       return null;
     }
 
@@ -112,8 +122,10 @@ export class ConnectionPlugin extends TransformerPluginBase {
     }
   }
 
-  private _createConnectionTypes(field: FieldNode, connection: FieldRelationship) {
+  private _createConnection(field: FieldNode, connection: FieldRelationship) {
     const { target } = connection;
+
+    const hasSemanticNonNull = this.context.document.hasNode(RfcDirective.SEMANTIC_NON_NULL);
 
     if (!isRelayConnection(target)) {
       const connectionTypeName = pascalCase(target.name, "connection");
@@ -126,7 +138,18 @@ export class ConnectionPlugin extends TransformerPluginBase {
         connectionType = ObjectNode.create(connectionTypeName, [
           FieldNode.create(
             "edges",
-            NonNullTypeNode.create(ListTypeNode.create(NonNullTypeNode.create(edgeTypeName)))
+            ListTypeNode.create(NamedTypeNode.create(edgeTypeName)),
+            null,
+            hasSemanticNonNull
+              ? [
+                  DirectiveNode.create(RfcDirective.SEMANTIC_NON_NULL, [
+                    ArgumentNode.create(
+                      "levels",
+                      ValueNode.list([ValueNode.int(0), ValueNode.int(1)])
+                    ),
+                  ]),
+                ]
+              : undefined
           ),
           FieldNode.create("pageInfo", NonNullTypeNode.create("PageInfo")),
         ]);
@@ -135,7 +158,7 @@ export class ConnectionPlugin extends TransformerPluginBase {
       }
 
       if (!edgeType) {
-        edgeType = ObjectNode.create(`${target.name}Edge`, [
+        edgeType = ObjectNode.create(edgeTypeName, [
           FieldNode.create("cursor", NamedTypeNode.create("String"), null, [
             DirectiveNode.create(UtilityDirective.CLIENT_ONLY),
           ]),
@@ -152,20 +175,12 @@ export class ConnectionPlugin extends TransformerPluginBase {
     }
   }
 
-  private _createEdgesConnection(
-    parent: ObjectNode | InterfaceNode,
-    field: FieldNode,
-    connection: FieldRelationship
-  ) {
-    this._createConnectionTypes(field, connection);
-  }
-
   public before(): void {
     if (!this.context.document.hasNode("PageInfo")) {
       this.context.document.addNode(
         ObjectNode.create("PageInfo", [
-          FieldNode.create("hasNextPage", NamedTypeNode.create("Boolean")),
-          FieldNode.create("hasPreviousPage", NamedTypeNode.create("Boolean")),
+          FieldNode.create("hasNextPage", NonNullTypeNode.create("Boolean")),
+          FieldNode.create("hasPreviousPage", NonNullTypeNode.create("Boolean")),
           FieldNode.create("startCursor", NamedTypeNode.create("String")),
           FieldNode.create("endCursor", NamedTypeNode.create("String")),
         ])
@@ -194,7 +209,7 @@ export class ConnectionPlugin extends TransformerPluginBase {
       }
 
       if (connection.type === "oneToMany") {
-        this._createEdgesConnection(definition, field, connection);
+        this._createConnection(field, connection);
       }
     }
   }

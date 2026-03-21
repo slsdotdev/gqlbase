@@ -417,6 +417,31 @@ describe("ConnectionPlugin", () => {
       expect(() => plugin.execute(user)).toThrow(/not a valid connection target/);
     });
 
+    it("throws when target is a pagination connection type from RelationsPlugin", () => {
+      context.finishWork();
+      context.startWork(
+        DocumentNode.fromSource(/* GraphQL */ `
+          type Post {
+            id: ID!
+            title: String!
+          }
+
+          type PostConnection {
+            items: [Post]
+            nextToken: String
+          }
+
+          type User {
+            id: ID!
+            posts: PostConnection @hasMany
+          }
+        `)
+      );
+
+      const user = context.document.getNode("User") as ObjectNode;
+      expect(() => plugin.execute(user)).toThrow(/conflicting pagination connection/);
+    });
+
     it("edge cursor and node fields have @clientOnly directive", () => {
       context.finishWork();
       context.startWork(
