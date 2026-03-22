@@ -27,8 +27,8 @@ type Category implements Node & Timestamped & SoftDeletable
 
   parentId: UUID @serverOnly
   parent: Category @hasOne
-  children: [Category!]! @hasMany(key: "parentId")
-  products: [Product!]! @hasMany
+  children: Category @hasMany(key: "parentId")
+  products: Product @hasMany
 
   createdAt: DateTime! @readOnly
   updatedAt: DateTime! @readOnly

@@ -14,7 +14,7 @@ Delivered notification record. The `payload` union carries structured,
 type-safe context so clients can deep-link and render rich previews
 without parsing free-text strings.
 """
-type Notification implements Node & Timestamped @model @scope(allow: [ADMIN, VENDOR, SHOP]) {
+type Notification implements Timestamped @model @scope(allow: [ADMIN, VENDOR, SHOP]) {
   id: UUID!
   recipientUserId: UUID! @serverOnly
 
@@ -200,16 +200,13 @@ enum SystemSeverity {
 Per-category, per-channel delivery preference. Users default to receiving
 all notifications; rows here represent explicit opt-outs or overrides.
 """
-type NotificationPreference implements Node & Timestamped @model @scope(allow: [ADMIN, SHOP]) {
+type NotificationPreference @model @scope(allow: [ADMIN, SHOP]) {
   id: UUID!
   userId: UUID! @serverOnly
 
-  category: NotificationCategory!
-  channel: NotificationChannel!
-  enabled: Boolean!
+  category: NotificationCategory @semanticNonNull
+  channel: NotificationChannel @semanticNonNull
+  enabled: Boolean @semanticNonNull
 
-  user: User! @hasOne
-
-  createdAt: DateTime! @readOnly
-  updatedAt: DateTime! @readOnly
+  user: User @hasOne @semanticNonNull
 }
