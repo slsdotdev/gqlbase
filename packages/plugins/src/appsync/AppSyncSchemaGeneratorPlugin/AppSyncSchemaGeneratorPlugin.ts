@@ -42,7 +42,7 @@ export class AppSyncSchemaGeneratorPlugin extends TransformerPluginBase {
     super("AppSyncSchemaGeneratorPlugin", context);
 
     this.options = {
-      emitFile: options.emitFile ?? true,
+      emitFile: options.emitFile ?? false,
       scalarMappings: options.scalarMappings ?? {},
     };
 

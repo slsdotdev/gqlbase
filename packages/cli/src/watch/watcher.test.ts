@@ -35,7 +35,6 @@ describe("Watcher", () => {
     const expectedBaseDirs = ["src", "schemas"];
 
     const result = picomatch.scan(globPatterns[0]);
-    console.log("Scan result for pattern:", result);
     expect(result.base).toBe(expectedBaseDirs[0]);
   });
 
