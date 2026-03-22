@@ -41,6 +41,16 @@ describe("format string", () => {
       expect(pascalCase("123_test")).toBe("123Test");
       expect(pascalCase("TEST_VALUE")).toBe("TestValue");
     });
+    it("should handle all-uppercase segments", () => {
+      expect(pascalCase("API")).toBe("API");
+      expect(pascalCase("HTTP")).toBe("HTTP");
+      expect(pascalCase("AWS")).toBe("AWS");
+      expect(pascalCase("GraphQL")).toBe("GraphQL");
+      expect(pascalCase("GraphQLAPI")).toBe("GraphQLAPI");
+      expect(pascalCase("GraphQL_API")).toBe("GraphQLApi");
+      expect(pascalCase("GraphQL-API")).toBe("GraphQLApi");
+      expect(pascalCase("UUID", "Generator")).toBe("UUIDGenerator");
+    });
   });
   describe("camelCase", () => {
     it("should handle snake_case strings", () => {
