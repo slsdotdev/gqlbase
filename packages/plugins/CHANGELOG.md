@@ -1,5 +1,14 @@
 # @gqlbase/plugins
 
+## 0.0.8
+
+### Patch Changes
+
+- 2f3cc44: Added `appSyncPreset` with `AppSynUtilsPlugin` for aws appsync support
+- 2f3cc44: Added AppSyncSchemaGeneratorPlugin
+  - @gqlbase/core@0.0.8
+  - @gqlbase/shared@0.0.8
+
 ## 0.0.7
 
 ### Patch Changes
