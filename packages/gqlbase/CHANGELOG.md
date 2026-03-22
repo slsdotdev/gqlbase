@@ -1,5 +1,16 @@
 # gqlbase
 
+## 0.0.8
+
+### Patch Changes
+
+- Updated dependencies [2f3cc44]
+- Updated dependencies [2f3cc44]
+  - @gqlbase/plugins@0.0.8
+  - @gqlbase/cli@0.0.8
+  - @gqlbase/core@0.0.8
+  - @gqlbase/shared@0.0.8
+
 ## 0.0.7
 
 ### Patch Changes
