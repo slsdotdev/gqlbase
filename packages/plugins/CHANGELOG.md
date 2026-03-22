@@ -1,5 +1,18 @@
 # @gqlbase/plugins
 
+## 0.0.7
+
+### Patch Changes
+
+- 309082b: Add test coverage for `ConnectionPlugin` and detect conflicting pagination connection types from `RelationsPlugin`.
+- 309082b: Add comprehensive test coverage for `NodeInterfacePlugin` and refactor plugin to use `TransformerPluginBase`.
+- 309082b: Fix level-aware semantic nullability in type generation. `isSemanticNullable` now unwraps to the correct depth level, and `ModelTypesGeneratorPlugin` wraps inner list types with `Maybe` when they are nullable at their respective level.
+- 309082b: Added InterfaceUtilsPlugin
+- 309082b: Added RfcFeaturesPlugin
+- Updated dependencies [309082b]
+  - @gqlbase/core@0.0.7
+  - @gqlbase/shared@0.0.7
+
 ## 0.0.6
 
 ### Patch Changes

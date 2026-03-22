@@ -1,5 +1,12 @@
 # @gqlbase/core
 
+## 0.0.7
+
+### Patch Changes
+
+- 309082b: Update definition methods
+  - @gqlbase/shared@0.0.7
+
 ## 0.0.6
 
 ### Patch Changes
