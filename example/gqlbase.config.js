@@ -5,5 +5,13 @@ export default defineConfig({
   source: "src/schema/**/*.graphql",
   output: "generated",
   verbose: true,
-  plugins: [basePreset(), relayPreset(), appsyncPreset()],
+  plugins: [
+    basePreset(),
+    relayPreset(),
+    appsyncPreset({
+      scalarMappings: {
+        Decimal: "String",
+      },
+    }),
+  ],
 });

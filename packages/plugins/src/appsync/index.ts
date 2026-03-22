@@ -1,1 +1,1 @@
-export { appsyncPreset } from "./appsyncPreset.js";
+export { appsyncPreset } from "./appSyncPreset.js";
