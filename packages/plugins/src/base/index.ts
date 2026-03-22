@@ -28,6 +28,13 @@ export {
   isUpdateOnly,
   isWriteOnly,
 } from "./UtilitiesPlugin/index.js";
+export {
+  RfcFeaturesPlugin,
+  RfcDirective,
+  rfcFeaturesPlugin,
+  isSemanticNullable,
+} from "./RfcFeaturesPlugin/index.js";
+export { ScalarsPlugin, scalarsPlugin } from "./ScalarsPlugin/index.js";
 export { SchemaGeneratorPlugin, schemaGeneratorPlugin } from "./SchemaGeneratorPlugin.js";
 export {
   ModelTypesGeneratorPlugin,

@@ -27,8 +27,8 @@ type Category implements Node & Timestamped & SoftDeletable
 
   parentId: UUID @serverOnly
   parent: Category @hasOne
-  children: [Category!]! @hasMany(key: "parentId")
-  products: [Product!]! @hasMany
+  children: Category @hasMany(key: "parentId")
+  products: Product @hasMany
 
   createdAt: DateTime! @readOnly
   updatedAt: DateTime! @readOnly
@@ -82,7 +82,7 @@ type Product implements Node & Timestamped & Auditable & SoftDeletable & Version
   seoTitle: String @constraint(maxLength: 70)
   seoDescription: String @constraint(maxLength: 160)
 
-  tags: [String!]!
+  tags: [String] @semanticNonNull(levels: [0, 1])
 
   """
   Seasonal availability window. Null means available year-round.

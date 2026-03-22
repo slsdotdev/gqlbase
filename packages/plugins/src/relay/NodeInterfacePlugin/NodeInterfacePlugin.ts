@@ -1,4 +1,4 @@
-import { createPluginFactory, type ITransformerPlugin } from "@gqlbase/core/plugins";
+import { createPluginFactory, TransformerPluginBase } from "@gqlbase/core/plugins";
 import type { ITransformerContext } from "@gqlbase/core/context";
 import {
   DefinitionNode,
@@ -11,24 +11,44 @@ import {
   ObjectNode,
 } from "@gqlbase/core/definition";
 import { InvalidDefinitionError, TransformerPluginExecutionError } from "@gqlbase/shared/errors";
-import { isModel } from "../base/index.js";
+import { isModel } from "../../base/index.js";
 
 /**
  * Adds a `Node` interface with an `id: ID!` field to the schema and ensures that all types that implement the `Node` interface also have the `id: ID!` field.
  *
- * @dependency ModelPlugin
+ * @definition
+ * ```graphql
+ * interface Node {
+ *   id: ID!
+ * }
+ * ```
+ *
+ * @example
+ * ```graphql
+ * # Before
+ * type User `@model` {
+ *   name: String!
+ * }
+ *
+ * # After
+ * interface Node {
+ *   id: ID!
+ * }
+ *
+ * type User implements Node `@model` {
+ *   id: ID!
+ *   name: String!
+ * }
+ *
+ * type Query {
+ *   node(id: ID!): Node @hasOne
+ * }
+ * ```
  */
 
-export class NodeInterfacePlugin implements ITransformerPlugin {
-  public readonly name = "NodeInterfacePlugin";
-  readonly context: ITransformerContext;
-
+export class NodeInterfacePlugin extends TransformerPluginBase {
   constructor(context: ITransformerContext) {
-    this.context = context;
-  }
-
-  public init(): void {
-    // No initialization needed
+    super("NodeInterfacePlugin", context);
   }
 
   match(definition: DefinitionNode): boolean {
@@ -42,15 +62,10 @@ export class NodeInterfacePlugin implements ITransformerPlugin {
   }
 
   before(): void {
-    let node = this.context.document.getNode("Node");
+    const node = this.context.document.getOrCreateNode("Node", InterfaceNode.create("Node", []));
 
-    if (node) {
-      if (!(node instanceof InterfaceNode)) {
-        throw new InvalidDefinitionError("Node type must be an interface");
-      }
-    } else {
-      node = InterfaceNode.create("Node", []);
-      this.context.document.addNode(node);
+    if (!(node instanceof InterfaceNode)) {
+      throw new InvalidDefinitionError("Node type must be an interface");
     }
 
     if (!node.hasField("id")) {
@@ -72,14 +87,7 @@ export class NodeInterfacePlugin implements ITransformerPlugin {
   }
 
   execute(definition: ObjectNode): void {
-    const nodeInterface = this.context.document.getNode("Node") as InterfaceNode;
-
-    if (!nodeInterface) {
-      throw new TransformerPluginExecutionError(
-        this.name,
-        "Node Interface not found. Make sure you run `plugin.init()` before executing."
-      );
-    }
+    const nodeInterface = this.context.document.getNodeOrThrow("Node") as InterfaceNode;
 
     // In definition has directive `@model` it should also implement `Node` interface
     if (isModel(definition) && !definition.hasInterface("Node")) {
@@ -107,14 +115,7 @@ export class NodeInterfacePlugin implements ITransformerPlugin {
   }
 
   public after(): void {
-    const iface = this.context.document.getNode("Node");
-
-    if (!iface || !(iface instanceof InterfaceNode)) {
-      throw new TransformerPluginExecutionError(
-        this.name,
-        "Node Interface not found. Make sure you run `plugin.init()` before executing."
-      );
-    }
+    const iface = this.context.document.getNodeOrThrow("Node") as InterfaceNode;
 
     // Node interface should have only 1 field, the `id`
     for (const field of iface.fields ?? []) {

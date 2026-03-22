@@ -20,6 +20,10 @@ export class WithInterfaceNode extends WithFieldsNode {
     this.interfaces = interfaces;
   }
 
+  public getInterfaces(): NamedTypeNode[] {
+    return this.interfaces ?? [];
+  }
+
   public hasInterface(name: string): boolean {
     return this.interfaces?.some((iface) => iface.name === name) ?? false;
   }

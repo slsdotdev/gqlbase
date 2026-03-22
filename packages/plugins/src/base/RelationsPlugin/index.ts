@@ -1,11 +1,13 @@
 export { RelationsPlugin, relationPlugin } from "./RelationsPlugin.js";
 export {
-  type RelationPluginOptions,
-  type FieldRelationship,
   RelationDirective,
-  isConnectionNode,
+  isPaginationConnection,
   isManyRelationship,
   isOneRelationship,
   isRelationField,
   isValidRelationTarget,
+  parseFieldRelation,
+  type RelationPluginOptions,
+  type FieldRelationship,
+  type RelationTarget,
 } from "./RelationsPlugin.utils.js";

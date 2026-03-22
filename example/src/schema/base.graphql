@@ -65,18 +65,18 @@ interface Node {
 Standard timestamp pair. All @model types should implement this.
 """
 interface Timestamped {
-  createdAt: DateTime! @readOnly
-  updatedAt: DateTime! @readOnly
+  createdAt: DateTime @readOnly @semanticNonNull
+  updatedAt: DateTime @readOnly @semanticNonNull
 }
 
 """
 Extended audit trail for admin-managed entities.
 """
 interface Auditable implements Timestamped {
-  createdAt: DateTime! @readOnly
-  updatedAt: DateTime! @readOnly
-  createdBy: UUID @readOnly @serverOnly
-  updatedBy: UUID @readOnly @serverOnly
+  createdAt: DateTime @readOnly @semanticNonNull
+  updatedAt: DateTime @readOnly @semanticNonNull
+  createdBy: UUID @serverOnly
+  updatedBy: UUID @serverOnly
 }
 
 """
@@ -84,15 +84,15 @@ Entities that support logical (soft) deletion.
 Hard deletes are never performed on production data.
 """
 interface SoftDeletable {
-  deletedAt: DateTime @readOnly @serverOnly
-  isArchived: Boolean! @readOnly
+  deletedAt: DateTime @serverOnly
+  isArchived: Boolean @readOnly @semanticNonNull
 }
 
 """
 Entities with an optimistic-concurrency version vector.
 """
 interface Versioned {
-  version: Int! @readOnly
+  version: Int @readOnly @semanticNonNull
 }
 
 # ------------------------------------------------------------------------------
@@ -144,8 +144,8 @@ enum Currency {
 Monetary amount with explicit currency. Never store bare floats for money.
 """
 type Money {
-  amount: Decimal!
-  currency: Currency!
+  amount: Decimal @semanticNonNull
+  currency: Currency @semanticNonNull
 }
 
 input MoneyInput {
@@ -157,8 +157,8 @@ input MoneyInput {
 GPS coordinates for market locations, delivery zones, etc.
 """
 type GeoPoint {
-  latitude: Float!
-  longitude: Float!
+  latitude: Float @semanticNonNull
+  longitude: Float @semanticNonNull
 }
 
 input GeoPointInput {
@@ -170,21 +170,11 @@ input GeoPointInput {
 Inclusive time range for a single day, in HH:mm (24h) local time.
 """
 type TimeRange {
-  opensAt: String!
-  closesAt: String!
+  opensAt: String @semanticNonNull
+  closesAt: String @semanticNonNull
 }
 
 input TimeRangeInput {
   opensAt: String!
   closesAt: String!
-}
-
-"""
-Generic paginated connection following Relay specification.
-"""
-type PageInfo {
-  hasNextPage: Boolean!
-  hasPreviousPage: Boolean!
-  startCursor: String
-  endCursor: String
 }

@@ -22,6 +22,10 @@ export class WithFieldsNode extends WithDirectivesNode {
     return this.fields?.find((field) => field.name === name);
   }
 
+  public getFields(): FieldNode[] {
+    return this.fields ?? [];
+  }
+
   public addField(field: FieldNode | FieldDefinitionNode) {
     const node = field instanceof FieldNode ? field : FieldNode.fromDefinition(field);
 

@@ -11,26 +11,36 @@ import {
   UnionNode,
 } from "@gqlbase/core/definition";
 import { TransformerPluginExecutionError } from "@gqlbase/shared/errors";
-import { camelCase, pascalCase } from "@gqlbase/shared/format";
+import { pascalCase } from "@gqlbase/shared/format";
 import {
   FieldRelationship,
-  isConnectionNode,
+  isPaginationConnection,
   isManyRelationship,
   isOneRelationship,
   isRelationField,
   isValidRelationTarget,
+  parseFieldRelation,
   RelationDirective,
   RelationPluginOptions,
+  RelationTarget,
 } from "./RelationsPlugin.utils.js";
 import { isListTypeNode } from "../ModelPlugin/ModelPlugin.utils.js";
 
 /**
- *  This plugin is responsible for adding the `@hasOne` and `@hasMany` directives to the schema, which can be used to define relationships between types. It also adds the necessary fields and arguments to the schema to support these directives.
+ * This plugin is responsible for adding the `@hasOne` and `@hasMany` directives to the schema, which can be used to define relationships between types.
+ *
+ * It also adds the necessary fields and arguments to the schema to support these directives.
+ *
+ * @definition
+ * ```graphql
+ * directive `@hasOne(key: String)` on FIELD_DEFINITION
+ *
+ * directive `@hasMany(key: String)` on FIELD_DEFINITION
+ *
+ * ```
  *
  * @example
- *
  * ```graphql
- *
  * # Before
  * type User {
  *   id: ID!
@@ -48,93 +58,57 @@ import { isListTypeNode } from "../ModelPlugin/ModelPlugin.utils.js";
  * type User {
  *   id: ID!
  *   name: String!
- *   posts: [Post]
+ *   posts: [Post] # formatted by the plugin
  * }
  *
  * type Post {
  *   id: ID!
  *   title: String!
- *   authorId: ID
+ *   authorId: ID # added by the plugin
  *   author: User
  * }
  * ```
- *
- * In the above example, the `User` type has a `posts` field that is decorated with the `@hasMany` directive, indicating that a user can have many posts. The plugin will automatically add the necessary fields and arguments to support this relationship in the schema.
- *
  */
 
 export class RelationsPlugin implements ITransformerPlugin {
   readonly name = "RelationsPlugin";
   readonly context: ITransformerContext;
-  private readonly _useConnections: boolean;
+  private readonly options: Required<RelationPluginOptions>;
 
-  constructor(
-    context: ITransformerContext,
-    options: RelationPluginOptions = { useConnections: false }
-  ) {
+  constructor(context: ITransformerContext, options: RelationPluginOptions = {}) {
     this.context = context;
-    this._useConnections = options.useConnections ?? false;
+    this.options = {
+      usePaginationTypes: options.usePaginationTypes ?? false,
+    };
   }
 
-  private _getRelationshipTarget(field: FieldNode) {
-    const fieldType = this.context.document.getNode(field.type.getTypeName());
+  private _getRelationshipTarget(
+    object: ObjectNode | InterfaceNode,
+    field: FieldNode
+  ): RelationTarget {
+    const target = this.context.document.getNode(field.type.getTypeName());
 
-    if (isRelationField(field)) {
-      return fieldType;
+    if (!target || !isValidRelationTarget(target)) {
+      throw new TransformerPluginExecutionError(
+        this.name,
+        `Type ${target?.name ?? "unknwon type"} is not a valid relationship target for ${object.name}.${field.name}`
+      );
     }
 
-    return undefined;
+    return target;
   }
 
   private _getFieldRelation(
     object: ObjectNode | InterfaceNode,
     field: FieldNode
   ): Required<FieldRelationship> | null {
-    const target = this._getRelationshipTarget(field);
-    if (!target) return null;
-
-    if (!isValidRelationTarget(target)) {
-      throw new TransformerPluginExecutionError(
-        this.name,
-        `Type ${target.name} is not a valid relationship target for ${object.name}.${field.name}`
-      );
+    if (!isRelationField(field)) {
+      return null;
     }
 
-    let directive = field.getDirective(RelationDirective.HAS_ONE);
+    const target = this._getRelationshipTarget(object, field);
 
-    if (directive) {
-      if (field.hasDirective(RelationDirective.HAS_MANY)) {
-        throw new TransformerPluginExecutionError(
-          this.name,
-          `Multiple relationship directives detected for ${object.name}.${field.name}`
-        );
-      }
-
-      const args = directive.getArgumentsJSON<{ key: string }>();
-
-      return {
-        type: "oneToOne",
-        target: target,
-        key: args.key ?? camelCase(field.name, "id"),
-      };
-    }
-
-    directive = field.getDirective(RelationDirective.HAS_MANY);
-
-    if (directive) {
-      const args = directive.getArgumentsJSON<{ key: string }>();
-
-      return {
-        type: "oneToMany",
-        target: target,
-        key: args.key ?? camelCase(object.name, "id"),
-      };
-    }
-
-    throw new TransformerPluginExecutionError(
-      this.name,
-      `Could not find connection directive: ${field.name}`
-    );
+    return parseFieldRelation(object, field, target);
   }
 
   private _setRelationKey(node: ObjectNode | InterfaceNode, key: string) {
@@ -156,7 +130,7 @@ export class RelationsPlugin implements ITransformerPlugin {
   private _createFieldConnection(field: FieldNode, target: ObjectNode | InterfaceNode | UnionNode) {
     this._setConnectionArguments(field);
 
-    if (isConnectionNode(target)) {
+    if (isPaginationConnection(target)) {
       return target;
     }
 
@@ -191,7 +165,7 @@ export class RelationsPlugin implements ITransformerPlugin {
   public match(definition: DefinitionNode): boolean {
     if (definition instanceof InterfaceNode || definition instanceof ObjectNode) {
       if (definition.name === "Mutation") return false;
-      if (isConnectionNode(definition)) return false;
+      if (isPaginationConnection(definition)) return false;
       if (!definition.fields?.length) return false;
       return true;
     }
@@ -240,7 +214,7 @@ export class RelationsPlugin implements ITransformerPlugin {
         continue;
       }
 
-      if (this._useConnections) {
+      if (this.options.usePaginationTypes) {
         const connection = this._createFieldConnection(field, relation.target);
         field.setType(NamedTypeNode.create(connection.name));
         continue;

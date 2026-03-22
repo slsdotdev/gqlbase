@@ -67,7 +67,7 @@ describe("RelationsPlugin", () => {
   describe("with useConnections enabled", () => {
     beforeAll(() => {
       context = new TransformerContext({});
-      plugin = new RelationsPlugin(context, { useConnections: true });
+      plugin = new RelationsPlugin(context, { usePaginationTypes: true });
       context.registerPlugin(plugin);
     });
 

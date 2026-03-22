@@ -1,26 +1,43 @@
-import {
-  DefinitionNode,
-  FieldNode,
-  InputValueNode,
-  NonNullTypeNode,
-} from "@gqlbase/core/definition";
+import { DefinitionNode } from "@gqlbase/core/definition";
+
+export interface ModelTypesGeneratorPluginOptions {
+  /** If true, the plugin will not emit any files.
+   * @default true
+   */
+  emitFile?: boolean;
+
+  /**
+   * The output file name for the generated types.
+   * @default "models.typegen.ts"
+   */
+  fileName?: string;
+
+  /**
+   * Whether to include the generated types in the output object.
+   * @default false
+   */
+  emitOutput?: boolean;
+}
+
+export const DEFAULT_OPTIONS: Required<ModelTypesGeneratorPluginOptions> = {
+  emitFile: true,
+  fileName: "models.typegen.ts",
+  emitOutput: false,
+} as const;
+
+export const mergeOptions = (
+  options?: ModelTypesGeneratorPluginOptions
+): Required<ModelTypesGeneratorPluginOptions> => {
+  return {
+    ...DEFAULT_OPTIONS,
+    ...options,
+  };
+};
 
 const OPERATION_NODE_NAME = ["Query", "Mutation", "Subscription"] as const;
 
 export const isOperationNode = (node: DefinitionNode) => {
   return OPERATION_NODE_NAME.includes(node.name as (typeof OPERATION_NODE_NAME)[number]);
-};
-
-/**
- *
- * @param field Field node to check for non-nullability
- * @returns True if the field is non-nullable, false otherwise
- *
- * TODO: check for semantic nullability based on directives.
- */
-
-export const isNonNullableField = (field: FieldNode | InputValueNode) => {
-  return field.type instanceof NonNullTypeNode;
 };
 
 export const getBuildinScalarTypeKeyword = (typeName: string): string => {

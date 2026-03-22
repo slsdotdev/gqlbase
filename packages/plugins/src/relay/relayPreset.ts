@@ -1,5 +1,5 @@
-import { connectionPlugin } from "./ConnectionPlugin.js";
-import { nodeInterfacePlugin } from "./NodeInterfacePlugin.js";
+import { connectionPlugin } from "./ConnectionPlugin/index.js";
+import { nodeInterfacePlugin } from "./NodeInterfacePlugin/index.js";
 
 /**
  * A preset that includes all the Relay plugins

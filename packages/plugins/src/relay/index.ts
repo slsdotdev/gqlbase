@@ -1,8 +1,8 @@
+export { NodeInterfacePlugin, nodeInterfacePlugin } from "./NodeInterfacePlugin/index.js";
 export {
   ConnectionPlugin,
-  ConnectionDirective,
   connectionPlugin,
-  isConnectionNode,
-  isEdgeNode,
-} from "./ConnectionPlugin.js";
-export { NodeInterfacePlugin, nodeInterfacePlugin } from "./NodeInterfacePlugin.js";
+  isRelayConnection,
+  isRelayEdge,
+} from "./ConnectionPlugin/index.js";
+export { relayPreset } from "./relayPreset.js";

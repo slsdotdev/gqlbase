@@ -5,6 +5,7 @@ import { createFileHeaders } from "@gqlbase/shared/codegen";
 import {
   DefinitionNode,
   EnumNode,
+  FieldNode,
   InterfaceNode,
   ListTypeNode,
   NonNullTypeNode,
@@ -14,13 +15,15 @@ import {
 } from "@gqlbase/core/definition";
 import {
   getBuildinScalarTypeKeyword,
-  isNonNullableField,
   isOperationNode,
+  mergeOptions,
+  ModelTypesGeneratorPluginOptions,
 } from "./ModelTypesGeneratorPlugin.utils.js";
 import { isEnum, isObjectLike, isScalar } from "../ModelPlugin/ModelPlugin.utils.js";
 import { isRelationField } from "../RelationsPlugin/RelationsPlugin.utils.js";
 import { isBuildInScalar } from "@gqlbase/shared/definition";
 import { getTypeHint, isInternal } from "@gqlbase/core/plugins";
+import { isSemanticNullable } from "../RfcFeaturesPlugin/RfcFeaturesPlugin.utils.js";
 
 /**
  * This plugin generates TypeScript types for all objects defined in the schema.
@@ -28,14 +31,17 @@ import { getTypeHint, isInternal } from "@gqlbase/core/plugins";
 
 export class ModelTypesGeneratorPlugin extends TransformerPluginBase {
   private nodes: ts.Node[] = [];
+  private options: Required<ModelTypesGeneratorPluginOptions>;
 
-  constructor(context: ITransformerContext) {
+  constructor(context: ITransformerContext, options: ModelTypesGeneratorPluginOptions = {}) {
     super("ModelTypesGeneratorPlugin", context);
+
+    this.options = mergeOptions(options);
   }
 
   private _getContent() {
     const file = ts.createSourceFile(
-      "models.typegen.ts",
+      this.options.fileName,
       /*sourceText*/ "",
       ts.ScriptTarget.Latest,
       /*setParentNodes*/ false,
@@ -46,6 +52,7 @@ export class ModelTypesGeneratorPlugin extends TransformerPluginBase {
       newLine: ts.NewLineKind.CarriageReturnLineFeed,
       removeComments: false,
     });
+
     return printer.printList(ts.ListFormat.MultiLine, ts.factory.createNodeArray(this.nodes), file);
   }
 
@@ -83,17 +90,27 @@ export class ModelTypesGeneratorPlugin extends TransformerPluginBase {
     return ts.factory.createIdentifier(typeName);
   }
 
-  private _createValueTypeReference(fieldType: TypeNode): ts.TypeNode {
+  private _createValueTypeReference(field: FieldNode, fieldType: TypeNode, level = 0): ts.TypeNode {
     if (fieldType instanceof NonNullTypeNode) {
-      return this._createValueTypeReference(fieldType.type);
+      return this._createValueTypeReference(field, fieldType.type, level);
     }
 
     if (fieldType instanceof ListTypeNode) {
-      const elementType = this._createValueTypeReference(fieldType.type);
-      return ts.factory.createArrayTypeNode(elementType);
+      const elementType = this._createValueTypeReference(field, fieldType.type, level + 1);
+      const arrayType = ts.factory.createArrayTypeNode(elementType);
+
+      return isSemanticNullable(field, level)
+        ? ts.factory.createTypeReferenceNode("Maybe", [arrayType])
+        : arrayType;
     }
 
-    return ts.factory.createTypeReferenceNode(this._createTypeNameIdentifier(fieldType.name));
+    const baseType = ts.factory.createTypeReferenceNode(
+      this._createTypeNameIdentifier(fieldType.name)
+    );
+
+    return isSemanticNullable(field, level)
+      ? ts.factory.createTypeReferenceNode("Maybe", [baseType])
+      : baseType;
   }
 
   private _createFieldMembers(definition: ObjectNode | InterfaceNode) {
@@ -104,13 +121,11 @@ export class ModelTypesGeneratorPlugin extends TransformerPluginBase {
         continue;
       }
 
-      const questionToken = isNonNullableField(field)
-        ? undefined
-        : ts.factory.createToken(ts.SyntaxKind.QuestionToken);
+      const questionToken = isSemanticNullable(field)
+        ? ts.factory.createToken(ts.SyntaxKind.QuestionToken)
+        : undefined;
 
-      const typeNode = isNonNullableField(field)
-        ? this._createValueTypeReference(field.type)
-        : ts.factory.createTypeReferenceNode("Maybe", [this._createValueTypeReference(field.type)]);
+      const typeNode = this._createValueTypeReference(field, field.type);
 
       const propertySignature = ts.factory.createPropertySignature(
         [ts.factory.createModifier(ts.SyntaxKind.ReadonlyKeyword)],
@@ -119,6 +134,7 @@ export class ModelTypesGeneratorPlugin extends TransformerPluginBase {
         typeNode
       );
 
+      // TODO: consider adding JSDoc comments with field descriptions and deprecation notices
       // ts.addSyntheticLeadingComment(
       //   propertySignature,
       //   ts.SyntaxKind.MultiLineCommentTrivia,
@@ -249,9 +265,12 @@ export class ModelTypesGeneratorPlugin extends TransformerPluginBase {
 
   public output() {
     const content = this._getContent();
-    writeOutputFile(this.context.outputDirectory, "models.typegen.ts", content);
 
-    return {};
+    if (this.options.emitFile) {
+      writeOutputFile(this.context.outputDirectory, this.options.fileName, content);
+    }
+
+    return this.options.emitOutput ? { modelTypes: content } : {};
   }
 }
 
