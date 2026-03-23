@@ -1,5 +1,11 @@
 # @gqlbase/shared
 
+## 0.0.9
+
+### Patch Changes
+
+- ec95c9c: Fix pascal case formating for leading uppercased segments
+
 ## 0.0.8
 
 ## 0.0.7
