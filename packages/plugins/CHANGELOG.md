@@ -1,5 +1,14 @@
 # @gqlbase/plugins
 
+## 0.0.10
+
+### Patch Changes
+
+- cbd7391: Update dependencies
+- Updated dependencies [cbd7391]
+  - @gqlbase/shared@0.0.10
+  - @gqlbase/core@0.0.10
+
 ## 0.0.9
 
 ### Patch Changes

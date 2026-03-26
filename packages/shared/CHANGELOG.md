@@ -1,5 +1,11 @@
 # @gqlbase/shared
 
+## 0.0.10
+
+### Patch Changes
+
+- cbd7391: Update dependencies
+
 ## 0.0.9
 
 ### Patch Changes

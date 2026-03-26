@@ -11,6 +11,6 @@
     "watch": "gqlbase --watch --verbose"
   },
   "devDependencies": {
-    "@gqlbase/cli": "^0.0.9"
+    "@gqlbase/cli": "^0.0.10"
   }
 }
