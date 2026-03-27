@@ -1,5 +1,16 @@
 # @gqlbase/core
 
+## 0.1.0
+
+### Minor Changes
+
+- 24f07c8: Transformer outputs file contents rather than write to fs.
+
+### Patch Changes
+
+- Updated dependencies [24f07c8]
+  - @gqlbase/shared@0.1.0
+
 ## 0.0.10
 
 ### Patch Changes

@@ -1,7 +1,7 @@
 {
   "name": "gqlbase",
   "description": "A modular GraphQL schema transformation framework that allows developers to define and apply a series of transformations to their GraphQL schemas in a flexible and composable manner.",
-  "version": "0.0.10",
+  "version": "0.1.0",
   "sideEffects": false,
   "type": "module",
   "license": "MIT",
@@ -44,9 +44,9 @@
     "lint": "eslint 'src/**/*.{ts,tsx}' --fix"
   },
   "dependencies": {
-    "@gqlbase/cli": "^0.0.10",
-    "@gqlbase/core": "^0.0.10",
-    "@gqlbase/plugins": "^0.0.10",
-    "@gqlbase/shared": "^0.0.10"
+    "@gqlbase/cli": "^0.1.0",
+    "@gqlbase/core": "^0.1.0",
+    "@gqlbase/plugins": "^0.1.0",
+    "@gqlbase/shared": "^0.1.0"
   }
 }
