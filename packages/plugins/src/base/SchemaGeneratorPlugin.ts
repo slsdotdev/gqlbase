@@ -1,5 +1,4 @@
 import { createPluginFactory, ITransformerContext, TransformerPluginBase } from "@gqlbase/core";
-import { writeOutputFile } from "@gqlbase/shared/files";
 
 export class SchemaGeneratorPlugin extends TransformerPluginBase {
   constructor(context: ITransformerContext) {
@@ -8,9 +7,15 @@ export class SchemaGeneratorPlugin extends TransformerPluginBase {
 
   public output() {
     const schema = this.context.document.print();
-    writeOutputFile(this.context.outputDirectory, "schema.graphql", schema);
 
-    return {};
+    this.context.files.push({
+      type: "graphql",
+      path: "schema.graphql",
+      filename: "schema.graphql",
+      content: schema,
+    });
+
+    return { schema };
   }
 }
 

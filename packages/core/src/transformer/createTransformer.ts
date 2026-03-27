@@ -5,12 +5,6 @@ import { GraphQLTransformer } from "./GraphQLTransformer.js";
 
 export interface GraphQLTransformerOptions {
   /**
-   * The output directory where the transformed GraphQL documents or generated code will be saved.
-   * @default "generated"
-   */
-  outputDirectory?: string;
-
-  /**
    * An array of plugin factories to be registered with the transformer.
    */
   plugins: (IPluginFactory | IPluginFactory[])[];
@@ -28,10 +22,10 @@ export interface GraphQLTransformerOptions {
  */
 
 export function createTransformer(options: GraphQLTransformerOptions) {
-  const { outputDirectory = "generated", plugins } = options;
+  const { plugins } = options;
 
   const logger = options.logger ?? createLogger("GraphQLTransformer");
-  const context = new TransformerContext({ outputDirectory, logger });
+  const context = new TransformerContext({ logger });
 
   const internalUtils = internalPlugin().create(context);
   context.registerPlugin(internalUtils);

@@ -1,12 +1,13 @@
 import { performance } from "node:perf_hooks";
 import { Source } from "graphql";
 import { TransformerValidationError } from "@gqlbase/shared/errors";
-import type { ITransformerContext } from "../context/ITransformerContext.js";
+import type { FileArtifact, ITransformerContext } from "../context/index.js";
 import { DocumentNode } from "../definition/DocumentNode.js";
 
 export interface TransformerOutput {
-  [key: string]: unknown;
   schema: string;
+  files: FileArtifact[];
+  [key: string]: unknown;
 }
 
 /**
@@ -113,13 +114,16 @@ export class GraphQLTransformer {
 
     const output = {
       schema: document.print(),
-    };
+      files: [],
+    } as TransformerOutput;
 
     for (const plugin of this._context.plugins) {
       if (typeof plugin.output === "function") {
         Object.assign(output, plugin.output());
       }
     }
+
+    output.files = this._context.files;
 
     this._context.finishWork();
     return output;

@@ -27,7 +27,7 @@ describe("ModelTypesGeneratorPlugin", () => {
 
     beforeAll(() => {
       context = new TransformerContext();
-      plugin = new ModelTypesGeneratorPlugin(context, { emitFile: false, emitOutput: true });
+      plugin = new ModelTypesGeneratorPlugin(context, { emitOutput: true });
       context.registerPlugin(plugin);
     });
 
@@ -143,7 +143,7 @@ describe("ModelTypesGeneratorPlugin", () => {
 
     beforeAll(() => {
       context = new TransformerContext();
-      plugin = new ModelTypesGeneratorPlugin(context, { emitFile: false, emitOutput: true });
+      plugin = new ModelTypesGeneratorPlugin(context, { emitOutput: true });
       context.registerPlugin(plugin);
     });
 

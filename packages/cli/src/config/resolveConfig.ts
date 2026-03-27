@@ -31,6 +31,7 @@ const resolveConfigFilePath = (filePath?: string): string | null => {
       return path.resolve(process.cwd(), configFile);
     }
   }
+
   return null;
 };
 

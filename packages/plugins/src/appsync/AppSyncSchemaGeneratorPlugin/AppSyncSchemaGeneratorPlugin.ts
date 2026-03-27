@@ -27,8 +27,6 @@ import {
   isAppSyncScalar,
   mapToAppSyncScalarName,
 } from "../AppSyncUtilsPlugin/AppSyncUtilsPlugin.utils.js";
-import { writeOutputFile } from "@gqlbase/shared/files";
-import path from "node:path";
 
 /**
  * Generates an AppSync compatible GraphQL schema.
@@ -36,13 +34,13 @@ import path from "node:path";
 
 export class AppSyncSchemaGeneratorPlugin extends TransformerPluginBase {
   document: DocumentNode;
-  options: AppSyncSchemaGeneratorPluginOptions;
+  options: Required<AppSyncSchemaGeneratorPluginOptions>;
 
   constructor(context: ITransformerContext, options: AppSyncSchemaGeneratorPluginOptions = {}) {
     super("AppSyncSchemaGeneratorPlugin", context);
 
     this.options = {
-      emitFile: options.emitFile ?? false,
+      emitOutput: options.emitOutput ?? false,
       scalarMappings: options.scalarMappings ?? {},
     };
 
@@ -207,15 +205,22 @@ export class AppSyncSchemaGeneratorPlugin extends TransformerPluginBase {
   }
 
   public output() {
-    if (this.options.emitFile) {
-      writeOutputFile(
-        path.resolve(this.context.outputDirectory, "appsync"),
-        "schema.graphql",
-        this.document.print()
-      );
+    const schema = this.document.print();
+
+    this.context.files.push({
+      type: "graphql",
+      path: "appsync/schema.graphql",
+      filename: "schema.graphql",
+      content: schema,
+    });
+
+    if (this.options.emitOutput) {
+      return {
+        appsync: { schema },
+      };
     }
 
-    return { appsync: { schema: this.document.print() } };
+    return {};
   }
 }
 

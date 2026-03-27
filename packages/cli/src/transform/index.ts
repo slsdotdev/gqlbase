@@ -1,1 +1,1 @@
-export { transform, type TransformParams } from "./transform.js";
+export { createTransform, type TransformParams } from "./transform.js";

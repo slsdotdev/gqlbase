@@ -4,10 +4,10 @@ import { BuildInScalar } from "@gqlbase/shared/definition";
 
 export interface AppSyncSchemaGeneratorPluginOptions {
   /**
-   * Whether to emit the generated schema as a file.
-   * If false, the schema will only be available in the plugin context and not written to disk.
+   * If true, the plugin will emit the generated document SDL as string in the output object.
+   * @default false
    */
-  emitFile?: boolean;
+  emitOutput?: boolean;
 
   /**
    * Optional mapping of custom scalar names to AppSync scalar names or built-in scalar types.

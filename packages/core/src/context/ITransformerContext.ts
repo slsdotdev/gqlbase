@@ -2,12 +2,14 @@ import { Logger } from "@gqlbase/shared/logger";
 import { DocumentNode } from "../definition/DocumentNode.js";
 import { ITransformerPlugin } from "../plugins/ITransformerPlugin.js";
 
-export interface ITransformerContext {
-  /**
-   * The output directory where the transformed GraphQL documents or generated code will be saved. This can be used by plugins to determine where to write their output files.
-   */
-  readonly outputDirectory: string;
+export interface FileArtifact {
+  type: string;
+  path: string;
+  filename: string;
+  content: string;
+}
 
+export interface ITransformerContext {
   /** The base GraphQL document that serves as the starting point for transformations. This document can be used py plugin to register new types, fields, or other GraphQL constructs that can be referenced by other plugins during the transformation process.
    */
   readonly base: DocumentNode;
@@ -26,6 +28,11 @@ export interface ITransformerContext {
    * The GraphQL document being transformed. This is a mutable object that plugins can modify during the transformation process.
    */
   document: DocumentNode;
+
+  /** An array of file artifacts generated during the transformation process. Plugins can add new file artifacts to this array, which will be included in the final output of the transformer.
+   */
+
+  files: FileArtifact[];
 
   /**
    * A function that allows plugins to register new transformer plugins. This can be used to add additional functionality or to create plugin chains.

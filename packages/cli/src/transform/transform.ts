@@ -1,29 +1,41 @@
-import { createLogger, Logger } from "@gqlbase/shared/logger";
+import { Logger } from "@gqlbase/shared/logger";
 import { createTransformer, IPluginFactory } from "@gqlbase/core";
-import { definitionFromFiles } from "@gqlbase/shared/files";
+import { definitionFromFiles, ensureOutputDirectoryExists } from "@gqlbase/shared/files";
+import { writeFile } from "node:fs/promises";
+import { dirname, resolve } from "node:path";
 
 export interface TransformParams {
-  sources: string[];
   outputDirectory: string;
   plugins: (IPluginFactory | IPluginFactory[])[];
-  logger?: Logger;
+  logger: Logger;
 }
 
-export async function transform(params: TransformParams) {
-  const logger = params.logger ?? createLogger("transform");
-  const startTime = performance.now();
-  logger.debug("Starting transformation");
-  logger.debug("Input sources", params.sources);
+export function createTransform(params: TransformParams) {
+  params.logger.debug("Creating transformer with plugins");
 
   const transformer = createTransformer({
-    outputDirectory: params.outputDirectory,
     plugins: params.plugins,
-    logger,
+    logger: params.logger,
   });
 
-  const definition = definitionFromFiles(params.sources);
+  return async (source: string[]) => {
+    params.logger.debug("Starting transformation");
+    params.logger.debug("Input sources", source);
+    const startTime = performance.now();
 
-  transformer.transform(definition);
+    const definition = definitionFromFiles(source);
 
-  logger.success(`Transformation completed in  ${Math.floor(performance.now() - startTime)}ms`);
+    const output = transformer.transform(definition);
+
+    await Promise.all(
+      output.files.map(async (file) => {
+        ensureOutputDirectoryExists(dirname(resolve(params.outputDirectory, file.path)));
+        return writeFile(resolve(params.outputDirectory, file.path), file.content);
+      })
+    );
+
+    params.logger.success(
+      "Transformation completed in " + (performance.now() - startTime).toFixed(2) + "ms"
+    );
+  };
 }

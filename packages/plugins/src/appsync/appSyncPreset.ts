@@ -5,7 +5,7 @@ import {
 } from "./AppSyncSchemaGeneratorPlugin/index.js";
 
 interface AppSyncPresetOptions {
-  emitFile?: boolean;
+  emitOutput?: boolean;
   scalarMappings?: AppSyncSchemaGeneratorPluginOptions["scalarMappings"];
 }
 
@@ -23,7 +23,7 @@ export function appsyncPreset(options: AppSyncPresetOptions = {}) {
   return [
     appSyncUtilsPlugin(),
     appSyncSchemaGeneratorPlugin({
-      emitFile: options.emitFile,
+      emitOutput: options.emitOutput ?? false,
       scalarMappings: options.scalarMappings,
     }),
   ];

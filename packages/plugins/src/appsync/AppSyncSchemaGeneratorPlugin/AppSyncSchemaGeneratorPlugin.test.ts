@@ -32,7 +32,7 @@ describe("AppSyncSchemaGeneratorPlugin", () => {
 
   beforeAll(() => {
     context = new TransformerContext();
-    plugin = new AppSyncSchemaGeneratorPlugin(context);
+    plugin = new AppSyncSchemaGeneratorPlugin(context, { emitOutput: true });
     context.registerPlugin(plugin);
   });
 
@@ -198,7 +198,7 @@ describe("AppSyncSchemaGeneratorPlugin", () => {
 
     beforeAll(() => {
       context = new TransformerContext();
-      plugin = new AppSyncSchemaGeneratorPlugin(context);
+      plugin = new AppSyncSchemaGeneratorPlugin(context, { emitOutput: true });
       context.registerPlugin(new ScalarsPlugin(context));
       context.registerPlugin(plugin);
     });
@@ -224,15 +224,13 @@ describe("AppSyncSchemaGeneratorPlugin", () => {
         `)
       );
 
-      const {
-        appsync: { schema },
-      } = generateSchema(plugin, context);
+      const out = generateSchema(plugin, context);
 
-      expect(schema).toContain("id: ID!");
-      expect(schema).toContain("name: String!");
-      expect(schema).toContain("age: Int");
-      expect(schema).toContain("score: Float");
-      expect(schema).toContain("active: Boolean!");
+      expect(out?.appsync?.schema).toContain("id: ID!");
+      expect(out?.appsync?.schema).toContain("name: String!");
+      expect(out?.appsync?.schema).toContain("age: Int");
+      expect(out?.appsync?.schema).toContain("score: Float");
+      expect(out?.appsync?.schema).toContain("active: Boolean!");
     });
 
     it("replaces base scalars in field types", () => {
@@ -257,10 +255,10 @@ describe("AppSyncSchemaGeneratorPlugin", () => {
         `)
       );
 
-      const { appsync } = generateSchema(plugin, context);
+      const out = generateSchema(plugin, context);
 
-      expect(appsync.schema).toContain("AWSDateTime");
-      expect(appsync.schema).not.toContain("createdAt: DateTime");
+      expect(out?.appsync?.schema).toContain("AWSDateTime");
+      expect(out?.appsync?.schema).not.toContain("createdAt: DateTime");
     });
 
     it("replaces scalars in non-null and list wrappers", () => {
@@ -277,13 +275,11 @@ describe("AppSyncSchemaGeneratorPlugin", () => {
         `)
       );
 
-      const {
-        appsync: { schema },
-      } = generateSchema(plugin, context);
+      const out = generateSchema(plugin, context);
 
-      expect(schema).toContain("[AWSDateTime!]!");
-      expect(schema).toContain("lastSeen: AWSDateTime!");
-      expect(schema).not.toContain("lastSeen: DateTime!");
+      expect(out?.appsync?.schema).toContain("[AWSDateTime!]!");
+      expect(out?.appsync?.schema).toContain("lastSeen: AWSDateTime!");
+      expect(out?.appsync?.schema).not.toContain("lastSeen: DateTime!");
     });
 
     it("replaces scalars in input object fields", () => {
@@ -300,18 +296,17 @@ describe("AppSyncSchemaGeneratorPlugin", () => {
         `)
       );
 
-      const {
-        appsync: { schema },
-      } = generateSchema(plugin, context);
+      const out = generateSchema(plugin, context);
 
-      expect(schema).toContain("start: AWSDateTime!");
-      expect(schema).toContain("end: AWSDateTime!");
+      expect(out?.appsync?.schema).toContain("start: AWSDateTime!");
+      expect(out?.appsync?.schema).toContain("end: AWSDateTime!");
     });
 
     it("supports custom scalar mappings via options", () => {
       const customContext = new TransformerContext();
 
       const customPlugin = new AppSyncSchemaGeneratorPlugin(customContext, {
+        emitOutput: true,
         scalarMappings: { Decimal: "AWSTimestamp" },
       });
 
@@ -328,12 +323,10 @@ describe("AppSyncSchemaGeneratorPlugin", () => {
         `)
       );
 
-      const {
-        appsync: { schema },
-      } = generateSchema(customPlugin, customContext);
+      const out = generateSchema(customPlugin, customContext);
 
-      expect(schema).toContain("AWSTimestamp");
-      expect(schema).not.toContain("Decimal");
+      expect(out?.appsync?.schema).toContain("AWSTimestamp");
+      expect(out?.appsync?.schema).not.toContain("Decimal");
     });
   });
 
@@ -355,13 +348,11 @@ describe("AppSyncSchemaGeneratorPlugin", () => {
         `)
       );
 
-      const {
-        appsync: { schema },
-      } = generateSchema(plugin, context);
+      const out = generateSchema(plugin, context);
 
-      expect(schema).toContain("type User");
-      expect(schema).not.toContain("@model");
-      expect(schema).not.toContain("@scope");
+      expect(out?.appsync?.schema).toContain("type User");
+      expect(out?.appsync?.schema).not.toContain("@model");
+      expect(out?.appsync?.schema).not.toContain("@scope");
     });
 
     it("removes custom directives from fields", () => {
@@ -382,14 +373,12 @@ describe("AppSyncSchemaGeneratorPlugin", () => {
         `)
       );
 
-      const {
-        appsync: { schema },
-      } = generateSchema(plugin, context);
+      const out = generateSchema(plugin, context);
 
-      expect(schema).toContain("name: String!");
-      expect(schema).toContain("createdAt: String!");
-      expect(schema).not.toContain("@readOnly");
-      expect(schema).not.toContain("@constraint");
+      expect(out?.appsync?.schema).toContain("name: String!");
+      expect(out?.appsync?.schema).toContain("createdAt: String!");
+      expect(out?.appsync?.schema).not.toContain("@readOnly");
+      expect(out?.appsync?.schema).not.toContain("@constraint");
     });
 
     it("preserves AWS-specific directives", () => {
@@ -411,13 +400,11 @@ describe("AppSyncSchemaGeneratorPlugin", () => {
         `)
       );
 
-      const {
-        appsync: { schema },
-      } = generateSchema(plugin, context);
+      const out = generateSchema(plugin, context);
 
-      expect(schema).toContain("@aws_api_key");
-      expect(schema).toContain("@aws_iam");
-      expect(schema).toContain("@aws_cognito_user_pools");
+      expect(out?.appsync?.schema).toContain("@aws_api_key");
+      expect(out?.appsync?.schema).toContain("@aws_iam");
+      expect(out?.appsync?.schema).toContain("@aws_cognito_user_pools");
     });
 
     it("preserves @aws_subscribe directive on subscription fields", () => {
@@ -440,13 +427,11 @@ describe("AppSyncSchemaGeneratorPlugin", () => {
         `)
       );
 
-      const {
-        appsync: { schema },
-      } = generateSchema(plugin, context);
+      const out = generateSchema(plugin, context);
 
-      expect(schema).not.toContain("directive @aws_subscribe");
-      expect(schema).toContain("@aws_subscribe");
-      expect(schema).toContain('mutations: ["createUser"]');
+      expect(out?.appsync?.schema).not.toContain("directive @aws_subscribe");
+      expect(out?.appsync?.schema).toContain("@aws_subscribe");
+      expect(out?.appsync?.schema).toContain('mutations: ["createUser"]');
     });
 
     it("removes directives from interface types", () => {
@@ -465,12 +450,10 @@ describe("AppSyncSchemaGeneratorPlugin", () => {
         `)
       );
 
-      const {
-        appsync: { schema },
-      } = generateSchema(plugin, context);
+      const out = generateSchema(plugin, context);
 
-      expect(schema).toContain("interface Timestamped");
-      expect(schema).not.toContain("@cacheControl");
+      expect(out?.appsync?.schema).toContain("interface Timestamped");
+      expect(out?.appsync?.schema).not.toContain("@cacheControl");
     });
 
     it("removes directives from input fields", () => {
@@ -489,13 +472,11 @@ describe("AppSyncSchemaGeneratorPlugin", () => {
         `)
       );
 
-      const {
-        appsync: { schema },
-      } = generateSchema(plugin, context);
+      const out = generateSchema(plugin, context);
 
-      expect(schema).toContain("name: String!");
-      expect(schema).toContain("email: String!");
-      expect(schema).not.toContain("@constraint");
+      expect(out?.appsync?.schema).toContain("name: String!");
+      expect(out?.appsync?.schema).toContain("email: String!");
+      expect(out?.appsync?.schema).not.toContain("@constraint");
     });
   });
 
@@ -505,7 +486,7 @@ describe("AppSyncSchemaGeneratorPlugin", () => {
 
     beforeAll(() => {
       context = new TransformerContext();
-      plugin = new AppSyncSchemaGeneratorPlugin(context);
+      plugin = new AppSyncSchemaGeneratorPlugin(context, { emitOutput: true });
       context.registerPlugin(plugin);
     });
 
@@ -524,14 +505,12 @@ describe("AppSyncSchemaGeneratorPlugin", () => {
         `)
       );
 
-      const {
-        appsync: { schema },
-      } = generateSchema(plugin, context);
+      const out = generateSchema(plugin, context);
 
-      expect(schema).toContain("type User");
-      expect(schema).toContain("id: ID!");
-      expect(schema).toContain("name: String!");
-      expect(schema).toContain("age: Int");
+      expect(out?.appsync?.schema).toContain("type User");
+      expect(out?.appsync?.schema).toContain("id: ID!");
+      expect(out?.appsync?.schema).toContain("name: String!");
+      expect(out?.appsync?.schema).toContain("age: Int");
     });
 
     it("preserves enum types", () => {
@@ -549,14 +528,12 @@ describe("AppSyncSchemaGeneratorPlugin", () => {
         `)
       );
 
-      const {
-        appsync: { schema },
-      } = generateSchema(plugin, context);
+      const out = generateSchema(plugin, context);
 
-      expect(schema).toContain("enum Role");
-      expect(schema).toContain("ADMIN");
-      expect(schema).toContain("USER");
-      expect(schema).toContain("GUEST");
+      expect(out?.appsync?.schema).toContain("enum Role");
+      expect(out?.appsync?.schema).toContain("ADMIN");
+      expect(out?.appsync?.schema).toContain("USER");
+      expect(out?.appsync?.schema).toContain("GUEST");
     });
 
     it("preserves union types", () => {
@@ -578,11 +555,9 @@ describe("AppSyncSchemaGeneratorPlugin", () => {
         `)
       );
 
-      const {
-        appsync: { schema },
-      } = generateSchema(plugin, context);
+      const out = generateSchema(plugin, context);
 
-      expect(schema).toContain("union Pet = Cat | Dog");
+      expect(out?.appsync?.schema).toContain("union Pet = Cat | Dog");
     });
 
     it("preserves interface types", () => {
@@ -603,12 +578,10 @@ describe("AppSyncSchemaGeneratorPlugin", () => {
         `)
       );
 
-      const {
-        appsync: { schema },
-      } = generateSchema(plugin, context);
+      const out = generateSchema(plugin, context);
 
-      expect(schema).toContain("interface Node");
-      expect(schema).toContain("type User implements Node");
+      expect(out?.appsync?.schema).toContain("interface Node");
+      expect(out?.appsync?.schema).toContain("type User implements Node");
     });
 
     it("preserves input types", () => {
@@ -625,13 +598,11 @@ describe("AppSyncSchemaGeneratorPlugin", () => {
         `)
       );
 
-      const {
-        appsync: { schema },
-      } = generateSchema(plugin, context);
+      const out = generateSchema(plugin, context);
 
-      expect(schema).toContain("input CreateUserInput");
-      expect(schema).toContain("name: String!");
-      expect(schema).toContain("email: String!");
+      expect(out?.appsync?.schema).toContain("input CreateUserInput");
+      expect(out?.appsync?.schema).toContain("name: String!");
+      expect(out?.appsync?.schema).toContain("email: String!");
     });
 
     it("preserves Query and Mutation types", () => {
@@ -652,15 +623,13 @@ describe("AppSyncSchemaGeneratorPlugin", () => {
         `)
       );
 
-      const {
-        appsync: { schema },
-      } = generateSchema(plugin, context);
+      const out = generateSchema(plugin, context);
 
-      expect(schema).toContain("type Query");
-      expect(schema).toContain("me: User");
-      expect(schema).toContain("users: [User!]!");
-      expect(schema).toContain("type Mutation");
-      expect(schema).toContain("createUser(name: String!): User");
+      expect(out?.appsync?.schema).toContain("type Query");
+      expect(out?.appsync?.schema).toContain("me: User");
+      expect(out?.appsync?.schema).toContain("users: [User!]!");
+      expect(out?.appsync?.schema).toContain("type Mutation");
+      expect(out?.appsync?.schema).toContain("createUser(name: String!): User");
     });
 
     it.skip("preserves field descriptions", () => {
@@ -678,12 +647,10 @@ describe("AppSyncSchemaGeneratorPlugin", () => {
         `)
       );
 
-      const {
-        appsync: { schema },
-      } = generateSchema(plugin, context);
+      const out = generateSchema(plugin, context);
 
-      expect(schema).toContain("The unique identifier");
-      expect(schema).toContain("The user display name");
+      expect(out?.appsync?.schema).toContain("The unique identifier");
+      expect(out?.appsync?.schema).toContain("The user display name");
     });
 
     it.skip("preserves type descriptions", () => {
@@ -699,11 +666,9 @@ describe("AppSyncSchemaGeneratorPlugin", () => {
         `)
       );
 
-      const {
-        appsync: { schema },
-      } = generateSchema(plugin, context);
+      const out = generateSchema(plugin, context);
 
-      expect(schema).toContain("A platform user");
+      expect(out?.appsync?.schema).toContain("A platform user");
     });
   });
 
@@ -713,7 +678,7 @@ describe("AppSyncSchemaGeneratorPlugin", () => {
 
     beforeAll(() => {
       context = new TransformerContext();
-      plugin = new AppSyncSchemaGeneratorPlugin(context);
+      plugin = new AppSyncSchemaGeneratorPlugin(context, { emitOutput: true });
 
       context.registerPlugin(new ScalarsPlugin(context));
       context.registerPlugin(new AppSyncUtilsPlugin(context));
@@ -736,18 +701,16 @@ describe("AppSyncSchemaGeneratorPlugin", () => {
         `)
       );
 
-      const {
-        appsync: { schema },
-      } = generateSchema(plugin, context);
+      const out = generateSchema(plugin, context);
 
-      expect(schema).toContain("id: ID!");
-      expect(schema).toContain("email: AWSEmail!");
-      expect(schema).toContain("createdAt: AWSDateTime!");
-      expect(schema).toContain("updatedAt: AWSDateTime!");
+      expect(out?.appsync?.schema).toContain("id: ID!");
+      expect(out?.appsync?.schema).toContain("email: AWSEmail!");
+      expect(out?.appsync?.schema).toContain("createdAt: AWSDateTime!");
+      expect(out?.appsync?.schema).toContain("updatedAt: AWSDateTime!");
 
-      expect(schema).not.toContain("UUID");
-      expect(schema).not.toContain("EmailAddress");
-      expect(schema).not.toContain(": DateTime");
+      expect(out?.appsync?.schema).not.toContain("UUID");
+      expect(out?.appsync?.schema).not.toContain("EmailAddress");
+      expect(out?.appsync?.schema).not.toContain(": DateTime");
     });
 
     it("handles types with interfaces, enums, and scalar replacements", () => {
@@ -777,16 +740,14 @@ describe("AppSyncSchemaGeneratorPlugin", () => {
         `)
       );
 
-      const {
-        appsync: { schema },
-      } = generateSchema(plugin, context);
+      const out = generateSchema(plugin, context);
 
-      expect(schema).toContain("interface Timestamped");
-      expect(schema).toContain("type User implements Timestamped");
-      expect(schema).toContain("enum Role");
-      expect(schema).toContain("id: ID!");
-      expect(schema).toContain("role: Role!");
-      expect(schema).not.toContain("UUID");
+      expect(out?.appsync?.schema).toContain("interface Timestamped");
+      expect(out?.appsync?.schema).toContain("type User implements Timestamped");
+      expect(out?.appsync?.schema).toContain("enum Role");
+      expect(out?.appsync?.schema).toContain("id: ID!");
+      expect(out?.appsync?.schema).toContain("role: Role!");
+      expect(out?.appsync?.schema).not.toContain("UUID");
     });
 
     it("handles union types with scalar replacement in member types", () => {
@@ -809,14 +770,14 @@ describe("AppSyncSchemaGeneratorPlugin", () => {
         `)
       );
 
-      const {
-        appsync: { schema },
-      } = generateSchema(plugin, context);
+      const out = generateSchema(plugin, context);
 
-      expect(schema).toContain("union NotificationPayload = OrderPayload | ReviewPayload");
-      expect(schema).toContain("orderId: ID!");
-      expect(schema).toContain("reviewId: ID!");
-      expect(schema).toContain("createdAt: AWSDateTime");
+      expect(out?.appsync?.schema).toContain(
+        "union NotificationPayload = OrderPayload | ReviewPayload"
+      );
+      expect(out?.appsync?.schema).toContain("orderId: ID!");
+      expect(out?.appsync?.schema).toContain("reviewId: ID!");
+      expect(out?.appsync?.schema).toContain("createdAt: AWSDateTime");
     });
 
     it("handles input types with scalar replacements", () => {
@@ -838,14 +799,12 @@ describe("AppSyncSchemaGeneratorPlugin", () => {
         `)
       );
 
-      const {
-        appsync: { schema },
-      } = generateSchema(plugin, context);
+      const out = generateSchema(plugin, context);
 
-      expect(schema).toContain("email: AWSEmail!");
-      expect(schema).toContain("birthDate: AWSDateTime");
-      expect(schema).toContain("start: AWSDateTime!");
-      expect(schema).toContain("end: AWSDateTime!");
+      expect(out?.appsync?.schema).toContain("email: AWSEmail!");
+      expect(out?.appsync?.schema).toContain("birthDate: AWSDateTime");
+      expect(out?.appsync?.schema).toContain("start: AWSDateTime!");
+      expect(out?.appsync?.schema).toContain("end: AWSDateTime!");
     });
 
     it("handles nested list types with scalar replacement", () => {
@@ -862,12 +821,10 @@ describe("AppSyncSchemaGeneratorPlugin", () => {
         `)
       );
 
-      const {
-        appsync: { schema },
-      } = generateSchema(plugin, context);
+      const out = generateSchema(plugin, context);
 
-      expect(schema).toContain("memberIds: [ID!]!");
-      expect(schema).toContain("optionalIds: [ID]");
+      expect(out?.appsync?.schema).toContain("memberIds: [ID!]!");
+      expect(out?.appsync?.schema).toContain("optionalIds: [ID]");
     });
 
     it("strips all non-AWS directives while replacing scalars", () => {
@@ -889,20 +846,18 @@ describe("AppSyncSchemaGeneratorPlugin", () => {
         `)
       );
 
-      const {
-        appsync: { schema },
-      } = generateSchema(plugin, context);
+      const out = generateSchema(plugin, context);
 
-      expect(schema).toContain("type User");
-      expect(schema).toContain("@aws_api_key");
-      expect(schema).toContain("id: ID!");
-      expect(schema).toContain("email: AWSEmail!");
-      expect(schema).toContain("createdAt: AWSDateTime!");
-      expect(schema).not.toContain("@model");
-      expect(schema).not.toContain("@readOnly");
-      expect(schema).not.toContain("@constraint");
-      expect(schema).not.toContain("UUID");
-      expect(schema).not.toContain("EmailAddress");
+      expect(out?.appsync?.schema).toContain("type User");
+      expect(out?.appsync?.schema).toContain("@aws_api_key");
+      expect(out?.appsync?.schema).toContain("id: ID!");
+      expect(out?.appsync?.schema).toContain("email: AWSEmail!");
+      expect(out?.appsync?.schema).toContain("createdAt: AWSDateTime!");
+      expect(out?.appsync?.schema).not.toContain("@model");
+      expect(out?.appsync?.schema).not.toContain("@readOnly");
+      expect(out?.appsync?.schema).not.toContain("@constraint");
+      expect(out?.appsync?.schema).not.toContain("UUID");
+      expect(out?.appsync?.schema).not.toContain("EmailAddress");
     });
   });
 
@@ -912,7 +867,7 @@ describe("AppSyncSchemaGeneratorPlugin", () => {
 
     beforeAll(() => {
       context = new TransformerContext();
-      plugin = new AppSyncSchemaGeneratorPlugin(context);
+      plugin = new AppSyncSchemaGeneratorPlugin(context, { emitOutput: true });
       context.registerPlugin(plugin);
     });
 
@@ -928,12 +883,10 @@ describe("AppSyncSchemaGeneratorPlugin", () => {
         `)
       );
 
-      const {
-        appsync: { schema },
-      } = generateSchema(plugin, context);
+      const out = generateSchema(plugin, context);
 
-      expect(typeof schema).toBe("string");
-      expect(schema.length).toBeGreaterThan(0);
+      expect(typeof out?.appsync?.schema).toBe("string");
+      expect(out?.appsync?.schema.length).toBeGreaterThan(0);
     });
 
     it("produces valid GraphQL SDL", () => {
@@ -963,12 +916,10 @@ describe("AppSyncSchemaGeneratorPlugin", () => {
         `)
       );
 
-      const {
-        appsync: { schema },
-      } = generateSchema(plugin, context);
+      const out = generateSchema(plugin, context);
 
       // The output should be parseable as valid GraphQL
-      expect(() => DocumentNode.fromSource(schema)).not.toThrow();
+      expect(() => DocumentNode.fromSource(out?.appsync?.schema ?? "")).not.toThrow();
     });
 
     it("excludes scalar and directive definitions from output", () => {
@@ -989,12 +940,10 @@ describe("AppSyncSchemaGeneratorPlugin", () => {
         `)
       );
 
-      const {
-        appsync: { schema },
-      } = generateSchema(plugin, context);
+      const out = generateSchema(plugin, context);
 
-      expect(schema).not.toMatch(/^scalar /m);
-      expect(schema).not.toMatch(/^directive /m);
+      expect(out?.appsync?.schema).not.toMatch(/^scalar /m);
+      expect(out?.appsync?.schema).not.toMatch(/^directive /m);
     });
 
     it("resets local document between runs", () => {
@@ -1023,13 +972,11 @@ describe("AppSyncSchemaGeneratorPlugin", () => {
         `)
       );
 
-      const {
-        appsync: { schema },
-      } = generateSchema(plugin, context);
+      const out = generateSchema(plugin, context);
 
       // Second run should not contain types from first run
-      expect(schema).not.toContain("type User");
-      expect(schema).toContain("type Product");
+      expect(out?.appsync?.schema).not.toContain("type User");
+      expect(out?.appsync?.schema).toContain("type Product");
     });
   });
 });

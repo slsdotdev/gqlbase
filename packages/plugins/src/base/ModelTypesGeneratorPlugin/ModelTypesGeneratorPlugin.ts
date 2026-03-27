@@ -1,6 +1,5 @@
 import ts from "typescript";
 import { createPluginFactory, ITransformerContext, TransformerPluginBase } from "@gqlbase/core";
-import { writeOutputFile } from "@gqlbase/shared/files";
 import { createFileHeaders } from "@gqlbase/shared/codegen";
 import {
   DefinitionNode,
@@ -266,9 +265,12 @@ export class ModelTypesGeneratorPlugin extends TransformerPluginBase {
   public output() {
     const content = this._getContent();
 
-    if (this.options.emitFile) {
-      writeOutputFile(this.context.outputDirectory, this.options.fileName, content);
-    }
+    this.context.files.push({
+      type: "ts",
+      path: this.options.fileName,
+      filename: this.options.fileName,
+      content,
+    });
 
     return this.options.emitOutput ? { modelTypes: content } : {};
   }

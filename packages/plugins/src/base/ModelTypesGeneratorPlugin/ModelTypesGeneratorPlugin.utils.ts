@@ -1,11 +1,6 @@
 import { DefinitionNode } from "@gqlbase/core/definition";
 
 export interface ModelTypesGeneratorPluginOptions {
-  /** If true, the plugin will not emit any files.
-   * @default true
-   */
-  emitFile?: boolean;
-
   /**
    * The output file name for the generated types.
    * @default "models.typegen.ts"
@@ -20,7 +15,6 @@ export interface ModelTypesGeneratorPluginOptions {
 }
 
 export const DEFAULT_OPTIONS: Required<ModelTypesGeneratorPluginOptions> = {
-  emitFile: true,
   fileName: "models.typegen.ts",
   emitOutput: false,
 } as const;
