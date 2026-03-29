@@ -1,5 +1,12 @@
 # @gqlbase/core
 
+## 0.1.2
+
+### Patch Changes
+
+- feca490: Added `@belongsTo` on RelationsPlugin
+  - @gqlbase/shared@0.1.2
+
 ## 0.1.1
 
 ### Patch Changes
