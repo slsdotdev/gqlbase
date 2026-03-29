@@ -12,7 +12,9 @@ import { InputValueNode } from "./InputValueNode.js";
 
 describe("InputObjectNode", () => {
   it("creates node from values", () => {
-    const node = InputObjectNode.create("InputObject", [InputValueNode.create("id", "ID")]);
+    const node = InputObjectNode.create("InputObject", undefined, undefined, [
+      InputValueNode.create("id", undefined, undefined, "ID"),
+    ]);
     expect(node.name).toEqual("InputObject");
     expect(node.fields).toBeInstanceOf(Array);
   });
@@ -101,9 +103,9 @@ describe("InputObjectNode", () => {
   });
 
   it("serializes node to definition", () => {
-    const node = InputObjectNode.create("InputObject", [
-      InputValueNode.create("id", "ID"),
-      InputValueNode.create("name", "String"),
+    const node = InputObjectNode.create("InputObject", undefined, undefined, [
+      InputValueNode.create("id", undefined, undefined, "ID"),
+      InputValueNode.create("name", undefined, undefined, "String"),
     ]);
     const definition = node.serialize();
     expect(definition).toBeInstanceOf(Object);
@@ -113,9 +115,9 @@ describe("InputObjectNode", () => {
   });
 
   it("checks if node has field", () => {
-    const node = InputObjectNode.create("InputObject", [
-      InputValueNode.create("id", "ID"),
-      InputValueNode.create("name", "String"),
+    const node = InputObjectNode.create("InputObject", undefined, undefined, [
+      InputValueNode.create("id", undefined, undefined, "ID"),
+      InputValueNode.create("name", undefined, undefined, "String"),
     ]);
     expect(node.hasField("id")).toEqual(true);
     expect(node.hasField("name")).toEqual(true);
@@ -125,7 +127,7 @@ describe("InputObjectNode", () => {
   it("adds field to node", () => {
     const node = InputObjectNode.create("InputObject");
     node
-      .addField(InputValueNode.create("id", "ID"))
+      .addField(InputValueNode.create("id", undefined, undefined, "ID"))
       .addField({
         kind: Kind.INPUT_VALUE_DEFINITION,
         name: {
@@ -159,15 +161,17 @@ describe("InputObjectNode", () => {
   });
 
   it("throws error when adding duplicate field", () => {
-    const node = InputObjectNode.create("InputObject", [InputValueNode.create("id", "ID")]);
+    const node = InputObjectNode.create("InputObject", undefined, undefined, [
+      InputValueNode.create("id", undefined, undefined, "ID"),
+    ]);
     expect(() => {
-      node.addField(InputValueNode.create("id", "ID"));
+      node.addField(InputValueNode.create("id", undefined, undefined, "ID"));
     }).toThrow("Field id already exists on type InputObject");
   });
   it("removes field from node", () => {
-    const node = InputObjectNode.create("InputObject", [
-      InputValueNode.create("id", "ID"),
-      InputValueNode.create("name", "String"),
+    const node = InputObjectNode.create("InputObject", undefined, undefined, [
+      InputValueNode.create("id", undefined, undefined, "ID"),
+      InputValueNode.create("name", undefined, undefined, "String"),
     ]);
     expect(node.fields).toHaveLength(2);
     node.removeField("id");
@@ -175,7 +179,9 @@ describe("InputObjectNode", () => {
   });
 
   it("extends node with definition", () => {
-    const node = InputObjectNode.create("InputObject", [InputValueNode.create("id", "ID")]);
+    const node = InputObjectNode.create("InputObject", undefined, undefined, [
+      InputValueNode.create("id", undefined, undefined, "ID"),
+    ]);
     const definition = {
       kind: Kind.INPUT_OBJECT_TYPE_EXTENSION,
       name: {

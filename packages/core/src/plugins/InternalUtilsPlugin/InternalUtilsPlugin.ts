@@ -1,11 +1,13 @@
 import { ITransformerContext } from "../../context/ITransformerContext.js";
-import { DirectiveDefinitionNode } from "../../definition/DirectiveDefinitionNode.js";
-import { DirectiveNode } from "../../definition/DirectiveNode.js";
-import { DefinitionNode } from "../../definition/DocumentNode.js";
-import { EnumNode } from "../../definition/EnumNode.js";
-import { InputValueNode } from "../../definition/InputValueNode.js";
-import { ScalarNode } from "../../definition/ScalarNode.js";
-import { NonNullTypeNode } from "../../definition/TypeNode.js";
+import {
+  DefinitionNode,
+  DirectiveNode,
+  DirectiveDefinitionNode,
+  EnumNode,
+  InputValueNode,
+  ScalarNode,
+  NonNullTypeNode,
+} from "../../definition/index.js";
 import { createPluginFactory } from "../createPluginFactory.js";
 import { ITransformerPlugin } from "../ITransformerPlugin.js";
 import { InternalDirective, TypeHintValue } from "./InternalUtilsPlugin.utils.js";
@@ -57,7 +59,7 @@ export class InternalUtilsPlugin implements ITransformerPlugin {
   public init() {
     this.context.base
       .addNode(
-        DirectiveDefinitionNode.create(InternalDirective.INTERNAL, [
+        DirectiveDefinitionNode.create(InternalDirective.INTERNAL, undefined, [
           "ARGUMENT_DEFINITION",
           "ENUM",
           "ENUM_VALUE",
@@ -72,14 +74,18 @@ export class InternalUtilsPlugin implements ITransformerPlugin {
       .addNode(
         DirectiveDefinitionNode.create(
           InternalDirective.TYPE_HINT,
+          undefined,
           ["SCALAR"],
-          InputValueNode.create("type", NonNullTypeNode.create("String"))
+          InputValueNode.create("type", undefined, undefined, NonNullTypeNode.create("String"))
         )
       )
       .addNode(
-        EnumNode.create("TypeHint", Object.values(TypeHintValue), [
-          DirectiveNode.create(InternalDirective.INTERNAL),
-        ])
+        EnumNode.create(
+          "TypeHint",
+          undefined,
+          [DirectiveNode.create(InternalDirective.INTERNAL)],
+          Object.values(TypeHintValue)
+        )
       );
   }
 

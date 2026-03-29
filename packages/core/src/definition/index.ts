@@ -1,7 +1,7 @@
 export { ArgumentNode } from "./ArgumentNode.js";
 export { DirectiveDefinitionNode } from "./DirectiveDefinitionNode.js";
 export { DirectiveNode } from "./DirectiveNode.js";
-export { DocumentNode, type DefinitionNode } from "./DocumentNode.js";
+export { DocumentNode } from "./DocumentNode.js";
 export { EnumNode } from "./EnumNode.js";
 export { EnumValueNode } from "./EnumValueNode.js";
 export { FieldNode } from "./FieldNode.js";
@@ -13,3 +13,18 @@ export { ScalarNode } from "./ScalarNode.js";
 export { type TypeNode, NamedTypeNode, ListTypeNode, NonNullTypeNode } from "./TypeNode.js";
 export { UnionNode } from "./UnionNode.js";
 export { ValueNode, type ValueType } from "./ValueNode.js";
+export { type DefinitionNode } from "./utils.js";
+export {
+  isArgument,
+  isDirective,
+  isEnumNode,
+  isEnumValueNode,
+  isFieldNode,
+  isInputObjectNode,
+  isInputValueNode,
+  isInterfaceNode,
+  isDirectiveDefinitionNode,
+  isObjectNode,
+  isScalarNode,
+  isUnionNode,
+} from "./utils.js";

@@ -1,16 +1,19 @@
-import { FieldDefinitionNode } from "graphql";
+import { FieldDefinitionNode, StringValueNode } from "graphql";
 import { FieldNode } from "./FieldNode.js";
 import { WithDirectivesNode } from "./WithDirectivesNode.js";
 import { DirectiveNode } from "./DirectiveNode.js";
 
-export class WithFieldsNode extends WithDirectivesNode {
-  name: string;
+export abstract class WithFieldsNode extends WithDirectivesNode {
   fields?: FieldNode[] | undefined;
 
-  constructor(name: string, fields?: FieldNode[], directives?: DirectiveNode[]) {
-    super(name, directives);
+  constructor(
+    name: string,
+    description?: StringValueNode,
+    directives?: DirectiveNode[],
+    fields?: FieldNode[]
+  ) {
+    super(name, description, directives);
 
-    this.name = name;
     this.fields = fields;
   }
 

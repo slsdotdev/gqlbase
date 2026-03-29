@@ -8,8 +8,9 @@ describe("UnionNode", () => {
   it("creates node from values", () => {
     const node = UnionNode.create(
       "Union",
-      ["Test", NamedTypeNode.create("Test2")],
-      [DirectiveNode.create("testOnly")]
+      undefined,
+      [DirectiveNode.create("testOnly")],
+      ["Test", NamedTypeNode.create("Test2")]
     );
     expect(node).toBeInstanceOf(UnionNode);
     expect(node.types).toHaveLength(2);
@@ -54,7 +55,7 @@ describe("UnionNode", () => {
   });
 
   it("extends node", () => {
-    const node = UnionNode.create("Union", ["Test"]);
+    const node = UnionNode.create("Union", undefined, undefined, ["Test"]);
     node.extend({
       kind: Kind.UNION_TYPE_EXTENSION,
       name: {
@@ -88,8 +89,9 @@ describe("UnionNode", () => {
   it("serialises node", () => {
     const node = UnionNode.create(
       "Union",
-      [NamedTypeNode.create("Test"), NamedTypeNode.create("Test2")],
-      [DirectiveNode.create("testOnly")]
+      undefined,
+      [DirectiveNode.create("testOnly")],
+      [NamedTypeNode.create("Test"), NamedTypeNode.create("Test2")]
     );
 
     expect(node.serialize()).toEqual({
@@ -148,7 +150,7 @@ describe("UnionNode", () => {
   });
 
   it("throws error when adding duplicate field", () => {
-    const node = UnionNode.create("Union", [NamedTypeNode.create("Test")]);
+    const node = UnionNode.create("Union", undefined, undefined, [NamedTypeNode.create("Test")]);
 
     expect(() => {
       node.addType(NamedTypeNode.create("Test"));
@@ -156,7 +158,7 @@ describe("UnionNode", () => {
   });
 
   it("removes field from node", () => {
-    const node = UnionNode.create("Union", [NamedTypeNode.create("Test")]);
+    const node = UnionNode.create("Union", undefined, undefined, [NamedTypeNode.create("Test")]);
 
     expect(node.hasType("Test")).toEqual(true);
     node.removeType("Test");

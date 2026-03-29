@@ -114,11 +114,15 @@ export class ConnectionPlugin extends TransformerPluginBase {
 
   private _setConnectionArguments(field: FieldNode) {
     if (!field.hasArgument("first")) {
-      field.addArgument(InputValueNode.create("first", NamedTypeNode.create("Int")));
+      field.addArgument(
+        InputValueNode.create("first", undefined, undefined, NamedTypeNode.create("Int"))
+      );
     }
 
     if (!field.hasArgument("after")) {
-      field.addArgument(InputValueNode.create("after", NamedTypeNode.create("String")));
+      field.addArgument(
+        InputValueNode.create("after", undefined, undefined, NamedTypeNode.create("String"))
+      );
     }
   }
 
@@ -135,11 +139,10 @@ export class ConnectionPlugin extends TransformerPluginBase {
       let edgeType = this.context.document.getNode(edgeTypeName) as ObjectNode;
 
       if (!connectionType) {
-        connectionType = ObjectNode.create(connectionTypeName, [
+        connectionType = ObjectNode.create(connectionTypeName, undefined, undefined, [
           FieldNode.create(
             "edges",
-            ListTypeNode.create(NamedTypeNode.create(edgeTypeName)),
-            null,
+            undefined,
             hasSemanticNonNull
               ? [
                   DirectiveNode.create(RfcDirective.SEMANTIC_NON_NULL, [
@@ -149,22 +152,32 @@ export class ConnectionPlugin extends TransformerPluginBase {
                     ),
                   ]),
                 ]
-              : undefined
+              : undefined,
+            ListTypeNode.create(NamedTypeNode.create(edgeTypeName)),
+            null
           ),
-          FieldNode.create("pageInfo", NonNullTypeNode.create("PageInfo")),
+          FieldNode.create("pageInfo", undefined, undefined, NonNullTypeNode.create("PageInfo")),
         ]);
 
         this.context.document.addNode(connectionType);
       }
 
       if (!edgeType) {
-        edgeType = ObjectNode.create(edgeTypeName, [
-          FieldNode.create("cursor", NamedTypeNode.create("String"), null, [
-            DirectiveNode.create(UtilityDirective.CLIENT_ONLY),
-          ]),
-          FieldNode.create("node", NamedTypeNode.create(target.name), null, [
-            DirectiveNode.create(UtilityDirective.CLIENT_ONLY),
-          ]),
+        edgeType = ObjectNode.create(edgeTypeName, undefined, undefined, [
+          FieldNode.create(
+            "cursor",
+            undefined,
+            [DirectiveNode.create(UtilityDirective.CLIENT_ONLY)],
+            NamedTypeNode.create("String"),
+            null
+          ),
+          FieldNode.create(
+            "node",
+            undefined,
+            [DirectiveNode.create(UtilityDirective.CLIENT_ONLY)],
+            NamedTypeNode.create(target.name),
+            null
+          ),
         ]);
 
         this.context.document.addNode(edgeType);
@@ -178,11 +191,16 @@ export class ConnectionPlugin extends TransformerPluginBase {
   public before(): void {
     if (!this.context.document.hasNode("PageInfo")) {
       this.context.document.addNode(
-        ObjectNode.create("PageInfo", [
-          FieldNode.create("hasNextPage", NonNullTypeNode.create("Boolean")),
-          FieldNode.create("hasPreviousPage", NonNullTypeNode.create("Boolean")),
-          FieldNode.create("startCursor", NamedTypeNode.create("String")),
-          FieldNode.create("endCursor", NamedTypeNode.create("String")),
+        ObjectNode.create("PageInfo", undefined, undefined, [
+          FieldNode.create("hasNextPage", undefined, undefined, NonNullTypeNode.create("Boolean")),
+          FieldNode.create(
+            "hasPreviousPage",
+            undefined,
+            undefined,
+            NonNullTypeNode.create("Boolean")
+          ),
+          FieldNode.create("startCursor", undefined, undefined, NamedTypeNode.create("String")),
+          FieldNode.create("endCursor", undefined, undefined, NamedTypeNode.create("String")),
         ])
       );
     }

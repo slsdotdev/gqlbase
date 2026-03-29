@@ -5,6 +5,7 @@ import {
   InputValueDefinitionNode,
   Kind,
   ObjectTypeDefinitionNode,
+  StringValueNode,
 } from "graphql";
 import { WithDirectivesNode } from "./WithDirectivesNode.js";
 import { InputValueNode } from "./InputValueNode.js";
@@ -15,8 +16,13 @@ export class InputObjectNode extends WithDirectivesNode {
   name: string;
   fields?: InputValueNode[] | undefined;
 
-  constructor(name: string, fields?: InputValueNode[], directives?: DirectiveNode[] | undefined) {
-    super(name, directives);
+  constructor(
+    name: string,
+    description?: StringValueNode,
+    directives?: DirectiveNode[],
+    fields?: InputValueNode[]
+  ) {
+    super(name, description, directives);
 
     this.name = name;
     this.fields = fields;
@@ -70,8 +76,9 @@ export class InputObjectNode extends WithDirectivesNode {
         kind: Kind.NAME,
         value: this.name,
       },
-      fields: this.fields?.map((field) => field.serialize()),
+      description: this.description,
       directives: this.directives?.map((directive) => directive.serialize()),
+      fields: this.fields?.map((field) => field.serialize()),
     };
   }
 
@@ -80,16 +87,18 @@ export class InputObjectNode extends WithDirectivesNode {
   ): InputObjectNode {
     return new InputObjectNode(
       definition.name.value,
-      definition.fields?.map((node) => InputValueNode.fromDefinition(node)),
-      definition.directives?.map((node) => DirectiveNode.fromDefinition(node))
+      definition.description,
+      definition.directives?.map((node) => DirectiveNode.fromDefinition(node)),
+      definition.fields?.map((node) => InputValueNode.fromDefinition(node))
     );
   }
 
   static create(
     name: string,
-    fields?: InputValueNode[],
-    directives?: DirectiveNode[]
+    description?: StringValueNode,
+    directives?: DirectiveNode[],
+    fields?: InputValueNode[]
   ): InputObjectNode {
-    return new InputObjectNode(name, fields, directives);
+    return new InputObjectNode(name, description, directives, fields);
   }
 }

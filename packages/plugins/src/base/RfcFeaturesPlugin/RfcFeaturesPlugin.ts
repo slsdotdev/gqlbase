@@ -39,9 +39,12 @@ export class RfcFeaturesPlugin extends TransformerPluginBase {
     this.context.base.addNode(
       DirectiveDefinitionNode.create(
         "semanticNonNull",
+        undefined,
         ["FIELD_DEFINITION"],
         InputValueNode.create(
           "levels",
+          undefined,
+          undefined,
           NonNullTypeNode.create(
             ListTypeNode.create(NonNullTypeNode.create(NamedTypeNode.create("Int")))
           ),

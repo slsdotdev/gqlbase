@@ -22,13 +22,37 @@ export class UtilitiesPlugin implements ITransformerPlugin {
 
   public init(): void {
     this.context.base
-      .addNode(DirectiveDefinitionNode.create(UtilityDirective.READ_ONLY, ["FIELD_DEFINITION"]))
-      .addNode(DirectiveDefinitionNode.create(UtilityDirective.WRITE_ONLY, ["FIELD_DEFINITION"]))
-      .addNode(DirectiveDefinitionNode.create(UtilityDirective.SERVER_ONLY, ["FIELD_DEFINITION"]))
-      .addNode(DirectiveDefinitionNode.create(UtilityDirective.CLIENT_ONLY, ["FIELD_DEFINITION"]))
-      .addNode(DirectiveDefinitionNode.create(UtilityDirective.FILTER_ONLY, ["FIELD_DEFINITION"]))
-      .addNode(DirectiveDefinitionNode.create(UtilityDirective.CREATE_ONLY, ["FIELD_DEFINITION"]))
-      .addNode(DirectiveDefinitionNode.create(UtilityDirective.UPDATE_ONLY, ["FIELD_DEFINITION"]));
+      .addNode(
+        DirectiveDefinitionNode.create(UtilityDirective.READ_ONLY, undefined, ["FIELD_DEFINITION"])
+      )
+      .addNode(
+        DirectiveDefinitionNode.create(UtilityDirective.WRITE_ONLY, undefined, ["FIELD_DEFINITION"])
+      )
+      .addNode(
+        DirectiveDefinitionNode.create(UtilityDirective.SERVER_ONLY, undefined, [
+          "FIELD_DEFINITION",
+        ])
+      )
+      .addNode(
+        DirectiveDefinitionNode.create(UtilityDirective.CLIENT_ONLY, undefined, [
+          "FIELD_DEFINITION",
+        ])
+      )
+      .addNode(
+        DirectiveDefinitionNode.create(UtilityDirective.FILTER_ONLY, undefined, [
+          "FIELD_DEFINITION",
+        ])
+      )
+      .addNode(
+        DirectiveDefinitionNode.create(UtilityDirective.CREATE_ONLY, undefined, [
+          "FIELD_DEFINITION",
+        ])
+      )
+      .addNode(
+        DirectiveDefinitionNode.create(UtilityDirective.UPDATE_ONLY, undefined, [
+          "FIELD_DEFINITION",
+        ])
+      );
   }
 
   public match(definition: DefinitionNode) {

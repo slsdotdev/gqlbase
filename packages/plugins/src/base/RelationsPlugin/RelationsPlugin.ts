@@ -114,17 +114,21 @@ export class RelationsPlugin implements ITransformerPlugin {
 
   private _setRelationKey(node: ObjectNode | InterfaceNode, key: string) {
     if (!node.hasField(key)) {
-      node.addField(FieldNode.create(key, NamedTypeNode.create("ID")));
+      node.addField(FieldNode.create(key, undefined, undefined, NamedTypeNode.create("ID")));
     }
   }
 
   private _setConnectionArguments(field: FieldNode) {
     if (!field.hasArgument("limit")) {
-      field.addArgument(InputValueNode.create("limit", NamedTypeNode.create("Int")));
+      field.addArgument(
+        InputValueNode.create("limit", undefined, undefined, NamedTypeNode.create("Int"))
+      );
     }
 
     if (!field.hasArgument("nextToken")) {
-      field.addArgument(InputValueNode.create("nextToken", NamedTypeNode.create("String")));
+      field.addArgument(
+        InputValueNode.create("nextToken", undefined, undefined, NamedTypeNode.create("String"))
+      );
     }
   }
 
@@ -140,8 +144,17 @@ export class RelationsPlugin implements ITransformerPlugin {
     return this.context.document.getOrCreateNode(
       connectionTypeName,
       ObjectNode.create(connectionTypeName)
-        .addField(FieldNode.create("items", ListTypeNode.create(NamedTypeNode.create(target.name))))
-        .addField(FieldNode.create("nextToken", NamedTypeNode.create("String")))
+        .addField(
+          FieldNode.create(
+            "items",
+            undefined,
+            undefined,
+            ListTypeNode.create(NamedTypeNode.create(target.name))
+          )
+        )
+        .addField(
+          FieldNode.create("nextToken", undefined, undefined, NamedTypeNode.create("String"))
+        )
     );
   }
 
@@ -150,15 +163,17 @@ export class RelationsPlugin implements ITransformerPlugin {
       .addNode(
         DirectiveDefinitionNode.create(
           RelationDirective.HAS_ONE,
+          undefined,
           ["FIELD_DEFINITION"],
-          [InputValueNode.create("key", "String")]
+          [InputValueNode.create("key", undefined, undefined, "String")]
         )
       )
       .addNode(
         DirectiveDefinitionNode.create(
           RelationDirective.HAS_MANY,
+          undefined,
           ["FIELD_DEFINITION"],
-          [InputValueNode.create("key", "String")]
+          [InputValueNode.create("key", undefined, undefined, "String")]
         )
       );
   }

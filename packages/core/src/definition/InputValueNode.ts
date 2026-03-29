@@ -4,6 +4,7 @@ import {
   FieldDefinitionNode,
   InputValueDefinitionNode,
   Kind,
+  StringValueNode,
   TypeNode as TypeNodeDefinition,
 } from "graphql";
 import { WithDirectivesNode } from "./WithDirectivesNode.js";
@@ -18,11 +19,12 @@ export class InputValueNode extends WithDirectivesNode {
 
   constructor(
     name: string,
+    description: StringValueNode | undefined,
+    directives: DirectiveNode[] | undefined,
     type: TypeNode,
-    defaultValue?: ConstValueNode | null,
-    directives?: DirectiveNode[]
+    defaultValue?: ConstValueNode | null
   ) {
-    super(name, directives);
+    super(name, description, directives);
 
     this.name = name;
     this.type = type;
@@ -36,6 +38,7 @@ export class InputValueNode extends WithDirectivesNode {
         kind: Kind.NAME,
         value: this.name,
       },
+      description: this.description,
       type: this.type.serialize(),
       defaultValue: this.defaultValue,
       directives: this.directives?.map((directive) => directive.serialize()),
@@ -44,9 +47,10 @@ export class InputValueNode extends WithDirectivesNode {
 
   static create(
     name: string,
+    description: StringValueNode | undefined,
+    directives: (string | DirectiveNode | ConstDirectiveNode)[] | undefined,
     value: string | TypeNode | TypeNodeDefinition,
-    defaultValue?: ConstValueNode,
-    directives?: (string | DirectiveNode | ConstDirectiveNode)[]
+    defaultValue?: ConstValueNode
   ) {
     const typeNode =
       typeof value === "string"
@@ -63,28 +67,30 @@ export class InputValueNode extends WithDirectivesNode {
 
     return new InputValueNode(
       name,
-      typeNode,
-      defaultValue,
+      description,
       directives?.map((directive) =>
         directive instanceof DirectiveNode
           ? directive
           : typeof directive === "string"
             ? DirectiveNode.create(directive)
             : DirectiveNode.fromDefinition(directive)
-      )
+      ) ?? undefined,
+      typeNode,
+      defaultValue
     );
   }
 
   static fromDefinition(field: FieldDefinitionNode | InputValueDefinitionNode) {
     return new InputValueNode(
       field.name.value,
+      field.description,
+      field.directives?.map((directive) => DirectiveNode.fromDefinition(directive)),
       field.type.kind === Kind.NON_NULL_TYPE
         ? NonNullTypeNode.fromDefinition(field.type)
         : field.type.kind === Kind.LIST_TYPE
           ? ListTypeNode.fromDefinition(field.type)
           : NamedTypeNode.fromDefinition(field.type),
-      "defaultValue" in field ? field.defaultValue : null,
-      field.directives?.map((directive) => DirectiveNode.fromDefinition(directive))
+      "defaultValue" in field ? field.defaultValue : null
     );
   }
 }

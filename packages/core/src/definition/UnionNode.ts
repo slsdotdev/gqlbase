@@ -3,6 +3,7 @@ import {
   UnionTypeDefinitionNode,
   UnionTypeExtensionNode,
   NamedTypeNode as INamedTypeNode,
+  StringValueNode,
 } from "graphql";
 import { DirectiveNode } from "./DirectiveNode.js";
 import { NamedTypeNode } from "./TypeNode.js";
@@ -10,13 +11,16 @@ import { WithDirectivesNode } from "./WithDirectivesNode.js";
 
 export class UnionNode extends WithDirectivesNode {
   kind: Kind.UNION_TYPE_DEFINITION = Kind.UNION_TYPE_DEFINITION;
-  name: string;
   types?: NamedTypeNode[] | undefined;
 
-  constructor(name: string, types?: NamedTypeNode[], directives?: DirectiveNode[] | undefined) {
-    super(name, directives);
+  constructor(
+    name: string,
+    description?: StringValueNode,
+    directives?: DirectiveNode[],
+    types?: NamedTypeNode[]
+  ) {
+    super(name, description, directives);
 
-    this.name = name;
     this.types = types ?? undefined;
   }
 
@@ -72,6 +76,7 @@ export class UnionNode extends WithDirectivesNode {
         kind: Kind.NAME,
         value: this.name,
       },
+      description: this.description,
       types: this.types?.map((type) => type.serialize()),
       directives: this.directives?.map((node) => node.serialize()),
     };
@@ -79,21 +84,24 @@ export class UnionNode extends WithDirectivesNode {
 
   static create(
     name: string,
-    types?: (NamedTypeNode | string)[],
-    directives?: DirectiveNode[]
+    description?: StringValueNode,
+    directives?: DirectiveNode[],
+    types?: (NamedTypeNode | string)[]
   ): UnionNode {
     return new UnionNode(
       name,
-      types?.map((type) => (type instanceof NamedTypeNode ? type : NamedTypeNode.create(type))),
-      directives
+      description,
+      directives,
+      types?.map((type) => (type instanceof NamedTypeNode ? type : NamedTypeNode.create(type)))
     );
   }
 
   static fromDefinition(definition: UnionTypeDefinitionNode) {
     return new UnionNode(
       definition.name.value,
-      definition.types?.map((node) => NamedTypeNode.create(node.name.value)),
-      definition.directives?.map((node) => DirectiveNode.fromDefinition(node))
+      definition.description,
+      definition.directives?.map((node) => DirectiveNode.fromDefinition(node)),
+      definition.types?.map((node) => NamedTypeNode.create(node.name.value))
     );
   }
 }

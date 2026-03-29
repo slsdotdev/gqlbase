@@ -62,14 +62,21 @@ export class NodeInterfacePlugin extends TransformerPluginBase {
   }
 
   before(): void {
-    const node = this.context.document.getOrCreateNode("Node", InterfaceNode.create("Node", []));
+    const node = this.context.document.getOrCreateNode("Node", InterfaceNode.create("Node"));
 
     if (!(node instanceof InterfaceNode)) {
       throw new InvalidDefinitionError("Node type must be an interface");
     }
 
     if (!node.hasField("id")) {
-      node.addField(FieldNode.create("id", NonNullTypeNode.create(NamedTypeNode.create("ID"))));
+      node.addField(
+        FieldNode.create(
+          "id",
+          undefined,
+          undefined,
+          NonNullTypeNode.create(NamedTypeNode.create("ID"))
+        )
+      );
     }
 
     const queryNode = this.context.document.getQueryNode();
@@ -78,9 +85,17 @@ export class NodeInterfacePlugin extends TransformerPluginBase {
       queryNode.addField(
         FieldNode.create(
           "node",
+          undefined,
+          [DirectiveNode.create("hasOne")],
           NamedTypeNode.create("Node"),
-          [InputValueNode.create("id", NonNullTypeNode.create(NamedTypeNode.create("ID")))],
-          [DirectiveNode.create("hasOne")]
+          [
+            InputValueNode.create(
+              "id",
+              undefined,
+              undefined,
+              NonNullTypeNode.create(NamedTypeNode.create("ID"))
+            ),
+          ]
         )
       );
     }

@@ -2,8 +2,10 @@ import {
   DirectiveDefinitionNode as IDirectiveDefinitionNode,
   InputValueDefinitionNode,
   Kind,
+  StringValueNode,
 } from "graphql";
 import { InputValueNode } from "./InputValueNode.js";
+import { WithDescriptionNode } from "./WithDescriptionNode.js";
 
 type Location =
   | "SCHEMA"
@@ -18,15 +20,21 @@ type Location =
   | "INPUT_OBJECT"
   | "INPUT_FIELD_DEFINITION";
 
-export class DirectiveDefinitionNode {
-  kind: Kind.DIRECTIVE_DEFINITION = Kind.DIRECTIVE_DEFINITION;
-  name: string;
+export class DirectiveDefinitionNode extends WithDescriptionNode {
+  kind = Kind.DIRECTIVE_DEFINITION;
   repeatable: boolean;
   locations: Location[];
   arguments?: InputValueNode[];
 
-  constructor(name: string, locations: Location[], args?: InputValueNode[], repeatable?: boolean) {
-    this.name = name;
+  constructor(
+    name: string,
+    description: StringValueNode | undefined,
+    locations: Location[],
+    args?: InputValueNode[],
+    repeatable?: boolean
+  ) {
+    super(name, description);
+
     this.locations = locations;
     this.arguments = args;
     this.repeatable = repeatable ?? false;
@@ -65,6 +73,7 @@ export class DirectiveDefinitionNode {
         kind: Kind.NAME,
         value: this.name,
       },
+      description: this.description,
       repeatable: this.repeatable,
       locations: this.locations.map((value) => {
         return {
@@ -79,6 +88,7 @@ export class DirectiveDefinitionNode {
   static fromDefinition(definition: IDirectiveDefinitionNode) {
     return new DirectiveDefinitionNode(
       definition.name.value,
+      definition.description,
       definition.locations.map((node) => node.value as Location),
       definition.arguments?.map((arg) => InputValueNode.fromDefinition(arg)),
       definition.repeatable
@@ -87,12 +97,14 @@ export class DirectiveDefinitionNode {
 
   static create(
     name: string,
+    description: StringValueNode | undefined,
     locations: Location | Location[],
     args?: InputValueNode | InputValueNode[],
     repeatable?: boolean
   ) {
     return new DirectiveDefinitionNode(
       name,
+      description,
       Array.isArray(locations) ? locations : [locations],
       args instanceof InputValueNode ? [args] : args,
       repeatable

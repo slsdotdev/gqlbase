@@ -110,11 +110,17 @@ export class AppSyncSchemaGeneratorPlugin extends TransformerPluginBase {
             const argTypeNode = this._getFieldTypeNode(arg);
             const argDirectives = this._getDirectives(arg);
 
-            return InputValueNode.create(arg.name, argTypeNode, arg.defaultValue, argDirectives);
+            return InputValueNode.create(
+              arg.name,
+              undefined,
+              argDirectives,
+              argTypeNode,
+              arg.defaultValue
+            );
           })
         : undefined;
 
-      fields.push(FieldNode.create(field.name, typeNode, args, directives));
+      fields.push(FieldNode.create(field.name, undefined, directives, typeNode, args));
     }
 
     return fields;
@@ -127,7 +133,9 @@ export class AppSyncSchemaGeneratorPlugin extends TransformerPluginBase {
       const typeNode = this._getFieldTypeNode(field);
       const directives = this._getDirectives(field);
 
-      fields.push(InputValueNode.create(field.name, typeNode, field.defaultValue, directives));
+      fields.push(
+        InputValueNode.create(field.name, undefined, directives, typeNode, field.defaultValue)
+      );
     }
 
     return fields;
@@ -140,7 +148,7 @@ export class AppSyncSchemaGeneratorPlugin extends TransformerPluginBase {
       ? node.interfaces.map((iface) => NamedTypeNode.create(iface.name))
       : undefined;
 
-    this.document.addNode(ObjectNode.create(node.name, fields, interfaces, directives));
+    this.document.addNode(ObjectNode.create(node.name, undefined, directives, fields, interfaces));
   }
 
   private _addInterface(node: InterfaceNode) {
@@ -150,28 +158,30 @@ export class AppSyncSchemaGeneratorPlugin extends TransformerPluginBase {
       ? node.interfaces.map((iface) => NamedTypeNode.create(iface.name))
       : undefined;
 
-    this.document.addNode(InterfaceNode.create(node.name, fields, interfaces, directives));
+    this.document.addNode(
+      InterfaceNode.create(node.name, undefined, directives, fields, interfaces)
+    );
   }
 
   private _addUnion(node: UnionNode) {
     const directives = this._getDirectives(node);
     const types = node.types ? node.types.map((type) => NamedTypeNode.create(type.name)) : [];
 
-    this.document.addNode(UnionNode.create(node.name, types, directives));
+    this.document.addNode(UnionNode.create(node.name, undefined, directives, types));
   }
 
   private _addEnum(node: EnumNode) {
     const directives = this._getDirectives(node);
     const values = node.values ? node.values.map((value) => value.name) : [];
 
-    this.document.addNode(EnumNode.create(node.name, values, directives));
+    this.document.addNode(EnumNode.create(node.name, undefined, directives, values));
   }
 
   private _addInputObject(node: InputObjectNode) {
     const fields = this._getInputFields(node);
     const directives = this._getDirectives(node);
 
-    this.document.addNode(InputObjectNode.create(node.name, fields, directives));
+    this.document.addNode(InputObjectNode.create(node.name, undefined, directives, fields));
   }
 
   public before() {

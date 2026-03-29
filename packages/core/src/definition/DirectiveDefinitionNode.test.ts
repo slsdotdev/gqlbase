@@ -46,8 +46,9 @@ describe("DirectiveDefinitionNode", () => {
   it("creates node from values", () => {
     const node = DirectiveDefinitionNode.create(
       "name",
+      undefined,
       "FIELD_DEFINITION",
-      InputValueNode.create("name", "String")
+      InputValueNode.create("name", undefined, undefined, "String")
     );
     expect(node.name).toEqual("name");
     expect(node.locations).toEqual(["FIELD_DEFINITION"]);
@@ -65,23 +66,30 @@ describe("DirectiveDefinitionNode", () => {
   });
 
   it("creates repeatable node from values", () => {
-    const node = DirectiveDefinitionNode.create("name", "FIELD_DEFINITION", undefined, true);
+    const node = DirectiveDefinitionNode.create(
+      "name",
+      undefined,
+      "FIELD_DEFINITION",
+      undefined,
+      true
+    );
     expect(node.repeatable).toEqual(true);
   });
 
   it("checks if node has argument", () => {
     const node = DirectiveDefinitionNode.create(
       "name",
+      undefined,
       "FIELD_DEFINITION",
-      InputValueNode.create("name", "String")
+      InputValueNode.create("name", undefined, undefined, "String")
     );
     expect(node.hasArgument("name")).toBe(true);
     expect(node.hasArgument("unknown")).toBe(false);
   });
 
   it("gets argument from node", () => {
-    const node = DirectiveDefinitionNode.create("name", "FIELD_DEFINITION", [
-      InputValueNode.create("name", "String"),
+    const node = DirectiveDefinitionNode.create("name", undefined, "FIELD_DEFINITION", [
+      InputValueNode.create("name", undefined, undefined, "String"),
     ]);
     const arg = node.getArgument("name");
     expect(arg).toBeDefined();
@@ -89,13 +97,13 @@ describe("DirectiveDefinitionNode", () => {
   });
 
   it("adds argument to node", () => {
-    const node = DirectiveDefinitionNode.create("name", "FIELD_DEFINITION");
-    node.addArgument(InputValueNode.create("newArg", "String"));
+    const node = DirectiveDefinitionNode.create("name", undefined, "FIELD_DEFINITION");
+    node.addArgument(InputValueNode.create("newArg", undefined, undefined, "String"));
     expect(node.hasArgument("newArg")).toBe(true);
   });
 
   it("adds argument definition to node", () => {
-    const node = DirectiveDefinitionNode.create("name", "FIELD_DEFINITION");
+    const node = DirectiveDefinitionNode.create("name", undefined, "FIELD_DEFINITION");
     node.addArgument(definition.arguments[0]);
     expect(node.hasArgument("name")).toBe(true);
   });
@@ -103,8 +111,9 @@ describe("DirectiveDefinitionNode", () => {
   it("removes argument from node", () => {
     const node = DirectiveDefinitionNode.create(
       "name",
+      undefined,
       "FIELD_DEFINITION",
-      InputValueNode.create("name", "String")
+      InputValueNode.create("name", undefined, undefined, "String")
     );
     node.removeArgument("name");
     expect(node.hasArgument("name")).toBe(false);
@@ -113,19 +122,21 @@ describe("DirectiveDefinitionNode", () => {
   it("throws error when adding duplicate argument", () => {
     const node = DirectiveDefinitionNode.create(
       "name",
+      undefined,
       "FIELD_DEFINITION",
-      InputValueNode.create("name", "String")
+      InputValueNode.create("name", undefined, undefined, "String")
     );
     expect(() => {
-      node.addArgument(InputValueNode.create("name", "String"));
+      node.addArgument(InputValueNode.create("name", undefined, undefined, "String"));
     }).toThrow();
   });
 
   it("serializes node to definition", () => {
     const node = DirectiveDefinitionNode.create(
       "name",
+      undefined,
       ["FIELD_DEFINITION", "OBJECT"],
-      [InputValueNode.create("name", "String")],
+      [InputValueNode.create("name", undefined, undefined, "String")],
       false
     );
     const serialized = node.serialize();

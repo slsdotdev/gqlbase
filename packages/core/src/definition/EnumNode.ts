@@ -3,6 +3,7 @@ import {
   EnumTypeExtensionNode,
   EnumValueDefinitionNode,
   Kind,
+  StringValueNode,
 } from "graphql";
 import { WithDirectivesNode } from "./WithDirectivesNode.js";
 import { DirectiveNode } from "./DirectiveNode.js";
@@ -13,8 +14,13 @@ export class EnumNode extends WithDirectivesNode {
   name: string;
   values?: EnumValueNode[] | undefined;
 
-  constructor(name: string, values?: EnumValueNode[], directives?: DirectiveNode[]) {
-    super(name, directives);
+  constructor(
+    name: string,
+    description?: StringValueNode,
+    directives?: DirectiveNode[],
+    values?: EnumValueNode[]
+  ) {
+    super(name, description, directives);
 
     this.name = name;
     this.values = values;
@@ -71,24 +77,32 @@ export class EnumNode extends WithDirectivesNode {
         kind: Kind.NAME,
         value: this.name,
       },
+      description: this.description,
       values: this.values?.map((value) => value.serialize()),
       directives: this.directives?.map((directive) => directive.serialize()),
     };
   }
 
-  static create(name: string, values?: string[], directives?: DirectiveNode[]) {
+  static create(
+    name: string,
+    description?: StringValueNode,
+    directives?: DirectiveNode[],
+    values?: string[]
+  ) {
     return new EnumNode(
       name,
-      values?.map((value) => EnumValueNode.create(value)),
-      directives
+      description,
+      directives,
+      values?.map((value) => EnumValueNode.create(value))
     );
   }
 
   static fromDefinition(definition: EnumTypeDefinitionNode) {
     return new EnumNode(
       definition.name.value,
-      definition.values?.map((value) => EnumValueNode.fromDefinition(value)) ?? undefined,
-      definition.directives?.map((directive) => DirectiveNode.fromDefinition(directive))
+      definition.description,
+      definition.directives?.map((directive) => DirectiveNode.fromDefinition(directive)),
+      definition.values?.map((value) => EnumValueNode.fromDefinition(value)) ?? undefined
     );
   }
 }

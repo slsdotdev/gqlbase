@@ -15,15 +15,7 @@ import { EnumNode } from "./EnumNode.js";
 import { UnionNode } from "./UnionNode.js";
 import { ScalarNode } from "./ScalarNode.js";
 import { DirectiveDefinitionNode } from "./DirectiveDefinitionNode.js";
-
-export type DefinitionNode =
-  | InterfaceNode
-  | ObjectNode
-  | InputObjectNode
-  | EnumNode
-  | UnionNode
-  | ScalarNode
-  | DirectiveDefinitionNode;
+import { DefinitionNode } from "./utils.js";
 
 export class DocumentNode {
   kind: Kind.DOCUMENT = Kind.DOCUMENT;
@@ -170,6 +162,7 @@ export class DocumentNode {
 
     for (const extension of extensions) {
       const node = document.getNode(extension.name.value);
+
       if (node instanceof ObjectNode && extension.kind === Kind.OBJECT_TYPE_EXTENSION) {
         node.extend(extension);
       } else if (

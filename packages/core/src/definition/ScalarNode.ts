@@ -1,16 +1,9 @@
-import { Kind, ScalarTypeDefinitionNode, ScalarTypeExtensionNode } from "graphql";
+import { Kind, ScalarTypeDefinitionNode, ScalarTypeExtensionNode, StringValueNode } from "graphql";
 import { DirectiveNode } from "./DirectiveNode.js";
 import { WithDirectivesNode } from "./WithDirectivesNode.js";
 
 export class ScalarNode extends WithDirectivesNode {
   kind: Kind.SCALAR_TYPE_DEFINITION = Kind.SCALAR_TYPE_DEFINITION;
-  name: string;
-
-  constructor(name: string, directives?: DirectiveNode[]) {
-    super(name, directives);
-
-    this.name = name;
-  }
 
   public extend(definition: ScalarTypeExtensionNode) {
     this.directives = definition.directives?.map((directive) =>
@@ -26,6 +19,7 @@ export class ScalarNode extends WithDirectivesNode {
         kind: Kind.NAME,
         value: this.name,
       },
+      description: this.description,
       directives: this.directives?.map((node) => node.serialize()),
     };
   }
@@ -33,11 +27,12 @@ export class ScalarNode extends WithDirectivesNode {
   static fromDefinition(definition: ScalarTypeDefinitionNode) {
     return new ScalarNode(
       definition.name.value,
+      definition.description,
       definition.directives?.map((directive) => DirectiveNode.fromDefinition(directive))
     );
   }
 
-  static create(name: string, directives?: DirectiveNode[]) {
-    return new ScalarNode(name, directives);
+  static create(name: string, description?: StringValueNode, directives?: DirectiveNode[]) {
+    return new ScalarNode(name, description, directives);
   }
 }

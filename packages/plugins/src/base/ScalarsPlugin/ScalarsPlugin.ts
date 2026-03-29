@@ -59,7 +59,7 @@ export class ScalarsPlugin extends TransformerPluginBase {
   public init() {
     this.context.base
       .addNode(
-        ScalarNode.create("DateTime", [
+        ScalarNode.create("DateTime", undefined, [
           DirectiveNode.create("specifiedBy", [
             ArgumentNode.create("url", ValueNode.string("http://www.ietf.org/rfc/rfc3339.txt")),
           ]),
@@ -69,7 +69,7 @@ export class ScalarsPlugin extends TransformerPluginBase {
         ])
       )
       .addNode(
-        ScalarNode.create("Date", [
+        ScalarNode.create("Date", undefined, [
           DirectiveNode.create("specifiedBy", [
             ArgumentNode.create("url", ValueNode.string("http://www.ietf.org/rfc/rfc3339.txt")),
           ]),
@@ -79,7 +79,7 @@ export class ScalarsPlugin extends TransformerPluginBase {
         ])
       )
       .addNode(
-        ScalarNode.create("Time", [
+        ScalarNode.create("Time", undefined, [
           DirectiveNode.create("specifiedBy", [
             ArgumentNode.create("url", ValueNode.string("http://www.ietf.org/rfc/rfc3339.txt")),
           ]),
@@ -89,7 +89,7 @@ export class ScalarsPlugin extends TransformerPluginBase {
         ])
       )
       .addNode(
-        ScalarNode.create("Timestamp", [
+        ScalarNode.create("Timestamp", undefined, [
           DirectiveNode.create("specifiedBy", [
             ArgumentNode.create("url", ValueNode.string("https://en.wikipedia.org/wiki/Unix_time")),
           ]),
@@ -99,7 +99,7 @@ export class ScalarsPlugin extends TransformerPluginBase {
         ])
       )
       .addNode(
-        ScalarNode.create("UUID", [
+        ScalarNode.create("UUID", undefined, [
           DirectiveNode.create("specifiedBy", [
             ArgumentNode.create("url", ValueNode.string("http://rfc-editor.org/rfc/rfc9562")),
           ]),
@@ -109,7 +109,7 @@ export class ScalarsPlugin extends TransformerPluginBase {
         ])
       )
       .addNode(
-        ScalarNode.create("URL", [
+        ScalarNode.create("URL", undefined, [
           DirectiveNode.create("specifiedBy", [
             ArgumentNode.create("url", ValueNode.string("https://www.ietf.org/rfc/rfc3986.txt")),
           ]),
@@ -119,7 +119,7 @@ export class ScalarsPlugin extends TransformerPluginBase {
         ])
       )
       .addNode(
-        ScalarNode.create("EmailAddress", [
+        ScalarNode.create("EmailAddress", undefined, [
           DirectiveNode.create("specifiedBy", [
             ArgumentNode.create(
               "url",
@@ -134,7 +134,7 @@ export class ScalarsPlugin extends TransformerPluginBase {
         ])
       )
       .addNode(
-        ScalarNode.create("PhoneNumber", [
+        ScalarNode.create("PhoneNumber", undefined, [
           DirectiveNode.create("specifiedBy", [
             ArgumentNode.create("url", ValueNode.string("https://www.itu.int/rec/T-REC-E.164")),
           ]),
@@ -144,7 +144,7 @@ export class ScalarsPlugin extends TransformerPluginBase {
         ])
       )
       .addNode(
-        ScalarNode.create("IPAddress", [
+        ScalarNode.create("IPAddress", undefined, [
           DirectiveNode.create("specifiedBy", [
             ArgumentNode.create("url", ValueNode.string("https://www.ietf.org/rfc/rfc3986.txt")),
           ]),
@@ -154,7 +154,7 @@ export class ScalarsPlugin extends TransformerPluginBase {
         ])
       )
       .addNode(
-        ScalarNode.create("JSON", [
+        ScalarNode.create("JSON", undefined, [
           DirectiveNode.create("specifiedBy", [
             ArgumentNode.create("url", ValueNode.string("https://json.org/")),
           ]),

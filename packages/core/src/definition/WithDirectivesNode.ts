@@ -1,12 +1,12 @@
-import { ConstDirectiveNode } from "graphql";
+import { ConstDirectiveNode, StringValueNode } from "graphql";
 import { DirectiveNode } from "./DirectiveNode.js";
+import { WithDescriptionNode } from "./WithDescriptionNode.js";
 
-export class WithDirectivesNode {
-  name: string;
+export abstract class WithDirectivesNode extends WithDescriptionNode {
   directives?: DirectiveNode[] | undefined;
 
-  constructor(name: string, directives?: DirectiveNode[]) {
-    this.name = name;
+  constructor(name: string, description?: StringValueNode, directives?: DirectiveNode[]) {
+    super(name, description);
     this.directives = directives;
   }
 

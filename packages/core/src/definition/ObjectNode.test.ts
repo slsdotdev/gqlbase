@@ -51,9 +51,10 @@ describe("ObjectNode", () => {
   it("creates node from values", () => {
     const node = ObjectNode.create(
       "Test",
-      [FieldNode.create("id", NamedTypeNode.create("ID"))],
-      [NamedTypeNode.create("Node")],
-      [DirectiveNode.create("auth")]
+      undefined,
+      [DirectiveNode.create("auth")],
+      [FieldNode.create("id", undefined, undefined, NamedTypeNode.create("ID"))],
+      [NamedTypeNode.create("Node")]
     );
 
     expect(node).toBeInstanceOf(ObjectNode);
@@ -83,9 +84,10 @@ describe("ObjectNode", () => {
   it("serializes node", () => {
     const node = ObjectNode.create(
       "Test",
-      [FieldNode.create("id", NamedTypeNode.create("ID"))],
-      [NamedTypeNode.create("Node")],
-      [DirectiveNode.create("auth")]
+      undefined,
+      [DirectiveNode.create("auth")],
+      [FieldNode.create("id", undefined, undefined, NamedTypeNode.create("ID"))],
+      [NamedTypeNode.create("Node")]
     );
 
     const serializedDefinition = node.serialize();

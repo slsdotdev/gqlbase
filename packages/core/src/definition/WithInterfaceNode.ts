@@ -1,22 +1,22 @@
-import { NamedTypeNode as INamedTypeNode } from "graphql";
+import { NamedTypeNode as INamedTypeNode, StringValueNode } from "graphql";
 
 import { DirectiveNode } from "./DirectiveNode.js";
 import { FieldNode } from "./FieldNode.js";
 import { NamedTypeNode } from "./TypeNode.js";
 import { WithFieldsNode } from "./WithFieldsNode.js";
 
-export class WithInterfaceNode extends WithFieldsNode {
-  name: string;
+export abstract class WithInterfaceNode extends WithFieldsNode {
   interfaces?: NamedTypeNode[];
 
   constructor(
     name: string,
+    description?: StringValueNode,
+    directives?: DirectiveNode[],
     fields?: FieldNode[],
-    interfaces?: NamedTypeNode[],
-    directives?: DirectiveNode[]
+    interfaces?: NamedTypeNode[]
   ) {
-    super(name, fields, directives);
-    this.name = name;
+    super(name, description, directives, fields);
+
     this.interfaces = interfaces;
   }
 

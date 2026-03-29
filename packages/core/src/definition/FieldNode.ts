@@ -1,4 +1,4 @@
-import { FieldDefinitionNode, InputValueDefinitionNode, Kind } from "graphql";
+import { FieldDefinitionNode, InputValueDefinitionNode, Kind, StringValueNode } from "graphql";
 import { WithDirectivesNode } from "./WithDirectivesNode.js";
 import { InputValueNode } from "./InputValueNode.js";
 import { DirectiveNode } from "./DirectiveNode.js";
@@ -12,11 +12,12 @@ export class FieldNode extends WithDirectivesNode {
 
   constructor(
     name: string,
+    description: StringValueNode | undefined,
+    directives: DirectiveNode[] | undefined,
     type: TypeNode,
-    args?: InputValueNode[] | null,
-    directives?: DirectiveNode[] | undefined
+    args?: InputValueNode[] | null
   ) {
-    super(name, directives);
+    super(name, description, directives);
     this.name = name;
     this.type = type;
     this.arguments = args ?? undefined;
@@ -60,6 +61,7 @@ export class FieldNode extends WithDirectivesNode {
         kind: Kind.NAME,
         value: this.name,
       },
+      description: this.description,
       type: this.type.serialize(),
       arguments: this.arguments?.map((arg) => arg.serialize()),
       directives: this.directives?.map((directive) => directive.serialize()),
@@ -68,23 +70,25 @@ export class FieldNode extends WithDirectivesNode {
 
   static create(
     name: string,
+    description: StringValueNode | undefined,
+    directives: DirectiveNode[] | undefined,
     type: TypeNode,
-    args?: InputValueNode[] | null,
-    directives?: DirectiveNode[]
+    args?: InputValueNode[] | null
   ) {
-    return new FieldNode(name, type, args ?? null, directives);
+    return new FieldNode(name, description, directives, type, args ?? null);
   }
 
   static fromDefinition(field: FieldDefinitionNode) {
     return new FieldNode(
       field.name.value,
+      field.description ?? undefined,
+      field.directives?.map((directive) => DirectiveNode.fromDefinition(directive)) ?? undefined,
       field.type.kind === Kind.NON_NULL_TYPE
         ? NonNullTypeNode.fromDefinition(field.type)
         : field.type.kind === Kind.LIST_TYPE
           ? ListTypeNode.fromDefinition(field.type)
           : NamedTypeNode.fromDefinition(field.type),
-      field.arguments?.map((arg) => InputValueNode.fromDefinition(arg)) ?? null,
-      field.directives?.map((directive) => DirectiveNode.fromDefinition(directive)) ?? undefined
+      field.arguments?.map((arg) => InputValueNode.fromDefinition(arg)) ?? null
     );
   }
 }

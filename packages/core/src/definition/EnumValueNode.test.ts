@@ -34,7 +34,7 @@ describe("EnumValueNode", () => {
   });
 
   it("creates node with directive definition", () => {
-    const node = EnumValueNode.create("name", [
+    const node = EnumValueNode.create("name", undefined, [
       {
         kind: Kind.DIRECTIVE,
         name: {
@@ -49,13 +49,13 @@ describe("EnumValueNode", () => {
   });
 
   it("serializes node to definition", () => {
-    const node = EnumValueNode.create("name", [DirectiveNode.create("directive1")]);
+    const node = EnumValueNode.create("name", undefined, [DirectiveNode.create("directive1")]);
     const serialized = node.serialize();
     expect(serialized).toEqual(definition);
   });
 
   it("checks for directive existence", () => {
-    const node = EnumValueNode.create("name", ["value1"]);
+    const node = EnumValueNode.create("name", undefined, ["value1"]);
     expect(node.hasDirective("directive1")).toBe(false);
   });
 
@@ -83,7 +83,7 @@ describe("EnumValueNode", () => {
   });
 
   it("gets directive from node", () => {
-    const node = EnumValueNode.create("name", ["directive1"]);
+    const node = EnumValueNode.create("name", undefined, ["directive1"]);
     const directive = node.getDirective("directive1");
     expect(directive).toBeInstanceOf(DirectiveNode);
     expect(directive?.name).toEqual("directive1");

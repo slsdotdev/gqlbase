@@ -149,97 +149,132 @@ export class ModelPlugin implements ITransformerPlugin {
   // #region Filter Inputs
 
   private _createSizeFilterInput() {
-    const input = InputObjectNode.create("SizeFilterInput", [
-      InputValueNode.create("ne", NamedTypeNode.create("Int")),
-      InputValueNode.create("eq", NamedTypeNode.create("Int")),
-      InputValueNode.create("le", NamedTypeNode.create("Int")),
-      InputValueNode.create("lt", NamedTypeNode.create("Int")),
-      InputValueNode.create("ge", NamedTypeNode.create("Int")),
-      InputValueNode.create("gt", NamedTypeNode.create("Int")),
-      InputValueNode.create("between", ListTypeNode.create(NonNullTypeNode.create("Int"))),
+    const input = InputObjectNode.create("SizeFilterInput", undefined, undefined, [
+      InputValueNode.create("ne", undefined, undefined, NamedTypeNode.create("Int")),
+      InputValueNode.create("eq", undefined, undefined, NamedTypeNode.create("Int")),
+      InputValueNode.create("le", undefined, undefined, NamedTypeNode.create("Int")),
+      InputValueNode.create("lt", undefined, undefined, NamedTypeNode.create("Int")),
+      InputValueNode.create("ge", undefined, undefined, NamedTypeNode.create("Int")),
+      InputValueNode.create("gt", undefined, undefined, NamedTypeNode.create("Int")),
+      InputValueNode.create(
+        "between",
+        undefined,
+        undefined,
+        ListTypeNode.create(NonNullTypeNode.create("Int"))
+      ),
     ]);
 
     return input;
   }
 
   private _createSortDirection() {
-    const enumNode = EnumNode.create("SortDirection", ["ASC", "DESC"]);
+    const enumNode = EnumNode.create("SortDirection", undefined, undefined, ["ASC", "DESC"]);
     return enumNode;
   }
 
   private _createStringLikeFilterInput(name: string, typeName: string) {
-    const input = InputObjectNode.create(name, [
-      InputValueNode.create("ne", NamedTypeNode.create(typeName)),
-      InputValueNode.create("eq", NamedTypeNode.create(typeName)),
-      InputValueNode.create("le", NamedTypeNode.create(typeName)),
-      InputValueNode.create("lt", NamedTypeNode.create(typeName)),
-      InputValueNode.create("ge", NamedTypeNode.create(typeName)),
-      InputValueNode.create("gt", NamedTypeNode.create(typeName)),
-      InputValueNode.create("in", ListTypeNode.create(NonNullTypeNode.create(typeName))),
-      InputValueNode.create("contains", NamedTypeNode.create(typeName)),
-      InputValueNode.create("notContains", NamedTypeNode.create(typeName)),
-      InputValueNode.create("between", ListTypeNode.create(NonNullTypeNode.create(typeName))),
-      InputValueNode.create("beginsWith", NamedTypeNode.create(typeName)),
-      InputValueNode.create("exists", NamedTypeNode.create("Boolean")),
-      InputValueNode.create("size", NamedTypeNode.create("SizeFilterInput")),
+    const input = InputObjectNode.create(name, undefined, undefined, [
+      InputValueNode.create("ne", undefined, undefined, NamedTypeNode.create(typeName)),
+      InputValueNode.create("eq", undefined, undefined, NamedTypeNode.create(typeName)),
+      InputValueNode.create("le", undefined, undefined, NamedTypeNode.create(typeName)),
+      InputValueNode.create("lt", undefined, undefined, NamedTypeNode.create(typeName)),
+      InputValueNode.create("ge", undefined, undefined, NamedTypeNode.create(typeName)),
+      InputValueNode.create("gt", undefined, undefined, NamedTypeNode.create(typeName)),
+      InputValueNode.create(
+        "in",
+        undefined,
+        undefined,
+        ListTypeNode.create(NonNullTypeNode.create(typeName))
+      ),
+      InputValueNode.create("contains", undefined, undefined, NamedTypeNode.create(typeName)),
+      InputValueNode.create("notContains", undefined, undefined, NamedTypeNode.create(typeName)),
+      InputValueNode.create(
+        "between",
+        undefined,
+        undefined,
+        ListTypeNode.create(NonNullTypeNode.create(typeName))
+      ),
+      InputValueNode.create("beginsWith", undefined, undefined, NamedTypeNode.create(typeName)),
+      InputValueNode.create("exists", undefined, undefined, NamedTypeNode.create("Boolean")),
+      InputValueNode.create("size", undefined, undefined, NamedTypeNode.create("SizeFilterInput")),
     ]);
 
     return input;
   }
 
   private _createNumberLikeFilterInput(name: string, typeName: string) {
-    const input = InputObjectNode.create(name, [
-      InputValueNode.create("ne", NamedTypeNode.create(typeName)),
-      InputValueNode.create("eq", NamedTypeNode.create(typeName)),
-      InputValueNode.create("le", NamedTypeNode.create(typeName)),
-      InputValueNode.create("lt", NamedTypeNode.create(typeName)),
-      InputValueNode.create("ge", NamedTypeNode.create(typeName)),
-      InputValueNode.create("gt", NamedTypeNode.create(typeName)),
-      InputValueNode.create("in", ListTypeNode.create(NonNullTypeNode.create(typeName))),
-      InputValueNode.create("between", ListTypeNode.create(NonNullTypeNode.create(typeName))),
-      InputValueNode.create("exists", NamedTypeNode.create("Boolean")),
+    const input = InputObjectNode.create(name, undefined, undefined, [
+      InputValueNode.create("ne", undefined, undefined, NamedTypeNode.create(typeName)),
+      InputValueNode.create("eq", undefined, undefined, NamedTypeNode.create(typeName)),
+      InputValueNode.create("le", undefined, undefined, NamedTypeNode.create(typeName)),
+      InputValueNode.create("lt", undefined, undefined, NamedTypeNode.create(typeName)),
+      InputValueNode.create("ge", undefined, undefined, NamedTypeNode.create(typeName)),
+      InputValueNode.create("gt", undefined, undefined, NamedTypeNode.create(typeName)),
+      InputValueNode.create(
+        "in",
+        undefined,
+        undefined,
+        ListTypeNode.create(NonNullTypeNode.create(typeName))
+      ),
+      InputValueNode.create(
+        "between",
+        undefined,
+        undefined,
+        ListTypeNode.create(NonNullTypeNode.create(typeName))
+      ),
+      InputValueNode.create("exists", undefined, undefined, NamedTypeNode.create("Boolean")),
     ]);
 
     return input;
   }
 
   private _createBooleanLikeFilterInput(name: string, typeName: string) {
-    const input = InputObjectNode.create(name, [
-      InputValueNode.create("ne", NamedTypeNode.create(typeName)),
-      InputValueNode.create("eq", NamedTypeNode.create(typeName)),
-      InputValueNode.create("exists", NamedTypeNode.create("Boolean")),
+    const input = InputObjectNode.create(name, undefined, undefined, [
+      InputValueNode.create("ne", undefined, undefined, NamedTypeNode.create(typeName)),
+      InputValueNode.create("eq", undefined, undefined, NamedTypeNode.create(typeName)),
+      InputValueNode.create("exists", undefined, undefined, NamedTypeNode.create("Boolean")),
     ]);
 
     return input;
   }
 
   private _createIDLikeFilterInput(name: string, typeName: string) {
-    const input = InputObjectNode.create(name, [
-      InputValueNode.create("ne", NamedTypeNode.create(typeName)),
-      InputValueNode.create("eq", NamedTypeNode.create(typeName)),
-      InputValueNode.create("in", ListTypeNode.create(NonNullTypeNode.create(typeName))),
-      InputValueNode.create("exists", NamedTypeNode.create("Boolean")),
+    const input = InputObjectNode.create(name, undefined, undefined, [
+      InputValueNode.create("ne", undefined, undefined, NamedTypeNode.create(typeName)),
+      InputValueNode.create("eq", undefined, undefined, NamedTypeNode.create(typeName)),
+      InputValueNode.create(
+        "in",
+        undefined,
+        undefined,
+        ListTypeNode.create(NonNullTypeNode.create(typeName))
+      ),
+      InputValueNode.create("exists", undefined, undefined, NamedTypeNode.create("Boolean")),
     ]);
 
     return input;
   }
 
   private _createListLikeFilterInput(name: string, typeName: string) {
-    const input = InputObjectNode.create(name, [
-      InputValueNode.create("contains", NamedTypeNode.create(typeName)),
-      InputValueNode.create("notContains", NamedTypeNode.create(typeName)),
-      InputValueNode.create("size", NamedTypeNode.create("SizeFilterInput")),
+    const input = InputObjectNode.create(name, undefined, undefined, [
+      InputValueNode.create("contains", undefined, undefined, NamedTypeNode.create(typeName)),
+      InputValueNode.create("notContains", undefined, undefined, NamedTypeNode.create(typeName)),
+      InputValueNode.create("size", undefined, undefined, NamedTypeNode.create("SizeFilterInput")),
     ]);
 
     return input;
   }
 
   private _createEnumLikeFilterInput(name: string, typeName: string) {
-    const input = InputObjectNode.create(name, [
-      InputValueNode.create("eq", NamedTypeNode.create(typeName)),
-      InputValueNode.create("ne", NamedTypeNode.create(typeName)),
-      InputValueNode.create("in", ListTypeNode.create(NonNullTypeNode.create(typeName))),
-      InputValueNode.create("exists", NamedTypeNode.create("Boolean")),
+    const input = InputObjectNode.create(name, undefined, undefined, [
+      InputValueNode.create("eq", undefined, undefined, NamedTypeNode.create(typeName)),
+      InputValueNode.create("ne", undefined, undefined, NamedTypeNode.create(typeName)),
+      InputValueNode.create(
+        "in",
+        undefined,
+        undefined,
+        ListTypeNode.create(NonNullTypeNode.create(typeName))
+      ),
+      InputValueNode.create("exists", undefined, undefined, NamedTypeNode.create("Boolean")),
     ]);
 
     return input;
@@ -292,12 +327,16 @@ export class ModelPlugin implements ITransformerPlugin {
         const inputName = pascalCase(typeName, "filter", "input");
 
         if (isBuildInScalar(typeName)) {
-          filterInput.addField(InputValueNode.create(field.name, NamedTypeNode.create(inputName)));
+          filterInput.addField(
+            InputValueNode.create(field.name, undefined, undefined, NamedTypeNode.create(inputName))
+          );
           continue;
         }
 
         if (this.context.document.hasNode(inputName)) {
-          filterInput.addField(InputValueNode.create(field.name, NamedTypeNode.create(inputName)));
+          filterInput.addField(
+            InputValueNode.create(field.name, undefined, undefined, NamedTypeNode.create(inputName))
+          );
           continue;
         }
 
@@ -316,7 +355,12 @@ export class ModelPlugin implements ITransformerPlugin {
           }
 
           filterInput.addField(
-            InputValueNode.create(field.name, NamedTypeNode.create(listFilterInputName))
+            InputValueNode.create(
+              field.name,
+              undefined,
+              undefined,
+              NamedTypeNode.create(listFilterInputName)
+            )
           );
 
           continue;
@@ -328,7 +372,12 @@ export class ModelPlugin implements ITransformerPlugin {
           if (scalarFilterInput) {
             this.context.document.addNode(scalarFilterInput);
             filterInput.addField(
-              InputValueNode.create(field.name, NamedTypeNode.create(inputName))
+              InputValueNode.create(
+                field.name,
+                undefined,
+                undefined,
+                NamedTypeNode.create(inputName)
+              )
             );
           }
 
@@ -339,15 +388,23 @@ export class ModelPlugin implements ITransformerPlugin {
           const enumFilterInput = this._createEnumLikeFilterInput(inputName, typeDef.name);
           this.context.document.addNode(enumFilterInput);
 
-          filterInput.addField(InputValueNode.create(field.name, NamedTypeNode.create(inputName)));
+          filterInput.addField(
+            InputValueNode.create(field.name, undefined, undefined, NamedTypeNode.create(inputName))
+          );
 
           continue;
         }
       }
 
-      filterInput.addField(InputValueNode.create("and", ListTypeNode.create(filterInputName)));
-      filterInput.addField(InputValueNode.create("or", ListTypeNode.create(filterInputName)));
-      filterInput.addField(InputValueNode.create("not", NamedTypeNode.create(filterInputName)));
+      filterInput.addField(
+        InputValueNode.create("and", undefined, undefined, ListTypeNode.create(filterInputName))
+      );
+      filterInput.addField(
+        InputValueNode.create("or", undefined, undefined, ListTypeNode.create(filterInputName))
+      );
+      filterInput.addField(
+        InputValueNode.create("not", undefined, undefined, NamedTypeNode.create(filterInputName))
+      );
 
       this.context.document.addNode(filterInput);
     }
@@ -380,13 +437,27 @@ export class ModelPlugin implements ITransformerPlugin {
         const fieldTypeName = field.type.getTypeName();
 
         if (requiredFields.includes(field.name)) {
-          input.addField(InputValueNode.create(field.name, NonNullTypeNode.create(fieldTypeName)));
+          input.addField(
+            InputValueNode.create(
+              field.name,
+              undefined,
+              undefined,
+              NonNullTypeNode.create(fieldTypeName)
+            )
+          );
           continue;
         }
 
         // Buildin scalars
         if (isBuildInScalar(fieldTypeName)) {
-          input.addField(InputValueNode.create(field.name, NamedTypeNode.create(fieldTypeName)));
+          input.addField(
+            InputValueNode.create(
+              field.name,
+              undefined,
+              undefined,
+              NamedTypeNode.create(fieldTypeName)
+            )
+          );
           continue;
         }
 
@@ -397,7 +468,14 @@ export class ModelPlugin implements ITransformerPlugin {
         }
 
         if (typeDef instanceof ScalarNode || typeDef instanceof EnumNode) {
-          input.addField(InputValueNode.create(field.name, NamedTypeNode.create(fieldTypeName)));
+          input.addField(
+            InputValueNode.create(
+              field.name,
+              undefined,
+              undefined,
+              NamedTypeNode.create(fieldTypeName)
+            )
+          );
           continue;
         }
 
@@ -412,7 +490,9 @@ export class ModelPlugin implements ITransformerPlugin {
             this._createMutationInput(typeDef, inputName);
           }
 
-          input.addField(InputValueNode.create(field.name, NamedTypeNode.create(inputName)));
+          input.addField(
+            InputValueNode.create(field.name, undefined, undefined, NamedTypeNode.create(inputName))
+          );
         }
       }
 
@@ -431,9 +511,10 @@ export class ModelPlugin implements ITransformerPlugin {
     if (!queryNode.hasField(fieldName)) {
       const field = FieldNode.create(
         fieldName,
+        undefined,
+        [DirectiveNode.create("hasOne")],
         NamedTypeNode.create(model.name),
-        [InputValueNode.create("id", NonNullTypeNode.create("ID"))],
-        [DirectiveNode.create("hasOne")]
+        [InputValueNode.create("id", undefined, undefined, NonNullTypeNode.create("ID"))]
       );
 
       queryNode.addField(field);
@@ -451,15 +532,21 @@ export class ModelPlugin implements ITransformerPlugin {
     let field = queryNode.getField(fieldName);
 
     if (!field) {
-      field = FieldNode.create(fieldName, NamedTypeNode.create(model.name), null, [
-        DirectiveNode.create("hasMany"),
-      ]);
+      field = FieldNode.create(
+        fieldName,
+        undefined,
+        [DirectiveNode.create("hasMany")],
+        NamedTypeNode.create(model.name),
+        null
+      );
 
       queryNode.addField(field);
     }
 
     if (!field.hasArgument("filter")) {
-      field.addArgument(InputValueNode.create("filter", NamedTypeNode.create(filterInputName)));
+      field.addArgument(
+        InputValueNode.create("filter", undefined, undefined, NamedTypeNode.create(filterInputName))
+      );
     }
   }
 
@@ -468,9 +555,20 @@ export class ModelPlugin implements ITransformerPlugin {
     const mutationNode = this.context.document.getMutationNode();
 
     if (!mutationNode.hasField(fieldName)) {
-      const field = FieldNode.create(fieldName, NamedTypeNode.create(model.name), [
-        InputValueNode.create("id", NonNullTypeNode.create(NamedTypeNode.create("ID"))),
-      ]);
+      const field = FieldNode.create(
+        fieldName,
+        undefined,
+        undefined,
+        NamedTypeNode.create(model.name),
+        [
+          InputValueNode.create(
+            "id",
+            undefined,
+            undefined,
+            NonNullTypeNode.create(NamedTypeNode.create("ID"))
+          ),
+        ]
+      );
 
       mutationNode.addField(field);
     }
@@ -482,9 +580,20 @@ export class ModelPlugin implements ITransformerPlugin {
     const mutationNode = this.context.document.getMutationNode();
 
     if (!mutationNode.hasField(fieldName)) {
-      const field = FieldNode.create(fieldName, NamedTypeNode.create(model.name), [
-        InputValueNode.create("input", NonNullTypeNode.create(NamedTypeNode.create(inputName))),
-      ]);
+      const field = FieldNode.create(
+        fieldName,
+        undefined,
+        undefined,
+        NamedTypeNode.create(model.name),
+        [
+          InputValueNode.create(
+            "input",
+            undefined,
+            undefined,
+            NonNullTypeNode.create(NamedTypeNode.create(inputName))
+          ),
+        ]
+      );
 
       mutationNode.addField(field);
     }
@@ -495,17 +604,23 @@ export class ModelPlugin implements ITransformerPlugin {
   public init() {
     this.context.base
       .addNode(
-        EnumNode.create("ModelOperation", Object.values(ModelOperation), [
-          DirectiveNode.create(InternalDirective.INTERNAL),
-        ])
+        EnumNode.create(
+          "ModelOperation",
+          undefined,
+          [DirectiveNode.create(InternalDirective.INTERNAL)],
+          Object.values(ModelOperation)
+        )
       )
       .addNode(
         DirectiveDefinitionNode.create(
           "model",
+          undefined,
           ["OBJECT"],
           [
             InputValueNode.create(
               "operations",
+              undefined,
+              undefined,
               ListTypeNode.create(NonNullTypeNode.create("ModelOperation"))
             ),
           ]
@@ -579,6 +694,8 @@ export class ModelPlugin implements ITransformerPlugin {
         field.addArgument(
           InputValueNode.create(
             "filter",
+            undefined,
+            undefined,
             NamedTypeNode.create(pascalCase(target.name, "filter", "input"))
           )
         );

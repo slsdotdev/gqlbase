@@ -7,27 +7,41 @@ import { DirectiveNode } from "./DirectiveNode.js";
 
 describe("InputValueNode", () => {
   it("creates node from values", () => {
-    const node = InputValueNode.create("InputValueNode", "String", undefined, [
-      DirectiveNode.create("exampleDirective"),
-    ]);
+    const node = InputValueNode.create(
+      "InputValueNode",
+      undefined,
+      [DirectiveNode.create("exampleDirective")],
+      "String",
+      undefined
+    );
     expect(node.name).toEqual("InputValueNode");
     expect(node.type).toBeInstanceOf(NamedTypeNode);
   });
 
   it("create NonNull node from values", () => {
-    const node = InputValueNode.create("InputValueNode", NonNullTypeNode.create("String!"));
+    const node = InputValueNode.create(
+      "InputValueNode",
+      undefined,
+      undefined,
+      NonNullTypeNode.create("String!")
+    );
     expect(node.name).toEqual("InputValueNode");
     expect(node.type).toBeInstanceOf(NonNullTypeNode);
   });
 
   it("creates node from List type", () => {
-    const node = InputValueNode.create("InputValueNode", ListTypeNode.create("String"));
+    const node = InputValueNode.create(
+      "InputValueNode",
+      undefined,
+      undefined,
+      ListTypeNode.create("String")
+    );
     expect(node.name).toEqual("InputValueNode");
     expect(node.type).toBeInstanceOf(ListTypeNode);
   });
 
   it("creates node from Named definition", () => {
-    const node = InputValueNode.create("InputValueNode", {
+    const node = InputValueNode.create("InputValueNode", undefined, undefined, {
       kind: Kind.NAMED_TYPE,
       name: {
         kind: Kind.NAME,
@@ -39,7 +53,7 @@ describe("InputValueNode", () => {
   });
 
   it("creates node from NonNull definition", () => {
-    const node = InputValueNode.create("InputValueNode", {
+    const node = InputValueNode.create("InputValueNode", undefined, undefined, {
       kind: Kind.NON_NULL_TYPE,
       type: {
         kind: Kind.NAMED_TYPE,
@@ -56,6 +70,16 @@ describe("InputValueNode", () => {
   it("creates node from List definition", () => {
     const node = InputValueNode.create(
       "InputValueNode",
+      undefined,
+      [
+        {
+          kind: Kind.DIRECTIVE,
+          name: {
+            kind: Kind.NAME,
+            value: "exampleDirective",
+          },
+        },
+      ],
       {
         kind: Kind.LIST_TYPE,
         type: {
@@ -66,16 +90,7 @@ describe("InputValueNode", () => {
           },
         },
       },
-      undefined,
-      [
-        {
-          kind: Kind.DIRECTIVE,
-          name: {
-            kind: Kind.NAME,
-            value: "exampleDirective",
-          },
-        },
-      ]
+      undefined
     );
 
     expect(node).toBeInstanceOf(InputValueNode);
@@ -153,9 +168,10 @@ describe("InputValueNode", () => {
   it("serializes node to definition", () => {
     const node = InputValueNode.create(
       "InputValueNode",
-      "String",
       ValueNode.string("description"),
-      ["default"]
+      ["default"],
+      "String",
+      ValueNode.string("value")
     );
     const definition = node.serialize();
     expect(definition.name.value).toEqual("InputValueNode");

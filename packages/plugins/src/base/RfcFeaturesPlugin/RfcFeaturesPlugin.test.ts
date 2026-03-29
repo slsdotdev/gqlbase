@@ -64,21 +64,25 @@ describe("RfcFeaturesPlugin", () => {
 
 describe("isSemanticNullable", () => {
   it("returns `false` for NonNull fields (regardless of directive)", () => {
-    const field = FieldNode.create("id", NonNullTypeNode.create("ID"));
+    const field = FieldNode.create("id", undefined, undefined, NonNullTypeNode.create("ID"));
 
     expect(isSemanticNullable(field)).toBe(false);
   });
 
   it("returns `false` for NonNull fields even with @semanticNonNull", () => {
-    const field = FieldNode.create("id", NonNullTypeNode.create("ID"), null, [
-      DirectiveNode.create(RfcDirective.SEMANTIC_NON_NULL),
-    ]);
+    const field = FieldNode.create(
+      "id",
+      undefined,
+      [DirectiveNode.create(RfcDirective.SEMANTIC_NON_NULL)],
+      NonNullTypeNode.create("ID"),
+      null
+    );
 
     expect(isSemanticNullable(field)).toBe(false);
   });
 
   it("returns `true` for nullable fields without @semanticNonNull", () => {
-    const field = FieldNode.create("bio", NamedTypeNode.create("String"));
+    const field = FieldNode.create("bio", undefined, undefined, NamedTypeNode.create("String"));
 
     expect(isSemanticNullable(field)).toBe(true);
   });
@@ -88,7 +92,13 @@ describe("isSemanticNullable", () => {
       ArgumentNode.create("levels", ValueNode.list([ValueNode.int(0)]))
     );
 
-    const field = FieldNode.create("name", NamedTypeNode.create("String"), null, [directive]);
+    const field = FieldNode.create(
+      "name",
+      undefined,
+      [directive],
+      NamedTypeNode.create("String"),
+      null
+    );
 
     expect(isSemanticNullable(field, 0)).toBe(false);
   });
@@ -98,7 +108,13 @@ describe("isSemanticNullable", () => {
       ArgumentNode.create("levels", ValueNode.list([ValueNode.int(0)]))
     );
 
-    const field = FieldNode.create("name", NamedTypeNode.create("String"), null, [directive]);
+    const field = FieldNode.create(
+      "name",
+      undefined,
+      [directive],
+      NamedTypeNode.create("String"),
+      null
+    );
 
     expect(isSemanticNullable(field, 1)).toBe(true);
   });
@@ -110,9 +126,10 @@ describe("isSemanticNullable", () => {
 
     const field = FieldNode.create(
       "tags",
+      undefined,
+      [directive],
       ListTypeNode.create(NamedTypeNode.create("String")),
-      null,
-      [directive]
+      null
     );
 
     expect(isSemanticNullable(field, 0)).toBe(false);
@@ -123,7 +140,13 @@ describe("isSemanticNullable", () => {
   it("defaults to level 0 when no level argument is passed", () => {
     const directive = DirectiveNode.create(RfcDirective.SEMANTIC_NON_NULL);
 
-    const field = FieldNode.create("name", NamedTypeNode.create("String"), null, [directive]);
+    const field = FieldNode.create(
+      "name",
+      undefined,
+      [directive],
+      NamedTypeNode.create("String"),
+      null
+    );
 
     // default level = 0, which is in the levels array → not nullable
     expect(isSemanticNullable(field)).toBe(false);
@@ -131,7 +154,12 @@ describe("isSemanticNullable", () => {
 
   it("detects NonNull inside a list at level 1: [String!]", () => {
     // [String!] — the list is nullable, but the inner String! is non-null at level 1
-    const field = FieldNode.create("tags", ListTypeNode.create(NonNullTypeNode.create("String")));
+    const field = FieldNode.create(
+      "tags",
+      undefined,
+      undefined,
+      ListTypeNode.create(NonNullTypeNode.create("String"))
+    );
 
     expect(isSemanticNullable(field, 0)).toBe(true); // list itself is nullable
     expect(isSemanticNullable(field, 1)).toBe(false); // String! is non-null
@@ -141,6 +169,8 @@ describe("isSemanticNullable", () => {
     // [String]! — the list is non-null, but inner String is nullable
     const field = FieldNode.create(
       "tags",
+      undefined,
+      undefined,
       NonNullTypeNode.create(ListTypeNode.create(NamedTypeNode.create("String")))
     );
 
@@ -152,6 +182,8 @@ describe("isSemanticNullable", () => {
     // [String!]! — both levels are non-null
     const field = FieldNode.create(
       "tags",
+      undefined,
+      undefined,
       NonNullTypeNode.create(ListTypeNode.create(NonNullTypeNode.create("String")))
     );
 
@@ -167,9 +199,10 @@ describe("isSemanticNullable", () => {
 
     const field = FieldNode.create(
       "tags",
+      undefined,
+      [directive],
       ListTypeNode.create(NamedTypeNode.create("String")),
-      null,
-      [directive]
+      null
     );
 
     expect(isSemanticNullable(field, 0)).toBe(false); // covered by @semanticNonNull
@@ -184,9 +217,10 @@ describe("isSemanticNullable", () => {
 
     const field = FieldNode.create(
       "tags",
+      undefined,
+      [directive],
       ListTypeNode.create(NamedTypeNode.create("String")),
-      null,
-      [directive]
+      null
     );
 
     expect(isSemanticNullable(field, 0)).toBe(true); // level 0 not in levels
@@ -201,9 +235,10 @@ describe("isSemanticNullable", () => {
 
     const field = FieldNode.create(
       "matrix",
+      undefined,
+      [directive],
       ListTypeNode.create(ListTypeNode.create(NamedTypeNode.create("String"))),
-      null,
-      [directive]
+      null
     );
 
     expect(isSemanticNullable(field, 0)).toBe(false); // outer list — covered
@@ -219,9 +254,10 @@ describe("isSemanticNullable", () => {
 
     const field = FieldNode.create(
       "tags",
+      undefined,
+      [directive],
       ListTypeNode.create(NonNullTypeNode.create("String")),
-      null,
-      [directive]
+      null
     );
 
     expect(isSemanticNullable(field, 0)).toBe(false); // covered by directive

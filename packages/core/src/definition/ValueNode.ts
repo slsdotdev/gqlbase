@@ -27,10 +27,11 @@ export type ValueType =
 
 // eslint-disable-next-line @typescript-eslint/no-extraneous-class
 export class ValueNode {
-  static string(value: string): StringValueNode {
+  static string(value: string, block?: boolean): StringValueNode {
     return {
       kind: Kind.STRING,
       value,
+      block,
     };
   }
 

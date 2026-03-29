@@ -22,7 +22,7 @@ const definition = {
 
 describe("ScalarNode", () => {
   it("create node from value", () => {
-    const node = ScalarNode.create("DateTime", [DirectiveNode.create("testOnly")]);
+    const node = ScalarNode.create("DateTime", undefined, [DirectiveNode.create("testOnly")]);
     expect(node).toBeInstanceOf(ScalarNode);
     expect(node.hasDirective("testOnly")).toEqual(true);
   });
@@ -46,7 +46,7 @@ describe("ScalarNode", () => {
   });
 
   it("serializes node", () => {
-    const node = ScalarNode.create("DateTime", [DirectiveNode.create("testOnly")]);
+    const node = ScalarNode.create("DateTime", undefined, [DirectiveNode.create("testOnly")]);
 
     const serializedDefinition = node.serialize();
     expect(serializedDefinition).toEqual(expect.objectContaining(definition));

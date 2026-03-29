@@ -47,8 +47,9 @@ describe("EnumNode", () => {
   it("creates node from values", () => {
     const node = EnumNode.create(
       "name",
-      ["value1", "value2"],
-      [DirectiveNode.create("directive1")]
+      undefined,
+      [DirectiveNode.create("directive1")],
+      ["value1", "value2"]
     );
     expect(node.name).toEqual("name");
     expect(node.values).toBeInstanceOf(Array);
@@ -78,13 +79,13 @@ describe("EnumNode", () => {
   });
 
   it("serializes node to definition", () => {
-    const node = EnumNode.create("name", ["value1", "value2"]);
+    const node = EnumNode.create("name", undefined, undefined, ["value1", "value2"]);
     const serialized = node.serialize();
     expect(serialized.kind).toEqual(Kind.ENUM_TYPE_DEFINITION);
   });
 
   it("checks for value existence", () => {
-    const node = EnumNode.create("name", ["value1", "value2"]);
+    const node = EnumNode.create("name", undefined, undefined, ["value1", "value2"]);
     expect(node.hasValue("value1")).toBe(true);
     expect(node.hasValue("value3")).toBe(false);
   });
@@ -102,7 +103,7 @@ describe("EnumNode", () => {
   });
 
   it("adds value to node", () => {
-    const node = EnumNode.create("name", ["value1"]);
+    const node = EnumNode.create("name", undefined, undefined, ["value1"]);
     node
       .addValue("value2")
       .addValue(EnumValueNode.create("value3"))
@@ -117,18 +118,18 @@ describe("EnumNode", () => {
   });
 
   it("throws error when adding duplicate value", () => {
-    const node = EnumNode.create("name", ["value1"]);
+    const node = EnumNode.create("name", undefined, undefined, ["value1"]);
     expect(() => node.addValue("value1")).toThrow(`Value value1 already exists on enum name`);
   });
 
   it("removes value from node", () => {
-    const node = EnumNode.create("name", ["value1", "value2"]);
+    const node = EnumNode.create("name", undefined, undefined, ["value1", "value2"]);
     node.removeValue("value1");
     expect(node.values).toHaveLength(1);
   });
 
   it("checks for directive existence", () => {
-    const node = EnumNode.create("name", ["value1"]);
+    const node = EnumNode.create("name", undefined, undefined, ["value1"]);
     expect(node.hasDirective("directive1")).toBe(false);
   });
 
@@ -156,7 +157,7 @@ describe("EnumNode", () => {
   });
 
   it("removes directive from node", () => {
-    const node = EnumNode.create("name", ["value1"]);
+    const node = EnumNode.create("name", undefined, undefined, ["value1"]);
     node.addDirective("directive1");
     expect(node.directives).toHaveLength(1);
     node.removeDirective("directive1");
@@ -164,7 +165,7 @@ describe("EnumNode", () => {
   });
 
   it("extends node with definition", () => {
-    const node = EnumNode.create("name", ["value1"]);
+    const node = EnumNode.create("name", undefined, undefined, ["value1"]);
     const definition = {
       kind: Kind.ENUM_TYPE_EXTENSION,
       name: {

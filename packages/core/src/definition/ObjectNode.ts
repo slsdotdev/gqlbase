@@ -1,4 +1,4 @@
-import { Kind, ObjectTypeDefinitionNode, ObjectTypeExtensionNode } from "graphql";
+import { Kind, ObjectTypeDefinitionNode, ObjectTypeExtensionNode, StringValueNode } from "graphql";
 import { FieldNode } from "./FieldNode.js";
 import { DirectiveNode } from "./DirectiveNode.js";
 import { NamedTypeNode } from "./TypeNode.js";
@@ -6,18 +6,6 @@ import { WithInterfaceNode } from "./WithInterfaceNode.js";
 
 export class ObjectNode extends WithInterfaceNode {
   kind: Kind.OBJECT_TYPE_DEFINITION = Kind.OBJECT_TYPE_DEFINITION;
-  name: string;
-
-  constructor(
-    name: string,
-    fields?: FieldNode[],
-    interfaces?: NamedTypeNode[],
-    directives?: DirectiveNode[]
-  ) {
-    super(name, fields, interfaces, directives);
-
-    this.name = name;
-  }
 
   public extend(definition: ObjectTypeExtensionNode) {
     const { fields, directives, interfaces } = definition;
@@ -50,6 +38,7 @@ export class ObjectNode extends WithInterfaceNode {
         kind: Kind.NAME,
         value: this.name,
       },
+      description: this.description,
       fields: this.fields?.map((field) => field.serialize()),
       interfaces: this.interfaces?.map((iface) => iface.serialize()),
       directives: this.directives?.map((node) => node.serialize()),
@@ -59,18 +48,20 @@ export class ObjectNode extends WithInterfaceNode {
   static fromDefinition(definition: ObjectTypeDefinitionNode): ObjectNode {
     return new ObjectNode(
       definition.name.value,
+      definition.description,
+      definition.directives?.map((node) => DirectiveNode.fromDefinition(node)),
       definition.fields?.map((field) => FieldNode.fromDefinition(field)),
-      definition.interfaces?.map((node) => NamedTypeNode.fromDefinition(node)),
-      definition.directives?.map((node) => DirectiveNode.fromDefinition(node))
+      definition.interfaces?.map((node) => NamedTypeNode.fromDefinition(node))
     );
   }
 
   static create(
     name: string,
+    description?: StringValueNode,
+    directives?: DirectiveNode[],
     fields: FieldNode[] = [],
-    interfaces?: NamedTypeNode[],
-    directives?: DirectiveNode[]
+    interfaces?: NamedTypeNode[]
   ): ObjectNode {
-    return new ObjectNode(name, fields, interfaces, directives);
+    return new ObjectNode(name, description, directives, fields, interfaces);
   }
 }

@@ -46,63 +46,63 @@ export class AppSyncUtilsPlugin extends TransformerPluginBase {
   public init() {
     this.context.base
       .addNode(
-        ScalarNode.create("AWSDate", [
+        ScalarNode.create("AWSDate", undefined, [
           DirectiveNode.create(InternalDirective.TYPE_HINT, [
             ArgumentNode.create("type", ValueNode.enum("string")),
           ]),
         ])
       )
       .addNode(
-        ScalarNode.create("AWSDateTime", [
+        ScalarNode.create("AWSDateTime", undefined, [
           DirectiveNode.create(InternalDirective.TYPE_HINT, [
             ArgumentNode.create("type", ValueNode.enum("string")),
           ]),
         ])
       )
       .addNode(
-        ScalarNode.create("AWSTime", [
+        ScalarNode.create("AWSTime", undefined, [
           DirectiveNode.create(InternalDirective.TYPE_HINT, [
             ArgumentNode.create("type", ValueNode.enum("string")),
           ]),
         ])
       )
       .addNode(
-        ScalarNode.create("AWSTimestamp", [
+        ScalarNode.create("AWSTimestamp", undefined, [
           DirectiveNode.create(InternalDirective.TYPE_HINT, [
             ArgumentNode.create("type", ValueNode.enum("number")),
           ]),
         ])
       )
       .addNode(
-        ScalarNode.create("AWSEmail", [
+        ScalarNode.create("AWSEmail", undefined, [
           DirectiveNode.create(InternalDirective.TYPE_HINT, [
             ArgumentNode.create("type", ValueNode.enum("string")),
           ]),
         ])
       )
       .addNode(
-        ScalarNode.create("AWSJSON", [
+        ScalarNode.create("AWSJSON", undefined, [
           DirectiveNode.create(InternalDirective.TYPE_HINT, [
             ArgumentNode.create("type", ValueNode.enum("object")),
           ]),
         ])
       )
       .addNode(
-        ScalarNode.create("AWSURL", [
+        ScalarNode.create("AWSURL", undefined, [
           DirectiveNode.create(InternalDirective.TYPE_HINT, [
             ArgumentNode.create("type", ValueNode.enum("string")),
           ]),
         ])
       )
       .addNode(
-        ScalarNode.create("AWSPhone", [
+        ScalarNode.create("AWSPhone", undefined, [
           DirectiveNode.create(InternalDirective.TYPE_HINT, [
             ArgumentNode.create("type", ValueNode.enum("string")),
           ]),
         ])
       )
       .addNode(
-        ScalarNode.create("AWSIPAddress", [
+        ScalarNode.create("AWSIPAddress", undefined, [
           DirectiveNode.create(InternalDirective.TYPE_HINT, [
             ArgumentNode.create("type", ValueNode.enum("string")),
           ]),
@@ -111,9 +111,12 @@ export class AppSyncUtilsPlugin extends TransformerPluginBase {
       .addNode(
         DirectiveDefinitionNode.create(
           "aws_subscribe",
+          undefined,
           ["FIELD_DEFINITION"],
           InputValueNode.create(
             "mutations",
+            undefined,
+            undefined,
             NonNullTypeNode.create(ListTypeNode.create(NonNullTypeNode.create("String")))
           )
         )
@@ -121,9 +124,12 @@ export class AppSyncUtilsPlugin extends TransformerPluginBase {
       .addNode(
         DirectiveDefinitionNode.create(
           "aws_auth",
+          undefined,
           ["FIELD_DEFINITION", "OBJECT"],
           InputValueNode.create(
             "cognito_groups",
+            undefined,
+            undefined,
             ListTypeNode.create(NonNullTypeNode.create("String"))
           )
         )
@@ -131,17 +137,26 @@ export class AppSyncUtilsPlugin extends TransformerPluginBase {
       .addNode(
         DirectiveDefinitionNode.create(
           "aws_cognito_user_pools",
+          undefined,
           ["FIELD_DEFINITION", "OBJECT"],
           InputValueNode.create(
             "cognito_groups",
+            undefined,
+            undefined,
             ListTypeNode.create(NonNullTypeNode.create("String"))
           )
         )
       )
-      .addNode(DirectiveDefinitionNode.create("aws_api_key", ["FIELD_DEFINITION", "OBJECT"]))
-      .addNode(DirectiveDefinitionNode.create("aws_iam", ["FIELD_DEFINITION", "OBJECT"]))
-      .addNode(DirectiveDefinitionNode.create("aws_oidc", ["FIELD_DEFINITION", "OBJECT"]))
-      .addNode(DirectiveDefinitionNode.create("aws_lambda", ["FIELD_DEFINITION", "OBJECT"]));
+      .addNode(
+        DirectiveDefinitionNode.create("aws_api_key", undefined, ["FIELD_DEFINITION", "OBJECT"])
+      )
+      .addNode(DirectiveDefinitionNode.create("aws_iam", undefined, ["FIELD_DEFINITION", "OBJECT"]))
+      .addNode(
+        DirectiveDefinitionNode.create("aws_oidc", undefined, ["FIELD_DEFINITION", "OBJECT"])
+      )
+      .addNode(
+        DirectiveDefinitionNode.create("aws_lambda", undefined, ["FIELD_DEFINITION", "OBJECT"])
+      );
   }
 }
 
