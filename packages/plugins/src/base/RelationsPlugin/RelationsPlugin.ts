@@ -25,6 +25,7 @@ import {
   RelationTarget,
 } from "./RelationsPlugin.utils.js";
 import { isListTypeNode } from "../ModelPlugin/ModelPlugin.utils.js";
+import { isOperationNode } from "../TypesGeneratorBase/TypeGeneratorBase.utils.js";
 
 /**
  * This plugin is responsible for adding the `@hasOne` and `@hasMany` directives to the schema, which can be used to define relationships between types.
@@ -182,7 +183,10 @@ export class RelationsPlugin implements ITransformerPlugin {
       }
 
       if (relation.type === "oneToOne") {
-        this._setRelationKey(definition, relation.key);
+        if (!isOperationNode(definition)) {
+          this._setRelationKey(definition, relation.key);
+        }
+
         continue;
       }
 

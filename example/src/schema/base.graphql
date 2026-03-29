@@ -178,3 +178,7 @@ input TimeRangeInput {
   opensAt: String!
   closesAt: String!
 }
+
+type Query
+
+type Mutation

@@ -28,9 +28,9 @@ export function basePreset() {
     utilsPlugin(),
     interfaceUtilsPlugin(),
     scalarsPlugin(),
+    rfcFeaturesPlugin(),
     modelPlugin(),
     relationPlugin(),
-    rfcFeaturesPlugin(),
     schemaGeneratorPlugin(),
     modelTypesGeneratorPlugin(),
   ];

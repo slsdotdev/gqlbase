@@ -34,6 +34,7 @@ import {
   shouldSkipFieldFromFilterInput,
   shouldSkipFieldFromMutationInput,
 } from "./ModelPlugin.utils.js";
+import { isManyRelationship } from "../RelationsPlugin/RelationsPlugin.utils.js";
 
 /**
  * `@model` directive plugin.
@@ -359,53 +360,64 @@ export class ModelPlugin implements ITransformerPlugin {
     inputName: string,
     requiredFields: string[] = []
   ) {
-    const input = InputObjectNode.create(inputName);
+    const mutationInput = this.context.document.getNode(inputName);
 
-    for (const field of model.fields ?? []) {
-      if (shouldSkipFieldFromMutationInput(field)) {
-        continue;
-      }
+    if (mutationInput && !(mutationInput instanceof InputObjectNode)) {
+      throw new TransformerPluginExecutionError(
+        this.name,
+        `Type ${mutationInput} is not an input type`
+      );
+    }
 
-      const fieldTypeName = field.type.getTypeName();
+    if (!mutationInput) {
+      const input = InputObjectNode.create(inputName);
 
-      if (requiredFields.includes(field.name)) {
-        input.addField(InputValueNode.create(field.name, NonNullTypeNode.create(fieldTypeName)));
-        continue;
-      }
-
-      // Buildin scalars
-      if (isBuildInScalar(fieldTypeName)) {
-        input.addField(InputValueNode.create(field.name, NamedTypeNode.create(fieldTypeName)));
-        continue;
-      }
-
-      const typeDef = this.context.document.getNode(fieldTypeName);
-
-      if (!typeDef) {
-        throw new TransformerPluginExecutionError(this.name, `Unknown type ${fieldTypeName}`);
-      }
-
-      if (typeDef instanceof ScalarNode || typeDef instanceof EnumNode) {
-        input.addField(InputValueNode.create(field.name, NamedTypeNode.create(fieldTypeName)));
-        continue;
-      }
-
-      if (typeDef instanceof ObjectNode) {
-        if (typeDef.hasDirective("model")) {
+      for (const field of model.fields ?? []) {
+        if (shouldSkipFieldFromMutationInput(field)) {
           continue;
         }
 
-        const inputName = pascalCase(fieldTypeName, "input");
+        const fieldTypeName = field.type.getTypeName();
 
-        if (!this.context.document.hasNode(inputName)) {
-          this._createMutationInput(typeDef, inputName);
+        if (requiredFields.includes(field.name)) {
+          input.addField(InputValueNode.create(field.name, NonNullTypeNode.create(fieldTypeName)));
+          continue;
         }
 
-        input.addField(InputValueNode.create(field.name, NamedTypeNode.create(inputName)));
-      }
-    }
+        // Buildin scalars
+        if (isBuildInScalar(fieldTypeName)) {
+          input.addField(InputValueNode.create(field.name, NamedTypeNode.create(fieldTypeName)));
+          continue;
+        }
 
-    this.context.document.addNode(input);
+        const typeDef = this.context.document.getNode(fieldTypeName);
+
+        if (!typeDef) {
+          throw new TransformerPluginExecutionError(this.name, `Unknown type ${fieldTypeName}`);
+        }
+
+        if (typeDef instanceof ScalarNode || typeDef instanceof EnumNode) {
+          input.addField(InputValueNode.create(field.name, NamedTypeNode.create(fieldTypeName)));
+          continue;
+        }
+
+        if (typeDef instanceof ObjectNode) {
+          if (typeDef.hasDirective("model")) {
+            continue;
+          }
+
+          const inputName = pascalCase(fieldTypeName, "input");
+
+          if (!this.context.document.hasNode(inputName)) {
+            this._createMutationInput(typeDef, inputName);
+          }
+
+          input.addField(InputValueNode.create(field.name, NamedTypeNode.create(inputName)));
+        }
+      }
+
+      this.context.document.addNode(input);
+    }
   }
 
   // #endregion Filter Inputs
@@ -435,10 +447,6 @@ export class ModelPlugin implements ITransformerPlugin {
     const fieldName = camelCase("list", pluralize(model.name));
     const filterInputName = pascalCase(model.name, "filter", "input");
     const queryNode = this.context.document.getQueryNode();
-
-    if (!this.context.document.hasNode(filterInputName)) {
-      this._createFilterInput(model);
-    }
 
     let field = queryNode.getField(fieldName);
 
@@ -472,10 +480,6 @@ export class ModelPlugin implements ITransformerPlugin {
     const fieldName = camelCase(verb, model.name);
     const inputName = pascalCase(verb, model.name, "input");
     const mutationNode = this.context.document.getMutationNode();
-
-    if (!this.context.document.getNode(inputName)) {
-      this._createMutationInput(model, inputName, verb === "update" ? ["id"] : []);
-    }
 
     if (!mutationNode.hasField(fieldName)) {
       const field = FieldNode.create(fieldName, NamedTypeNode.create(model.name), [
@@ -520,8 +524,7 @@ export class ModelPlugin implements ITransformerPlugin {
     return isModel(definition);
   }
 
-  public execute(definition: ObjectNode) {
-    // 1. Add operation fields
+  public normalize(definition: ObjectNode) {
     const operations = this._getOperationNames(definition);
 
     for (const verb of operations) {
@@ -542,6 +545,43 @@ export class ModelPlugin implements ITransformerPlugin {
           continue;
         default:
           continue;
+      }
+    }
+  }
+
+  public execute(definition: ObjectNode) {
+    const operations = this._getOperationNames(definition);
+
+    for (const verb of operations) {
+      switch (verb) {
+        case "list":
+          this._createFilterInput(definition);
+          continue;
+        case "create":
+        case "upsert":
+        case "update":
+          this._createMutationInput(
+            definition,
+            pascalCase(verb, definition.name, "input"),
+            verb === "update" ? ["id"] : []
+          );
+          continue;
+        default:
+          continue;
+      }
+    }
+
+    for (const field of definition.fields ?? []) {
+      if (isManyRelationship(field) && !field.hasArgument("filter")) {
+        const target = this.context.document.getNodeOrThrow(field.type.getTypeName()) as ObjectNode;
+        this._createFilterInput(target);
+
+        field.addArgument(
+          InputValueNode.create(
+            "filter",
+            NamedTypeNode.create(pascalCase(target.name, "filter", "input"))
+          )
+        );
       }
     }
   }

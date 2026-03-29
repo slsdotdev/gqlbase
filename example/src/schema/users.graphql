@@ -14,7 +14,7 @@ Platform user account. A single person may hold multiple roles simultaneously
 and driven by the access token's active scope.
 """
 type User implements Node & Timestamped & SoftDeletable & Versioned
-  @model
+  @model(operations: [write])
   @scope(allow: [ADMIN, VENDOR, SHOP]) {
   id: UUID!
   version: Int! @readOnly
@@ -30,7 +30,7 @@ type User implements Node & Timestamped & SoftDeletable & Versioned
   """
   Computed full name: `firstName + " " + lastName`.
   """
-  fullName: String! @clientOnly @readOnly
+  fullName: String @clientOnly @readOnly
 
   avatarUrl: URL
   roles: [Role!]! @readOnly @scope(allow: [ADMIN])
@@ -40,8 +40,8 @@ type User implements Node & Timestamped & SoftDeletable & Versioned
   lastLoginAt: DateTime @readOnly
   loginCount: Int! @readOnly @scope(allow: [ADMIN])
 
-  locale: Locale!
-  timezone: String! @constraint(maxLength: 64)
+  locale: Locale
+  timezone: String @constraint(maxLength: 64)
 
   addresses: Address @hasMany
   preferences: UserPreferences @hasOne
@@ -53,8 +53,8 @@ type User implements Node & Timestamped & SoftDeletable & Versioned
 
   createdAt: DateTime! @readOnly
   updatedAt: DateTime! @readOnly
-  deletedAt: DateTime! @readOnly @serverOnly
-  isArchived: Boolean! @readOnly
+  deletedAt: DateTime @readOnly @serverOnly
+  isArchived: Boolean @readOnly
 }
 
 enum Locale {
@@ -110,7 +110,7 @@ enum AddressLabel {
 Per-user settings and preference flags. One-to-one with User.
 Split from User to keep the core record lean.
 """
-type UserPreferences implements Node @model(operations: ["update"]) @scope(allow: [ADMIN, SHOP]) {
+type UserPreferences implements Node @model(operations: [UPDATE]) @scope(allow: [ADMIN, SHOP]) {
   id: UUID!
   userId: UUID! @serverOnly
 
@@ -193,4 +193,11 @@ enum VerificationPurpose {
   EMAIL_VERIFICATION
   PASSWORD_RESET
   PHONE_VERIFICATION
+}
+
+extend type Query {
+  """
+  Fetch the currently authenticated user's account.
+  """
+  me: User @scope(allow: [ADMIN, VENDOR, SHOP])
 }
