@@ -14,7 +14,7 @@
     "@middy-appsync/graphql": "^0.1.1"
   },
   "devDependencies": {
-    "@gqlbase/cli": "^0.1.0",
+    "@gqlbase/cli": "^0.1.1",
     "@types/aws-lambda": "^8.10.161"
   }
 }

@@ -1,5 +1,18 @@
 # @gqlbase/plugins
 
+## 0.1.1
+
+### Patch Changes
+
+- 06cd90b: Base plugins fixes
+  - fixes key generation for operation nodes
+  - adds filters for `hasMany` relations on model fields
+  - runs model transformation in two stages to avoid positioning issues
+
+- 72052ff: Added MiddyAppSyncGraphQLPlugin
+  - @gqlbase/core@0.1.1
+  - @gqlbase/shared@0.1.1
+
 ## 0.1.0
 
 ### Minor Changes

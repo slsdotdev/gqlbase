@@ -1,7 +1,7 @@
 {
   "name": "@gqlbase/shared",
   "description": "Shared utilities used by gqlbase packages",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "sideEffects": false,
   "type": "module",
   "license": "MIT",

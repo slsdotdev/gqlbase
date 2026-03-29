@@ -1,5 +1,11 @@
 # @gqlbase/core
 
+## 0.1.1
+
+### Patch Changes
+
+- @gqlbase/shared@0.1.1
+
 ## 0.1.0
 
 ### Minor Changes
