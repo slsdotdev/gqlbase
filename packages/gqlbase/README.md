@@ -157,6 +157,14 @@ The transformer can be used programmatically for integration with build tools, C
 import { createTransformer } from "gqlbase";
 ```
 
+## Documentation
+
+The full documentation lives in the repository's [`docs/`](https://github.com/slsdotdev/gqlbase/blob/main/docs/README.md) folder:
+
+- [Guide](https://github.com/slsdotdev/gqlbase/blob/main/docs/guide/README.md): configuration, directives (models, relations, field visibility, scalars) and each generator.
+- [Internals](https://github.com/slsdotdev/gqlbase/blob/main/docs/internals/README.md): architecture, the plugin API, and conventions for contributors.
+- [Decisions](https://github.com/slsdotdev/gqlbase/blob/main/docs/decisions/README.md): accepted design records.
+
 ## Packages
 
 The `gqlbase` package re-exports all functionality. These internal packages are available for advanced use cases:

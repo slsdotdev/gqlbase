@@ -143,3 +143,8 @@ vite.config.ts.timestamp-*
 
 # Codegen
 generated
+
+# Claude
+.claude/prime
+.claude/proposals
+.claude/epics

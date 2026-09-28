@@ -1,17 +1,19 @@
 # @gqlbase/core
 
-Core library for gqlbase. Provides the GraphQL transformer engine, plugin system, and definition node types.
+The core library for gqlbase. It contains the transformer pipeline (`createTransformer`, `GraphQLTransformer`), the plugin system (`TransformerPluginBase`, `createPluginFactory`, `TransformerContext`), and the definition node classes that plugins read and mutate.
 
-This is an internal package. Install the main [`gqlbase`](https://www.npmjs.com/package/gqlbase) package instead.
+This is an internal package. Install the main [`gqlbase`](https://www.npmjs.com/package/gqlbase) package instead:
 
-## What this package provides
+```bash
+npm install gqlbase graphql
+```
 
-- `GraphQLTransformer` — schema transformation pipeline
-- `createTransformer` — factory function for creating transformer instances
-- `TransformerPluginBase` — abstract base class for building plugins
-- `createPluginFactory` — type-safe plugin factory generator
-- `TransformerContext` — plugin lifecycle and schema state management
-- Definition node classes — `DocumentNode`, `ObjectNode`, `FieldNode`, `InputObjectNode`, `EnumNode`, `UnionNode`, `ScalarNode`, `InterfaceNode`, `DirectiveNode`, `TypeNode`
+## Documentation
+
+- [Architecture](https://github.com/slsdotdev/gqlbase/blob/main/docs/internals/architecture.md): packages and the pipeline phases.
+- [Plugin API](https://github.com/slsdotdev/gqlbase/blob/main/docs/internals/plugin-api.md): writing a plugin.
+- [Definition nodes](https://github.com/slsdotdev/gqlbase/blob/main/docs/internals/definition-nodes.md)
+- [All docs](https://github.com/slsdotdev/gqlbase/blob/main/docs/README.md)
 
 ## License
 

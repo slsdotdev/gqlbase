@@ -2,80 +2,51 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Project Overview
+gqlbase is a GraphQL schema transformer and code generator. It reads SDL, expands directives (`@model`, `@hasMany`, …) into operations, inputs and relation types through an ordered plugin pipeline, and generates TypeScript types, Zod validators, ORM schemas (dsqlbase, Drizzle) and an AppSync schema from the result.
 
-gqlbase is a GraphQL schema transformer and code generator. It processes GraphQL schemas using directives (like `@model`, `@hasOne`, `@hasMany`) to generate CRUD operations, relation types, filter inputs, and TypeScript code. The project has two primary functions: **schema transformation** (adding types/fields/operations based on directives) and **code generation** (producing TypeScript types and other artifacts from the transformed schema).
+## Read first
+
+`docs/` is the single reference, and humans and agents read the same pages. Start at `docs/internals/README.md`, then:
+
+- **How it works:**
+  - `docs/internals/architecture.md`: packages and the seven-phase pipeline. Note that `generate` runs before `cleanup`.
+  - `docs/internals/plugin-api.md`: the plugin contract and the context.
+  - `docs/internals/definition-nodes.md`: the AST wrappers plugins mutate.
+- **Before designing anything:**
+  - `docs/internals/known-gaps.md`: defects to fix, not design around.
+  - `docs/internals/conventions.md`: code style, the proposal workflow, and docs rules.
+- **What directives do:**
+  - `docs/guide/models.md`
+  - `docs/guide/relations.md`
+  - `docs/guide/field-visibility.md`
+  - `docs/guide/scalars.md`
+- **Tests:** `docs/internals/testing.md`.
 
 ## Commands
 
 ```bash
-npm run build          # Build all packages (TypeScript via tsc, orchestrated by Turbo)
+npm run build          # Build all packages (tsc via Turbo). Tests resolve workspace deps through dist/ — build first
 npm run dev            # Watch mode for all packages
-npm run lint           # ESLint with auto-fix
-npm run test           # Run all tests (Vitest)
+npm run lint           # ESLint with auto-fix (also runs in the pre-commit hook)
+npm run test           # All tests (Vitest)
 npm run coverage       # Test coverage report
-npx vitest run packages/core   # Run tests for a single package
-npx vitest run path/to/file    # Run a single test file
+npx vitest run packages/core   # One package
+npx vitest run path/to/file    # One test file
 ```
 
-## Monorepo Structure
+## Code conventions (summary; the full list is in `docs/internals/conventions.md`)
 
-Five packages under `packages/`, managed with npm workspaces and Turborepo:
+- ES modules throughout, with `.js` extensions in imports. Strict TypeScript with `nodenext` resolution.
+- PascalCase for classes (`ModelPlugin`), camelCase for factory exports (`modelPlugin`). Named exports only.
+- Prettier: double quotes, semicolons, trailing commas (es5), 100-column print width.
+- Errors come from `@gqlbase/shared/errors`. Log through `context.logger` / `logger.createChild(scope)`.
+- Tests are co-located as `*.test.ts`. Use explicit `let` + `beforeAll`/`beforeEach` and no helper abstractions.
 
-- **@gqlbase/core** — Transformer engine, plugin system, and definition node classes
-- **@gqlbase/cli** — CLI entry point, config loading, file watching
-- **@gqlbase/plugins** — Built-in plugins organized into `base/` and `relay/` presets
-- **@gqlbase/shared** — Logger, file I/O, error classes, string formatting utilities
-- **gqlbase** — Meta-package re-exporting all of the above
+## Agent rules
 
-## Architecture
-
-### Transformer Pipeline
-
-`GraphQLTransformer` (core) processes schemas through 7 ordered phases. Each phase calls matching plugins:
-
-1. **Validation** — Parse and validate the schema
-2. **Before** — Pre-processing hooks
-3. **Normalize** — Plugins prepare the schema (add fields, directives)
-4. **Execute** — Core transformation (generate new types from directives)
-5. **Generate** — Code generation (TypeScript types, etc.)
-6. **Cleanup** — Remove internal/temporary directives and fields
-7. **After** — Finalization; then collect `output()` from all plugins
-
-### Definition Node System
-
-All GraphQL AST nodes are wrapped in custom classes under `packages/core/src/definition/`. Key classes: `DocumentNode`, `ObjectNode`, `FieldNode`, `DirectiveNode`, `TypeNode`, `InputObjectNode`, `EnumNode`, `UnionNode`, `ScalarNode`, `InterfaceNode`. Each has `serialize()` (to graphql-js AST) and `fromDefinition()` (from graphql-js AST). `DocumentNode` maintains a `Map<name, DefinitionNode>` for lookups.
-
-### Plugin System
-
-Plugins implement `ITransformerPlugin` with lifecycle hooks matching the pipeline phases. The `match(definition)` method controls which definitions a plugin processes. Use `TransformerPluginBase` as the abstract base class and `createPluginFactory<TOptions>()` to create type-safe factory functions.
-
-**Built-in presets:**
-- `basePreset()` — ScalarsPlugin, UtilitiesPlugin, ModelPlugin, RelationsPlugin, SchemaGeneratorPlugin, ModelTypesGeneratorPlugin
-- `relayPreset()` — NodeInterfacePlugin, ConnectionPlugin (Relay pagination)
-
-### Key Directives
-
-| Directive | Purpose |
-|-----------|---------|
-| `@model` | Marks type for CRUD operation generation |
-| `@hasOne` / `@hasMany` | Relation field markers |
-| `@readOnly` / `@writeOnly` | Field visibility in inputs/outputs |
-| `@clientOnly` / `@serverOnly` | Schema scope filtering |
-| `@createOnly` / `@updateOnly` / `@filterOnly` | Operation-specific fields |
-| `@gqlbase_internal` | Marks definitions for cleanup (internal use) |
-| `@gqlbase_typehint` | Maps scalars to TypeScript types (internal use) |
-
-## Code Conventions
-
-- ES modules throughout (`"type": "module"`), use `.js` extensions in imports
-- Strict TypeScript with `nodenext` module resolution
-- PascalCase for classes (`ModelPlugin`), camelCase for factory exports (`modelPlugin`)
-- Named exports only, no default exports for utilities
-- Double quotes, semicolons, trailing commas (es5), 100 char print width (Prettier)
-- Custom error classes: `TransformerValidationError`, `InvalidDefinitionError`, `TransformerPluginExecutionError`
-- Hierarchical logger with scopes: `logger.createChild('scope')`
-
-## Release
-
-Uses Changesets for versioning. All `@gqlbase/*` packages are version-linked (fixed group). CI runs build → lint → test → publish on main.
+- **Proposals and epics.** Non-trivial work starts as a proposal in `.claude/proposals/`; multi-proposal work is tracked in `.claude/epics/`. Both are untracked. Nothing in `docs/` may cite them.
+- **Docs are part of done.**
+  - A change to documented behaviour updates the doc page in the same change.
+  - A fix for a listed gap deletes its entry in `known-gaps.md`.
+  - Every changeset carries a `Docs:` line.
+- **Changesets.** Every change to a published package gets one (`npm run changeset`). `@gqlbase/*` and `gqlbase` version together as a `fixed` group. CI publishes from `main`.

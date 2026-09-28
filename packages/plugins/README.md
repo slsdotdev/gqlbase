@@ -1,40 +1,23 @@
 # @gqlbase/plugins
 
-Built-in plugins and presets for gqlbase.
+The built-in plugins and presets for gqlbase:
+- `basePreset()`: models, relations, field visibility, scalars, the SDL output and TypeScript model types.
+- `relayPreset()`: the Node interface and connections.
+- `appsyncPreset()`: the AppSync schema and middy-appsync types.
+- Standalone generators: `@gqlbase/plugins/zod`, `@gqlbase/plugins/dsql` and `@gqlbase/plugins/drizzle`.
 
-This is an internal package. Install the main [`gqlbase`](https://www.npmjs.com/package/gqlbase) package instead.
+This is an internal package. Install the main [`gqlbase`](https://www.npmjs.com/package/gqlbase) package instead:
 
-## What this package provides
+```bash
+npm install gqlbase graphql
+```
 
-**Base preset** (`gqlbase/plugins/base`):
+## Documentation
 
-- `ScalarsPlugin` — registers built-in scalar types
-- `UtilitiesPlugin` — processes visibility and scope directives
-- `ModelPlugin` — generates CRUD operations from `@model` types
-- `RelationsPlugin` — resolves `@hasOne` and `@hasMany` relations
-- `SchemaGeneratorPlugin` — outputs the transformed schema
-- `ModelTypesGeneratorPlugin` — outputs TypeScript type definitions
-
-**Relay preset** (`gqlbase/plugins/relay`):
-
-- `NodeInterfacePlugin` — adds the Relay `Node` interface
-- `ConnectionPlugin` — generates connection and edge types
+- [Guide](https://github.com/slsdotdev/gqlbase/blob/main/docs/guide/README.md): one page per directive family and per generator.
+- [Plugin API](https://github.com/slsdotdev/gqlbase/blob/main/docs/internals/plugin-api.md): writing your own plugin.
+- [All docs](https://github.com/slsdotdev/gqlbase/blob/main/docs/README.md)
 
 ## License
 
 MIT
-
-```ts
-declare module "@gqlbase/middy-appsync" {
-  interface Definition {
-    User: {
-      id: { source: User; args: Record<string, never>; result: string };
-      name: { source: User; args: Record<string, never>; result: string };
-      email: { source: User; args: Record<string, never>; result: string };
-    };
-    Query: {
-      user: { source: null; args: Record<string, never>; result: User | null };
-    };
-  }
-}
-```
