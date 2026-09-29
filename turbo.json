@@ -3,7 +3,9 @@
   "ui": "tui",
   "tasks": {
     "lint": {},
-    "test": {},
+    "test": {
+      "dependsOn": ["^build"]
+    },
     "dev": {
       "cache": false,
       "persistent": true
