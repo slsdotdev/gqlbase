@@ -8,20 +8,25 @@
   "sideEffects": false,
   "scripts": {
     "codegen": "gqlbase",
-    "watch": "gqlbase --watch"
+    "watch": "gqlbase --watch",
+    "lint": "eslint 'src/**/*.ts' 'test/**/*.ts' --fix",
+    "typecheck": "tsc --noEmit",
+    "test": "gqlbase && tsc --noEmit && vitest run"
   },
   "dependencies": {
-    "@aws/aurora-dsql-node-postgres-connector": "^0.1.8",
+    "@dsqlbase/migration": "latest",
+    "@electric-sql/pglite": "^0.4.6",
     "@middy-appsync/graphql": "^0.1.4",
     "drizzle-orm": "^0.45.2",
-    "dsqlbase": "^0.1.4",
-    "pg": "^8.20.0",
+    "dsqlbase": "latest",
     "zod": "^4.4.3"
   },
   "devDependencies": {
     "@gqlbase/cli": "^0.1.11",
+    "@gqlbase/plugins": "^0.1.11",
     "@types/aws-lambda": "^8.10.161",
-    "@types/pg": "^8.20.0",
-    "tsx": "^4.22.1"
+    "graphql": "^16.14.0",
+    "tsx": "^4.22.1",
+    "vitest": "^4.1.6"
   }
 }

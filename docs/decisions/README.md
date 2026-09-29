@@ -9,6 +9,7 @@ These are accepted design decisions, numbered in the order they were accepted. A
 | # | Title | Date | Status |
 |---|---|---|---|
 | [0001](./0001-docs-structure.md) | Root `docs/` structure for humans and agents | 2026-09-28 | accepted |
+| [0002](./0002-e2e-local-appsync-executor.md) | Behavioural end-to-end tests over `example/`, through a local AppSync | 2026-09-29 | accepted |
 
 ## Template
 

@@ -105,6 +105,15 @@ Which fields appear in which input is decided by `packages/plugins/src/base/Mode
 - **Fields whose type is a non-model object** get a generated `<Type>Input`, built recursively from the object's fields, and are referenced from the model input. An existing type with that name is reused as is.
 - **Union and interface fields** are skipped silently.
 
+### Partial updates and `null`
+
+Update inputs are partial: an omitted field is left unchanged, and `null` sets a field to null. Because every update field is nullable, GraphQL also accepts `null` for a field that is required, such as `name: String @semanticNonNull`. The input type cannot say "optional but not null". Whether a `null` is allowed is decided by validation, not by the input type:
+
+- Validate the update with the generated `Update<Model>InputSchema` ([Zod](./zod.md)). A required field is `.optional()`, so `null` is rejected with an error the client sees. A nullable field is `.nullable().optional()`, so `null` clears it.
+- Do not drop `null` values in the resolver. The resolver cannot tell "clear this" from "ignore this", and silently skipping a write hides a client bug.
+
+`Create<Model>InputSchema` describes the stored row, so validate the row the resolver is about to write: the client input plus server-set fields such as timestamps. This also enforces `@constraint`. `example/src/resolvers/category.ts` shows both.
+
 > **Nested object inputs are shared.** `<Type>Input` is created once, using the rules of whichever operation reaches it first, and then reused by every model and operation. In practice this means the create rules, with non-null fields staying non-null in the update input too. See [Known gaps](../internals/known-gaps.md).
 
 ## Filter inputs

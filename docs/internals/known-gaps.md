@@ -80,7 +80,7 @@ The same plugin also ignores its `dialect` option, and it uses a union's name as
 
 ### 15. Unused enums leak into generated code
 
-The dsqlbase and Zod generators emit every enum in the document, so the unused `SortDirection` (gap 6) becomes a `$enum` and a Zod schema.
+The dsqlbase and Zod generators emit every enum in the document, so the unused `SortDirection` (see [`SortDirection` is generated but never used](#6-sortdirection-is-generated-but-never-used)) becomes a `$enum` and a Zod schema.
 
 ### 16. Middy resolver types include `@serverOnly` root fields
 
@@ -90,29 +90,13 @@ The dsqlbase and Zod generators emit every enum in the document, so the unused `
 
 `dsqlbase()` (`packages/plugins/src/dsql/index.ts`) passes no options to `DsqlBaseSchemaGeneratorPlugin`, so `scalarMap` and `emitOutput` cannot be set from a config.
 
-## Packaging
-
-### 18. `gqlbase` meta-package subpath imports do not resolve
-
-The `gqlbase` package's `exports` maps only `./*` and has no `"."`. Its `dist` contains only `index.js`, so the imports documented in `packages/gqlbase/README.md` (`gqlbase/config`, `gqlbase/plugins/base`) fail. Until this is fixed, [Install](../guide/install.md) recommends `@gqlbase/cli` + `@gqlbase/plugins`.
-
 ## Tooling
 
-### 19. `test` does not build dependencies first
-
-`turbo.json` declares no `dependsOn` for `test`. Tests resolve workspace packages through `dist/`, so they can run against stale builds ([Testing](./testing.md)).
-
-**Fix:** `"test": { "dependsOn": ["^build"] }`.
-
-### 20. Source files are concatenated without a separator
+### 18. Source files are concatenated without a separator
 
 `definitionFromFiles` (`packages/shared/src/files/definitionFromFiles.ts`) joins file contents with `+=`. A file that ends in a name token with no trailing newline fuses with the first token of the next file.
 
 **Fix:** join with `"\n"`.
-
-### 21. No fixture or end-to-end test, and no PR checks
-
-No test compiles a full schema through the preset stack, and the only workflow (`.github/workflows/release.yml`) runs on pushes to `main`. Changes to generated output are therefore reviewed only through unit-test string assertions.
 
 ## Related
 
