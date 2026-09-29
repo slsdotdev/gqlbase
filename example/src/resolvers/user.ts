@@ -1,4 +1,9 @@
-import { createQueryResolver, createResolver, defineResolvers } from "@middy-appsync/graphql";
+import {
+  createQueryResolver,
+  createResolver,
+  defineResolvers,
+  Unauthorized,
+} from "@middy-appsync/graphql";
 import { isCognito } from "@middy-appsync/graphql/utils";
 import { dsql } from "../lib/dsql";
 
@@ -6,7 +11,7 @@ export const queryMe = createQueryResolver({
   fieldName: "me",
   resolve: async ({ identity }) => {
     if (!isCognito(identity)) {
-      throw new Error("Unauthorized");
+      throw new Unauthorized();
     }
 
     return await dsql.users.findOne({

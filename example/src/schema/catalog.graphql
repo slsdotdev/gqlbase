@@ -26,6 +26,12 @@ type Category implements Timestamped & SoftDeletable
   iconUrl: URL
   sortOrder: Int @semanticNonNull
 
+  """
+  Reference from the external catalogue this category was imported from. Accepted on write,
+  never returned.
+  """
+  importRef: String @writeOnly @constraint(max: 120)
+
   parent: Category @belongsTo
   children: Category @hasMany(key: "parentId")
   products: Product @hasMany

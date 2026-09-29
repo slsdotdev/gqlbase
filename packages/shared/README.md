@@ -1,16 +1,17 @@
 # @gqlbase/shared
 
-Shared utilities used internally by gqlbase packages.
+Utilities shared by the gqlbase packages: the scoped logger, error classes, string formatting, file I/O for reading schemas and writing output, and codegen helpers.
 
-This is an internal package. Install the main [`gqlbase`](https://www.npmjs.com/package/gqlbase) package instead.
+This is an internal package. Install the main [`gqlbase`](https://www.npmjs.com/package/gqlbase) package instead:
 
-## What this package provides
+```bash
+npm install gqlbase graphql
+```
 
-- Logger with hierarchical scopes and log levels
-- File I/O helpers for reading GraphQL schemas and writing generated output
-- Error types (`TransformerValidationError`, `InvalidDefinitionError`, `TransformerPluginExecutionError`)
-- String formatting utilities (camelCase, pascalCase, pluralize)
-- Code generation file header utilities
+## Documentation
+
+- [Architecture](https://github.com/slsdotdev/gqlbase/blob/main/docs/internals/architecture.md)
+- [All docs](https://github.com/slsdotdev/gqlbase/blob/main/docs/README.md)
 
 ## License
 

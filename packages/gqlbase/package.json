@@ -26,13 +26,21 @@
     "GraphQL"
   ],
   "files": [
+    "bin",
     "dist",
     "README.md",
     "../../LICENSE"
   ],
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "bin": {
+    "gqlbase": "./bin/index.js"
+  },
   "exports": {
+    ".": {
+      "default": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
     "./*": {
       "default": "./dist/*/index.js",
       "types": "./dist/*/index.d.ts"
