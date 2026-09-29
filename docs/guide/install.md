@@ -10,21 +10,28 @@ gqlbase is published as a set of `@gqlbase/*` packages that are versioned togeth
 | `@gqlbase/plugins` | Built-in plugins and presets (`basePreset`, `relayPreset`, `appsyncPreset`; subpaths `/zod`, `/dsql`, `/drizzle`) |
 | `@gqlbase/core` | Transformer engine, plugin API, definition node classes |
 | `@gqlbase/shared` | Logger, file I/O, error classes, formatting helpers |
-| `gqlbase` | Meta-package; its entry point re-exports `createTransformer` and `GraphQLTransformer` |
+| `gqlbase` | Meta-package: the `gqlbase` binary plus re-exports of the packages above (see below) |
 
 ## Recommended install
 
 ```bash
-npm install --save-dev @gqlbase/cli @gqlbase/plugins graphql typescript
+npm install --save-dev gqlbase graphql typescript
 ```
 
 - `graphql` (`^16`) is a peer dependency of `@gqlbase/core` and `@gqlbase/cli`.
 - `typescript` is a peer dependency of `@gqlbase/plugins`: the code generators build their output with the TypeScript compiler API.
 - Node.js 22 or later (the repository's `engines` field).
 
-This is the combination the repository's `example/` project uses (`example/gqlbase.config.js`).
+The meta-package re-exports the scoped packages under shorter paths. They are interchangeable with the scoped imports:
 
-> The `gqlbase` meta-package declares `"exports": { "./*": … }` with no `"."` entry and only ships `dist/index.js`, so subpath imports such as `gqlbase/config` or `gqlbase/plugins/base` do not resolve. Import from the scoped packages instead. See [Known gaps](../internals/known-gaps.md).
+| `gqlbase` import | Same as |
+| --- | --- |
+| `gqlbase` | `createTransformer`, `GraphQLTransformer` from `@gqlbase/core` |
+| `gqlbase/config` | `@gqlbase/cli/config` |
+| `gqlbase/plugins` | `@gqlbase/plugins` |
+| `gqlbase/plugins/<name>` (`base`, `relay`, `appsync`, `zod`, `dsql`, `drizzle`) | `@gqlbase/plugins/<name>` |
+
+Installing `@gqlbase/cli` and `@gqlbase/plugins` directly also works; the repository's `example/` project does that (`example/gqlbase.config.js`).
 
 ## What the generated code needs at runtime
 
