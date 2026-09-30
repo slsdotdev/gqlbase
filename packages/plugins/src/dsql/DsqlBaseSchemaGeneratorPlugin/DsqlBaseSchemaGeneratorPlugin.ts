@@ -57,8 +57,7 @@ import { isBuildInScalar } from "@gqlbase/shared/definition";
  * `const bigintNumber = <const TName extends string>(name: TName) => new ColumnDefinition<TName, ColumnConfig<number, string>>(name, { dataType: "bigint", codec: { encode: (value) => value.toString(), decode: (value) => Number(value) } });`
  */
 const createBigintNumberBuilder = (): ts.VariableStatement => {
-  const valueParam = () =>
-    ts.factory.createParameterDeclaration(undefined, undefined, "value");
+  const valueParam = () => ts.factory.createParameterDeclaration(undefined, undefined, "value");
 
   const codec = ts.factory.createObjectLiteralExpression([
     ts.factory.createPropertyAssignment(

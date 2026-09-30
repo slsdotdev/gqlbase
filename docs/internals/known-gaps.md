@@ -36,10 +36,6 @@ A relation field on a non-model type that has no `id` field throws "does not hav
 
 The same plugin also ignores its `dialect` option, and it uses a union's name as a table variable when a relation targets a union.
 
-### 17. `dsqlbase()` factory takes no options
-
-`dsqlbase()` (`packages/plugins/src/dsql/index.ts`) passes no options to `DsqlBaseSchemaGeneratorPlugin`, so `scalarMap` and `emitOutput` cannot be set from a config.
-
 ### 19. Drizzle imports column types the schema types do not export
 
 `DrizzleSchemaGeneratorPlugin` imports the type of every object column from `../schema.types.js`. A column typed with an object that is not in the output schema (a `@serverOnly` object, or one only `@serverOnly` fields use) produces an import of a name that does not exist. The dsqlbase generator declares such types locally instead (`TypesGeneratorBase._referenceType`). Drizzle is frozen, so this stays until it is revived or removed.

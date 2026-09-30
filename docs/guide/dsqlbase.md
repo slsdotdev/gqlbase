@@ -8,13 +8,24 @@ import { dsqlbase } from "@gqlbase/plugins/dsql";
 plugins: [dsqlbase()];
 ```
 
-`dsqlbase()` returns `[dsqlbaseSchemaGeneratorPlugin()]`. The plugin is `DsqlBaseSchemaGeneratorPlugin` (`packages/plugins/src/dsql/DsqlBaseSchemaGeneratorPlugin/DsqlBaseSchemaGeneratorPlugin.ts`). It writes `dsqlbase/schema.ts`, which imports builders from `dsqlbase/schema` and the types of object and list columns from `../schema.types.js`, and re-exports those types. A column type the schema types do not export, such as a `@serverOnly` object, is declared in the file itself.
+`dsqlbase(options)` returns `[dsqlbaseSchemaGeneratorPlugin(options)]`. The plugin is `DsqlBaseSchemaGeneratorPlugin` (`packages/plugins/src/dsql/DsqlBaseSchemaGeneratorPlugin/DsqlBaseSchemaGeneratorPlugin.ts`). It writes `dsqlbase/schema.ts`, which imports builders from `dsqlbase/schema` and the types of object and list columns from `../schema.types.js`, and re-exports those types. A column type the schema types do not export, such as a `@serverOnly` object, is declared in the file itself.
 
 ## Options
 
-The plugin accepts `emitOutput` (return the content as `output.dsqlBaseSchema`) and `scalarMap` (`Record<string, { type, dataType, options? }>`, where `dataType` is the dsqlbase column builder name, for example `numeric`).
+```js
+dsqlbase({
+  scalarMap: {
+    Decimal: { type: "string", dataType: "numeric" },
+  },
+});
+```
 
-`dsqlbase()` passes no options, and `@gqlbase/plugins/dsql` exports only `dsqlbase`. So these options cannot be set from a config file today. See [Known gaps](../internals/known-gaps.md).
+| Option | Default | Effect |
+| --- | --- | --- |
+| `scalarMap` | `{}` | `Record<scalarName, { type, dataType, options? }>`. `dataType` is the column builder: a `dsqlbase/schema` export (`numeric`, `varchar`, …) or the local `bigintNumber`. `type` is the TS type used when the scalar is in a list (`json(…).$type<type[]>()`). `options` is passed as the builder's second argument. Takes precedence over the built-in mapping and the type hint. |
+| `emitOutput` | `false` | Also return the file content as `output.dsqlBaseSchema`. |
+
+`@gqlbase/plugins/dsql` exports the option types as `DsqlBaseSchemaGeneratorPluginOptions` and `DsqlBaseScalarConfig`.
 
 ## What is generated
 

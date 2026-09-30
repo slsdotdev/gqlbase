@@ -29,7 +29,9 @@ describe("dsqlbase BigInt columns", () => {
   });
 
   it("imports the builder's types from @dsqlbase/core", () => {
-    expect(tables).toContain('import { ColumnDefinition, type ColumnConfig } from "@dsqlbase/core";');
+    expect(tables).toContain(
+      'import { ColumnDefinition, type ColumnConfig } from "@dsqlbase/core";'
+    );
   });
 
   it("uses the builder for BigInt and bigint-hinted columns", () => {
@@ -61,5 +63,52 @@ describe("dsqlbase without BigInt columns", () => {
   it("emits no local builder and no @dsqlbase/core import", () => {
     expect(tables).not.toContain("bigintNumber");
     expect(tables).not.toContain("@dsqlbase/core");
+  });
+});
+
+describe("dsqlbase() options", () => {
+  let output: Record<string, unknown>;
+
+  beforeAll(() => {
+    output = createTransformer({
+      plugins: [
+        dsqlbase({
+          emitOutput: true,
+          scalarMap: {
+            Decimal: { type: "string", dataType: "numeric" },
+            Cents: { type: "number", dataType: "bigintNumber" },
+          },
+        }),
+      ],
+    }).transform(/* GraphQL */ `
+      scalar Decimal @gqlbase_typehint(type: string)
+      scalar Cents @gqlbase_typehint(type: number)
+
+      type Invoice @model {
+        id: ID!
+        rate: Decimal!
+        amount: Cents!
+      }
+    `);
+  });
+
+  it("returns the schema when emitOutput is set", () => {
+    expect(output.dsqlBaseSchema).toEqual(expect.stringContaining('table("invoices"'));
+  });
+
+  it("maps a scalar through scalarMap instead of its hint", () => {
+    expect(output.dsqlBaseSchema).toEqual(
+      expect.stringContaining('rate: numeric("rate").notNull()')
+    );
+    expect(output.dsqlBaseSchema).toEqual(
+      expect.stringMatching(/import \{[^}]*\bnumeric\b[^}]*\} from "dsqlbase\/schema"/)
+    );
+  });
+
+  it("can map a scalar to the local bigintNumber builder", () => {
+    expect(output.dsqlBaseSchema).toEqual(
+      expect.stringContaining('amount: bigintNumber("amount").notNull()')
+    );
+    expect(output.dsqlBaseSchema).toEqual(expect.stringContaining("const bigintNumber = "));
   });
 });

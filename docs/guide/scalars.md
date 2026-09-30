@@ -75,7 +75,7 @@ With the hint alone, every generator works through its hint fallback (the table 
 | Generator | How to override | Required? |
 | --- | --- | --- |
 | AppSync schema | `appsyncPreset({ scalarMappings: { Decimal: "String" } })` | Only when the hint is `unknown` or missing; the transform throws otherwise. |
-| dsqlbase | `scalarMap: { Decimal: { type: "string", dataType: "numeric" } }` on the plugin options | No, but the `dsqlbase()` helper passes no options (see [dsqlbase](./dsqlbase.md#options)) |
+| dsqlbase | `dsqlbase({ scalarMap: { Decimal: { type: "string", dataType: "numeric" } } })` ([options](./dsqlbase.md#options)) | No |
 | Drizzle | `drizzleSchemaGeneratorPlugin({ scalarMap: { Decimal: "numeric" } })` or `{ type, config }` | No |
 | Zod | none. Only the hint is used, so no format validation. Use `@constraint(pattern:)` on fields. | — |
 | TS | none. Only the hint is used. | — |
