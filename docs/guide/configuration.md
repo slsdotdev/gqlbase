@@ -70,7 +70,7 @@ gqlbase [source] [options]
 | `-v, --verbose` | `verbose` |
 | `-w, --watch` | `watch` |
 
-Resolution order is defaults → config file → CLI flags (`packages/cli/src/config/resolveConfig.ts`). In watch mode, runs are debounced by 100 ms.
+Resolution order is defaults → config file → CLI flags (`packages/cli/src/config/resolveConfig.ts`). A single run exits with code 1 when the transform fails. In watch mode, runs are debounced by 100 ms, and a failed run is logged without stopping the watcher.
 
 ## Plugins, presets and order
 

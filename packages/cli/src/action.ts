@@ -25,18 +25,22 @@ export async function run(source: string | undefined, options: CliOptions) {
       transform: config.transform,
     });
 
-    const runTransform = debouncePromise(async () => transform(sources), 100);
-
-    if (config.watch) {
-      const { start } = await import("./watch/watcher.js");
-
-      watcher = await start({
-        paths: sources,
-        transform: runTransform,
-        logger: mainLogger,
-        ignored: [config.output],
-      });
+    if (!config.watch) {
+      // A single run: a failed transform must fail the command.
+      await transform(sources);
+      return;
     }
+
+    // Watch mode keeps going after a failed run; the debounced runner logs the error.
+    const runTransform = debouncePromise(async () => transform(sources), 100);
+    const { start } = await import("./watch/watcher.js");
+
+    watcher = await start({
+      paths: sources,
+      transform: runTransform,
+      logger: mainLogger,
+      ignored: [config.output],
+    });
 
     runTransform();
   } catch (error) {
