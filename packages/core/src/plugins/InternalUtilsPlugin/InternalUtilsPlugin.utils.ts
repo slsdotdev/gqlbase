@@ -33,16 +33,16 @@ export const isInternal = (node: unknown): boolean => {
 };
 
 /**
- * Utility function to get the type hint from a scalar node. If the node has a _@gqlbase_typehint_ directive, it returns the value of the `type` argument. Otherwise, it defaults to "string".
+ * Utility function to get the type hint from a scalar node. If the node has a _@gqlbase_typehint_ directive, it returns the value of the `type` argument, an enum value. Otherwise, it returns "unknown".
  *
  * @param node - Scalar node to check for type hint annotatation
- * @returns The type hint specified in the directive or "string" if no directive is present.
- * @default "string"
+ * @returns The type hint specified in the directive, or "unknown" if no directive is present.
+ * @default "unknown"
  *
  * @example
  *
  * ```graphql
- * scalar DateTime \@gqlbase_typehint(type: "string")
+ * scalar DateTime \@gqlbase_typehint(type: string)
  * ```
  */
 

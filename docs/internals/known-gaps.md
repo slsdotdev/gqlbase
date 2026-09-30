@@ -18,16 +18,6 @@ The class docstring shows `author: User @hasOne` on `Post` adding `authorId` to 
 
 **Fix:** correct the docstring. The documented behaviour is in [Relations](../guide/relations.md).
 
-### 4. `@gqlbase_typehint` argument and docs are inconsistent
-
-In `packages/core/src/plugins/InternalUtilsPlugin/`:
-- The `type` argument is declared `String!`. But `getTypeHint` reads only **enum** values (`@gqlbase_typehint(type: string)`), and every built-in usage passes an enum. A string literal (`type: "string"`) is silently ignored and resolves to `"unknown"`.
-- It passes validation because `validateSDL` does not check argument value types.
-- The `getTypeHint` docstring says the default is `"string"`; the code returns `"unknown"`.
-- The `TypeHint` enum listed in the plugin docstring omits `object`.
-
-**Fix:** declare the argument as `TypeHint!`, align the docstrings, and decide whether string literals should be accepted.
-
 ### 5. Object-like fields cannot be filtered
 
 `ModelPlugin._createFilterInput` (`packages/core/src/plugins/ModelPlugin/ModelPlugin.ts`) skips every field whose type is object-like: object, interface or union. Non-model object fields, union relations and interface fields never appear in `<Model>FilterInput`.
