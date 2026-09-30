@@ -34,6 +34,7 @@ const APPSYNC_PRELUDE = /* GraphQL */ `
   scalar AWSURL
   scalar AWSPhone
   scalar AWSIPAddress
+  scalar Long
 
   directive @aws_api_key on OBJECT | FIELD_DEFINITION
   directive @aws_iam on OBJECT | FIELD_DEFINITION

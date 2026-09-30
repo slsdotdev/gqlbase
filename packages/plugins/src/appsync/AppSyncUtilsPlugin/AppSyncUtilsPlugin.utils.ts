@@ -1,5 +1,6 @@
 import { BuildInScalar, isBuildInScalar } from "@gqlbase/shared/definition";
-import { BaseScalarName, isBaseScalar } from "@gqlbase/core/plugins";
+import { InvalidDefinitionError } from "@gqlbase/shared/errors";
+import { BaseScalarName, isBaseScalar, type TypeHintValueType } from "@gqlbase/core/plugins";
 
 export const AppSyncScalar = {
   AWS_DATE: "AWSDate",
@@ -52,9 +53,30 @@ export const BaseScalarMappings: Record<BaseScalarName, AppSyncScalarName | Buil
   JSON: AppSyncScalar.AWS_JSON,
 } as const;
 
+/**
+ * AppSync scalar for a custom scalar's type hint. `unknown` has none: such a scalar must be mapped explicitly.
+ */
+export const TypeHintMappings: Record<
+  Exclude<TypeHintValueType, "unknown">,
+  AppSyncScalarName | BuildInScalar
+> = {
+  id: BuildInScalar.ID,
+  string: BuildInScalar.STRING,
+  number: BuildInScalar.FLOAT,
+  bigint: AppSyncScalar.LONG,
+  boolean: BuildInScalar.BOOLEAN,
+  object: AppSyncScalar.AWS_JSON,
+} as const;
+
+/**
+ * Maps a scalar to its AppSync name: `scalarMappings` first, then GraphQL built-ins, gqlbase built-ins, and finally the scalar's type hint.
+ *
+ * @throws When the scalar has no mapping and its type hint is `unknown`.
+ */
 export const mapToAppSyncScalarName = (
   name: string,
-  customConfig: Record<string, AppSyncScalarName | BuildInScalar> = {}
+  customConfig: Record<string, AppSyncScalarName | BuildInScalar> = {},
+  typeHint: TypeHintValueType = "unknown"
 ): AppSyncScalarName | BuildInScalar => {
   if (customConfig[name]) {
     return customConfig[name];
@@ -68,7 +90,11 @@ export const mapToAppSyncScalarName = (
     return BaseScalarMappings[name];
   }
 
-  throw new Error(
-    `Unsupported scalar type: ${name}. Custom scalars must be explicitly mapped in the plugin configuration when using AppSync plugins.`
+  if (typeHint !== "unknown") {
+    return TypeHintMappings[typeHint];
+  }
+
+  throw new InvalidDefinitionError(
+    `Scalar ${name} has no AppSync mapping: its type hint is unknown. Add @gqlbase_typehint to the scalar, or map it with appsyncPreset({ scalarMappings: { ${name}: "<AppSync scalar>" } }).`
   );
 };

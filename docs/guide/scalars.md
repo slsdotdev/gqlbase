@@ -50,15 +50,15 @@ scalar Decimal @gqlbase_typehint(type: string)
 
 The argument is declared `type: TypeHint!`, so the value is a bare **enum literal** (`string`, not `"string"`). The allowed values are `id`, `string`, `number`, `bigint`, `boolean`, `object` and `unknown` (`TypeHintValue` in `packages/core/src/plugins/InternalUtilsPlugin/InternalUtilsPlugin.utils.ts`). A quoted string or any other value fails the transform with an error naming the scalar. A scalar without a hint is `unknown`.
 
-| Hint | TS | Zod | Filter input | dsqlbase column | Drizzle column |
-| --- | --- | --- | --- | --- | --- |
-| `id` | `string` | `z.string()` | ID-like | `uuid` | `uuid` |
-| `string` | `string` | `z.string()` | string-like | `text` | `text` |
-| `number` | `number` | `z.number()` | number-like | `real` | `doublePrecision` |
-| `bigint` | `number` | `z.number().int()` | number-like | `bigintNumber` (local) | `bigint(…, { mode: "number" })` |
-| `boolean` | `boolean` | `z.boolean()` | boolean-like | `bool` | `boolean` |
-| `object` | `Record<string, unknown>` | `z.record(z.string(), z.unknown())` | boolean-like | `json` | `jsonb` |
-| `unknown` | `unknown` (warning) | `z.unknown()` | boolean-like (warning) | `text` | `text` |
+| Hint | TS | Zod | Filter input | dsqlbase column | Drizzle column | AppSync |
+| --- | --- | --- | --- | --- | --- | --- |
+| `id` | `string` | `z.string()` | ID-like | `uuid` | `uuid` | `ID` |
+| `string` | `string` | `z.string()` | string-like | `text` | `text` | `String` |
+| `number` | `number` | `z.number()` | number-like | `real` | `doublePrecision` | `Float` |
+| `bigint` | `number` | `z.number().int()` | number-like | `bigintNumber` (local) | `bigint(…, { mode: "number" })` | `Long` |
+| `boolean` | `boolean` | `z.boolean()` | boolean-like | `bool` | `boolean` | `Boolean` |
+| `object` | `Record<string, unknown>` | `z.record(z.string(), z.unknown())` | boolean-like | `json` | `jsonb` | `AWSJSON` |
+| `unknown` | `unknown` (warning) | `z.unknown()` | boolean-like (warning) | `text` | `text` | none: the transform throws |
 
 Operator sets are listed in [Models](./models.md#operator-sets).
 
@@ -70,11 +70,11 @@ Declare it in your SDL with a hint:
 scalar Decimal @gqlbase_typehint(type: string)
 ```
 
-With the hint alone, TS types, filter inputs, Zod, dsqlbase and Drizzle all work through their hint fallbacks. To go further, configure each generator separately:
+With the hint alone, every generator works through its hint fallback (the table in [Type hints](#type-hints)). Each generator also has its own override, because what a scalar means to AppSync or to a database is that generator's concern, not the schema's:
 
 | Generator | How to override | Required? |
 | --- | --- | --- |
-| AppSync schema | `appsyncPreset({ scalarMappings: { Decimal: "String" } })` | **Yes.** An unmapped custom scalar throws. |
+| AppSync schema | `appsyncPreset({ scalarMappings: { Decimal: "String" } })` | Only when the hint is `unknown` or missing; the transform throws otherwise. |
 | dsqlbase | `scalarMap: { Decimal: { type: "string", dataType: "numeric" } }` on the plugin options | No, but the `dsqlbase()` helper passes no options (see [dsqlbase](./dsqlbase.md#options)) |
 | Drizzle | `drizzleSchemaGeneratorPlugin({ scalarMap: { Decimal: "numeric" } })` or `{ type, config }` | No |
 | Zod | none. Only the hint is used, so no format validation. Use `@constraint(pattern:)` on fields. | — |

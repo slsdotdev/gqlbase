@@ -6,6 +6,7 @@ export {
   isAppSyncDirective,
   isAppSyncScalar,
   mapToAppSyncScalarName,
+  TypeHintMappings,
   type AppSyncDirectiveName,
   type AppSyncScalarName,
 } from "./AppSyncUtilsPlugin.utils.js";

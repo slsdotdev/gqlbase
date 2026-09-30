@@ -13,9 +13,6 @@ export default defineConfig({
   },
   plugins: [
     appsyncPreset({
-      scalarMappings: {
-        Decimal: "String",
-      },
       middyAppSync: {
         authorizationModes: ["cognito", "iam"],
       },

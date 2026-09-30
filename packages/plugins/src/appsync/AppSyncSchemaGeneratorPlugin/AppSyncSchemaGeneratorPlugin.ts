@@ -12,12 +12,18 @@ import {
   NamedTypeNode,
   NonNullTypeNode,
   ObjectNode,
+  ScalarNode,
   UnionNode,
   TypeNode,
   isScalarNode,
   isDirectiveDefinitionNode,
 } from "@gqlbase/core/definition";
-import { createPluginFactory, isInternal } from "@gqlbase/core/plugins";
+import {
+  createPluginFactory,
+  getTypeHint,
+  isInternal,
+  type TypeHintValueType,
+} from "@gqlbase/core/plugins";
 import { isBuildInScalar } from "@gqlbase/shared/definition";
 import { AppSyncSchemaGeneratorPluginOptions } from "./AppSyncSchemaGeneratorPlugin.utils.js";
 import {
@@ -33,6 +39,7 @@ import {
 export class AppSyncSchemaGeneratorPlugin extends TransformerPluginBase {
   document: DocumentNode;
   options: Required<AppSyncSchemaGeneratorPluginOptions>;
+  private _typeHints = new Map<string, TypeHintValueType>();
 
   constructor(context: ITransformerContext, options: AppSyncSchemaGeneratorPluginOptions = {}) {
     super("AppSyncSchemaGeneratorPlugin", context);
@@ -89,7 +96,7 @@ export class AppSyncSchemaGeneratorPlugin extends TransformerPluginBase {
     if (isScalarNode(node)) {
       return this._getTypeNode(
         field.type,
-        mapToAppSyncScalarName(typeName, this.options.scalarMappings)
+        mapToAppSyncScalarName(typeName, this.options.scalarMappings, this._typeHints.get(typeName))
       );
     }
 
@@ -203,10 +210,18 @@ export class AppSyncSchemaGeneratorPlugin extends TransformerPluginBase {
 
   public before() {
     this.document = DocumentNode.create();
+    this._typeHints.clear();
   }
 
-  public match(): boolean {
-    return false;
+  public match(definition: DefinitionNode): boolean {
+    return isScalarNode(definition);
+  }
+
+  /**
+   * Type hints are removed in cleanup, before output rebuilds the schema, so record them here.
+   */
+  public generate(definition: ScalarNode) {
+    this._typeHints.set(definition.name, getTypeHint(definition));
   }
 
   public output() {

@@ -63,6 +63,10 @@ describe("ModelPlugin", () => {
 
 Generator tests assert on the emitted source string, e.g. `expect(output).toContain('price: json("price")…')`.
 
+Driving hooks by hand skips the rest of the pipeline. A generator that depends on hook order, for example on `cleanup` having removed `@gqlbase_typehint` before `output()`, needs a test through `createTransformer({ plugins: [...] }).transform(source)` as well. The `*.scalars.test.ts` files are examples.
+
+**A `beforeAll` that throws does not fail the run.** Vitest reports every test in its `describe` as skipped. When a new test file shows skipped tests you did not mark `it.skip`, the setup threw; run the file with `--reporter=verbose` to see which.
+
 ## End-to-end tests
 
 The end-to-end suite checks what gqlbase promises users: that an API built on the generated artifacts behaves as documented. It runs against `example/`, a schema that covers most use cases and grows with each capability.

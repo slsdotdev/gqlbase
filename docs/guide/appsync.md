@@ -45,9 +45,12 @@ Defined in `packages/plugins/src/appsync/appSyncPreset.ts`.
 - every field and argument type is mapped:
   1. `scalarMappings`;
   2. GraphQL built-ins as is;
-  3. [built-in gqlbase scalars](./scalars.md#built-in-scalars) via their AppSync mapping (`UUID` → `ID`, `DateTime` → `AWSDateTime`, `BigInt` → `Long`, …).
+  3. [built-in gqlbase scalars](./scalars.md#built-in-scalars) via their AppSync mapping (`UUID` → `ID`, `DateTime` → `AWSDateTime`, `BigInt` → `Long`, …);
+  4. any other scalar by its [type hint](./scalars.md#type-hints): `id` → `ID`, `string` → `String`, `number` → `Float`, `bigint` → `Long`, `boolean` → `Boolean`, `object` → `AWSJSON`.
 
-**Every other custom scalar must be in `scalarMappings`, or the transform throws.**
+A custom scalar with a hint needs no configuration. `scalarMappings` overrides the hint, for example `scalarMappings: { Currency: "String" }`. **A scalar whose hint is `unknown` (or missing) must be in `scalarMappings`, or the transform throws** with an error naming the scalar.
+
+The hints are read during `generate`, because cleanup removes `@gqlbase_typehint` before `output()` rebuilds the schema.
 
 ## Resolver types
 
