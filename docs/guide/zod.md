@@ -15,6 +15,7 @@ The plugin is `ZodSchemaGeneratorPlugin` (`packages/plugins/src/zod/ZodSchemaGen
 | `fileName` | `"schema.validators.ts"` | File name inside `zod/`. |
 | `emitOutput` | `false` | Also return the file content from `transform()` as `output.zodSchemas`. |
 | `generateArgumentSchemas` | `false` | Also emit schemas for every input type used as a field argument, and their dependencies (filter inputs, mutation inputs, custom inputs). |
+| `scalars` | `{}` | Zod code per scalar name, used instead of the built-in mapping or the type hint. See [Scalars](#scalars). |
 
 ## What is generated
 
@@ -71,7 +72,15 @@ The full comparison with the GraphQL inputs is in [Field visibility](./field-vis
 | built-in gqlbase scalars | see [Scalars](./scalars.md#built-in-scalars) (`z.iso.datetime()`, `z.uuid()`, `z.email()`, …) |
 | custom scalars | by type hint: `z.string()`, `z.number()`, `z.number().int()` (`bigint`), `z.boolean()`, `z.record(z.string(), z.unknown())`, or `z.unknown()` |
 
-A custom scalar cannot be given its own Zod expression. There is no mapping option; only the type hint is used.
+The `scalars` option replaces the expression for a named scalar, whether it is custom, built into gqlbase or a GraphQL scalar. The value is Zod code on `z`, inserted as written, and is used wherever the scalar appears: fields, list items and arguments. `@constraint` checks are still appended to it. Names that are not scalars are ignored.
+
+```js
+zodSchemaGeneratorPlugin({
+  scalars: {
+    Currency: 'z.string().regex(/^[A-Z]{3}$/, "Expected an ISO 4217 code")',
+  },
+});
+```
 
 ## Constraints
 

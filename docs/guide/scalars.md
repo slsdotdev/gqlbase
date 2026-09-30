@@ -77,10 +77,10 @@ With the hint alone, every generator works through its hint fallback (the table 
 | AppSync schema | `appsyncPreset({ scalarMappings: { Decimal: "String" } })` | Only when the hint is `unknown` or missing; the transform throws otherwise. |
 | dsqlbase | `dsqlbase({ scalarMap: { Decimal: { type: "string", dataType: "numeric" } } })` ([options](./dsqlbase.md#options)) | No |
 | Drizzle | `drizzleSchemaGeneratorPlugin({ scalarMap: { Decimal: "numeric" } })` or `{ type, config }` | No |
-| Zod | none. Only the hint is used, so no format validation. Use `@constraint(pattern:)` on fields. | — |
+| Zod | `zodSchemaGeneratorPlugin({ scalars: { Decimal: "z.string().regex(/^-?\\d+(\\.\\d+)?$/)" } })` ([Zod](./zod.md#scalars)) | No |
 | TS | none. Only the hint is used. | — |
 
-There is no single place to declare everything about a scalar once.
+There is deliberately no single place to declare everything about a scalar: the schema declares what the scalar *is* (its hint), and each generator decides how to represent it.
 
 ## Adding a built-in scalar (contributors)
 

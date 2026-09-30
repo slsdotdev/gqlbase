@@ -30,12 +30,20 @@ export interface ZodSchemaGeneratorPluginOptions {
    * @default false
    */
   generateArgumentSchemas?: boolean;
+
+  /**
+   * Zod code per scalar name, used instead of the built-in mapping or the type hint. The code is an expression on `z`.
+   * @example { Currency: 'z.string().regex(/^[A-Z]{3}$/)' }
+   * @default {}
+   */
+  scalars?: Record<string, string>;
 }
 
 export const DEFAULT_OPTIONS: Required<ZodSchemaGeneratorPluginOptions> = {
   fileName: "schema.validators.ts",
   emitOutput: false,
   generateArgumentSchemas: false,
+  scalars: {},
 } as const;
 
 export const mergeOptions = (
