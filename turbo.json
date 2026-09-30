@@ -3,6 +3,9 @@
   "ui": "tui",
   "tasks": {
     "lint": {},
+    "typecheck": {
+      "dependsOn": ["^build"]
+    },
     "test": {
       "dependsOn": ["^build"]
     },

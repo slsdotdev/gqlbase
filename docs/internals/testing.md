@@ -12,6 +12,7 @@ Run from the repo root:
 | `npm run coverage` | Same, with `--coverage`. Reports land in `coverage/<package>`. |
 | `npm run lint` | ESLint with auto-fix. It also runs in the Husky pre-commit hook (`.husky/pre-commit`). |
 | `npm run build` | Builds every package with `tsc`, in dependency order (`^build`). |
+| `npm run typecheck` | Runs `turbo run typecheck`: `tsc` over each package **including its tests** (`tsconfig.typecheck.json`), and over `example/` after codegen. `build` excludes `*.test.ts` and vitest does not type-check, so this is the only check on test files. |
 | `npx vitest run packages/<pkg>` | One package. |
 | `npx vitest run path/to/file.test.ts` | One file. |
 | `npx vitest run -t "name"` | One test, by name. |
@@ -28,11 +29,11 @@ Run from the repo root:
   - **shared:** string, logger and util helpers.
   - **cli:** the watcher.
 - End-to-end specs live in `example/test/` (see [End-to-end tests](#end-to-end-tests)).
-- CI runs build → lint → test on every pull request (`.github/workflows/ci.yml`) and again on pushes to `main` before publishing (`.github/workflows/release.yml`).
+- CI runs build → lint → typecheck → test on every pull request (`.github/workflows/ci.yml`) and again on pushes to `main` before publishing (`.github/workflows/release.yml`).
 
 ## How plugin tests are written
 
-Plugin tests drive the hooks by hand instead of going through `createTransformer`. Use `packages/plugins/src/base/ModelPlugin/ModelPlugin.test.ts` as the reference for which hooks to call. Existing tests create the context at module scope; new tests should use the `let` + `beforeAll` form below.
+Plugin tests drive the hooks by hand instead of going through `createTransformer`. Use `packages/core/src/plugins/ModelPlugin/ModelPlugin.test.ts` as the reference for which hooks to call. Existing tests create the context at module scope; new tests should use the `let` + `beforeAll` form below.
 
 ```ts
 const document = DocumentNode.fromSource(/* GraphQL */ `...`);
@@ -69,7 +70,7 @@ The end-to-end suite checks what gqlbase promises users: that an API built on th
 `npm test -w example` (and therefore `npm test`) does three things:
 
 1. **Generates** the artifacts with the example config (`gqlbase`, writing `example/generated/`).
-2. **Typechecks** the example (`tsc --noEmit`). The resolvers are typed by the generated `appsync/middy-appsync.typegen.ts` and the generated dsqlbase schema, so a generated type that no longer fits real resolver code fails here.
+2. **Typechecks** the example (`npm run typecheck -w example`, which is codegen plus `tsc --noEmit`). The resolvers are typed by the generated `appsync/middy-appsync.types.ts` and the generated dsqlbase schema, so a generated type that no longer fits real resolver code fails here.
 3. **Runs the specs** (`vitest run`, `example/vitest.config.ts`).
 
 ### How an operation runs

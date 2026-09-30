@@ -1,8 +1,6 @@
 # @gqlbase/plugins
 
-The built-in plugins and presets for gqlbase:
-- `basePreset()`: models, relations, field visibility, scalars, the SDL output and TypeScript model types.
-- `relayPreset()`: the Node interface and connections.
+The optional plugins and presets for gqlbase. Models, relations, field visibility, scalars, the SDL output and TypeScript model types are core plugins in `@gqlbase/core`, always registered.
 - `appsyncPreset()`: the AppSync schema and middy-appsync types.
 - Standalone generators: `@gqlbase/plugins/zod`, `@gqlbase/plugins/dsql` and `@gqlbase/plugins/drizzle`.
 

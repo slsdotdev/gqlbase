@@ -151,4 +151,142 @@ describe("field visibility", () => {
       );
     });
   });
+
+  describe("unused definitions", () => {
+    it("are not in the schema", async () => {
+      const result = await execute(/* GraphQL */ `
+        query Types {
+          sortDirection: __type(name: "SortDirection") {
+            name
+          }
+          searchResult: __type(name: "SearchResult") {
+            name
+          }
+          category: __type(name: "Category") {
+            name
+          }
+        }
+      `);
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data).toEqual({
+        sortDirection: null,
+        searchResult: null,
+        category: { name: "Category" },
+      });
+    });
+  });
+
+  describe("@serverOnly type", () => {
+    it("is not in the schema, and neither are its operations or the fields that return it", async () => {
+      const result = await execute<{
+        importJob: unknown;
+        category: { fields: { name: string }[] };
+        query: { fields: { name: string }[] };
+      }>(/* GraphQL */ `
+        query Types {
+          importJob: __type(name: "ImportJob") {
+            name
+          }
+          category: __type(name: "Category") {
+            fields {
+              name
+            }
+          }
+          query: __type(name: "Query") {
+            fields {
+              name
+            }
+          }
+        }
+      `);
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data?.importJob).toBeNull();
+      expect(result.data?.category.fields.map((field) => field.name)).not.toContain("lastImport");
+      expect(result.data?.query.fields.map((field) => field.name)).not.toContain("getImportJob");
+    });
+
+    it("is stored and linked by the server", async () => {
+      const job = await dsql.importJobs.create({
+        data: { source: "legacy-csv", status: "done", startedAt: new Date().toISOString() },
+        return: true as const,
+      });
+
+      await dsql.categories.update({ where: { id }, set: { lastImportId: job?.id } });
+
+      const row = await dsql.categories.findOne({ where: { id } });
+      expect(row?.lastImportId).toBe(job?.id);
+    });
+  });
+
+  describe("@clientOnly model", () => {
+    it("has read operations answered by its resolver", async () => {
+      const result = await execute<{
+        listExchangeRates: { edges: { node: { currency: string } }[] };
+      }>(/* GraphQL */ `
+        query Rates {
+          listExchangeRates {
+            edges {
+              node {
+                currency
+                rate
+              }
+            }
+          }
+        }
+      `);
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data?.listExchangeRates.edges.map((edge) => edge.node.currency)).toEqual([
+        "EUR",
+        "GBP",
+        "USD",
+      ]);
+    });
+
+    it("has no write operations and no table", async () => {
+      const result = await execute<{ mutation: { fields: { name: string }[] } }>(/* GraphQL */ `
+        query Mutations {
+          mutation: __type(name: "Mutation") {
+            fields {
+              name
+            }
+          }
+        }
+      `);
+
+      const names = result.data?.mutation.fields.map((field) => field.name);
+
+      expect(names).toContain("createCategory");
+      expect(names?.some((name) => name.includes("ExchangeRate"))).toBe(false);
+      expect("exchangeRates" in dsql).toBe(false);
+    });
+  });
+
+  describe("@clientOnly type", () => {
+    it("is queryable but not accepted on create", async () => {
+      const result = await execute<{ input: { inputFields: { name: string }[] } }>(
+        /* GraphQL */ `
+          query Stats($id: ID!) {
+            getCategory(id: $id) {
+              stats {
+                productCount
+              }
+            }
+            input: __type(name: "CreateCategoryInput") {
+              inputFields {
+                name
+              }
+            }
+          }
+        `,
+        { variables: { id } }
+      );
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data).toMatchObject({ getCategory: { stats: null } });
+      expect(result.data?.input.inputFields.map((field) => field.name)).not.toContain("stats");
+    });
+  });
 });

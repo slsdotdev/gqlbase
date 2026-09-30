@@ -2,7 +2,7 @@
 
 _Audience: people controlling where a field appears — public schema, inputs, filters, generated code, database._
 
-The utility directives are declared by `UtilitiesPlugin` (`packages/plugins/src/base/UtilitiesPlugin/UtilitiesPlugin.ts`; predicates such as `isReadOnly` in `UtilitiesPlugin.utils.ts`), part of `basePreset()`. All of them go on `FIELD_DEFINITION`. `@constraint` also goes on `INPUT_FIELD_DEFINITION` and `ARGUMENT_DEFINITION`.
+The utility directives are declared by `UtilitiesPlugin` (`packages/core/src/plugins/UtilitiesPlugin/UtilitiesPlugin.ts`; predicates such as `isReadOnly` in `UtilitiesPlugin.utils.ts`), a core plugin. All of them go on `FIELD_DEFINITION`. `@serverOnly` and `@clientOnly` also go on `OBJECT` (see [On an object type](#on-an-object-type)), and `@constraint` also goes on `INPUT_FIELD_DEFINITION` and `ARGUMENT_DEFINITION`.
 
 | Directive | Intent |
 | --- | --- |
@@ -17,9 +17,9 @@ The utility directives are declared by `UtilitiesPlugin` (`packages/plugins/src/
 
 ## What each generator does
 
-There is no central rule. Each generator applies its own, and they differ, which is why this page exists. The table was derived from the code:
+One core rule decides what reaches the client schema: `isPublicSchemaField(field, parent)` (`packages/core/src/plugins/SchemaGeneratorPlugin/SchemaGeneratorPlugin.utils.ts`). A field is public unless it is `@serverOnly`, `@writeOnly` or internal. The public SDL, the TS schema types and the AppSync resolver types all use it. The inputs, Zod and the database describe what is *stored* and apply their own rules. The table was derived from the code:
 
-- **SDL**: `UtilitiesPlugin.cleanup`.
+- **SDL**: `UtilitiesPlugin.cleanup` and `SchemaGeneratorPlugin`.
 - **GraphQL inputs**: `ModelPlugin.utils.ts`.
 - **TS**: `ModelTypesGeneratorPlugin`.
 - **Zod**: `ZodSchemaGeneratorPlugin` and `ZodSchemaGeneratorPlugin.utils.ts`.
@@ -33,26 +33,45 @@ The entries were checked by running the transformer.
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | *(nothing)* | ✓ | ✓ | ✓ (nullable) | ✓ | ✓ | ✓ | ✓ / ✓ | ✓ |
 | `@readOnly` | ✓ | — | — | — | ✓ | ✓ | ✓ / ✓ | ✓ |
-| `@writeOnly` | — | ✓ | ✓ | ✓ ¹ | — ² | — | ✓ / ✓ | ✓ |
-| `@serverOnly` | — | — | — | — | ✓ | ✓ | ✓ / ✓ | ✓ |
+| `@writeOnly` | — | ✓ | ✓ | ✓ ¹ | — | — | ✓ / ✓ | ✓ |
+| `@serverOnly` | — | — | — | — | — | ✓ | ✓ / ✓ | ✓ |
 | `@clientOnly` | ✓ | — | — | — | ✓ | ✓ | — / — | — |
-| `@createOnly` | ✓ | ✓ | — | — ³ | ✓ | ✓ | ✓ / — | ✓ |
-| `@updateOnly` | ✓ | — | ✓ | — ³ | ✓ | ✓ | — / ✓ | ✓ |
-| `@filterOnly` | ✓ | — ³ | — ³ | ✓ | ✓ | ✓ | — / — ³ | ✓ |
+| `@createOnly` | ✓ | ✓ | — | — ² | ✓ | ✓ | ✓ / — | ✓ |
+| `@updateOnly` | ✓ | — | ✓ | — ² | ✓ | ✓ | — / ✓ | ✓ |
+| `@filterOnly` | ✓ | — ² | — ² | ✓ | ✓ | ✓ | — / — ² | ✓ |
 | relation field (`@hasOne`…) | ✓ | — | — | — | ✓ (optional) | — | — / — | relation, not a column |
-| relation key (added, `@serverOnly @writeOnly`) | — | — | — | — | ✓ | — | ✓ / ✓ | ✓ |
+| relation key (added, `@serverOnly @writeOnly`) | — | — | — | — | — | — | ✓ / ✓ | ✓ |
 
 1. `@writeOnly` is not excluded from filter inputs, so clients can filter on a value they cannot read. See [Known gaps](../internals/known-gaps.md).
-2. Unless the field is also `@serverOnly`.
-3. The `…Only` directives combine. `@createOnly @filterOnly` puts a field in both the create input and the filter; the same applies to the Zod create/update schemas.
+2. The `…Only` directives combine. `@createOnly @filterOnly` puts a field in both the create input and the filter; the same applies to the Zod create/update schemas.
 
 Notes:
 
 - **"Public SDL type"** is the object type in `schema.graphql` and `appsync/schema.graphql`. `@writeOnly` and `@serverOnly` fields are removed during `cleanup`. The other utility directives are stripped and their fields kept.
-- **Generators see the schema before cleanup.** Code generators run in the `generate` phase, which comes *before* `cleanup`, so they still see `@serverOnly` and `@writeOnly` fields and relation keys. That is why the TS types, Zod schemas and tables contain them. See [Architecture](../internals/architecture.md).
+- **Generators see the schema before cleanup.** Code generators run in the `generate` phase, which comes *before* `cleanup`, so they still see `@serverOnly` and `@writeOnly` fields and relation keys. The TS schema types and the AppSync resolver types leave them out with `isPublicSchemaField`; Zod and the tables keep them because they describe the stored row. See [Architecture](../internals/architecture.md).
 - **Zod create/update schemas describe the stored row, not the GraphQL input.** They include `@readOnly` and `@serverOnly` fields and relation keys, which `Create<Model>Input` does not.
-- **The Middy AppSync resolver types** are also built in `generate`. Root-type fields therefore appear there even when marked `@serverOnly`.
+- **The Middy AppSync resolver types** list only public fields, so `@serverOnly` operations get no entry. A resolver's `source` is typed `<Type>Source` when the parent type has hidden stored fields, so resolvers can read relation keys and `@serverOnly` values from the parent row (see [AppSync](./appsync.md)).
+- **Unused definitions are removed.** A type, input, enum, union or scalar that nothing public reaches is removed from `schema.graphql` and the AppSync schema, and left out of the TS schema types. Zod skips definitions that no stored field or input reaches.
 - **Directives stay on the type that declares them.** Visibility directives on a non-model object type apply to that type's own `<Type>Input` (see [Models](./models.md#mutation-inputs)); they are not inherited from the field that embeds it.
+
+## On an object type
+
+`@serverOnly` and `@clientOnly` can mark a whole object type. A field whose type is such an object inherits the directive (`UtilitiesPlugin.normalize`), so everything in the table above applies to it.
+
+```graphql
+type ImportJob @model @serverOnly { … }      # stored, never exposed
+type ExchangeRate @model @clientOnly { … }   # resolved at runtime, never stored
+type CategoryStats @clientOnly { … }
+
+type Category @model {
+  lastImport: ImportJob @belongsTo   # becomes @serverOnly: stored as lastImportId, not exposed
+  stats: CategoryStats               # becomes @clientOnly: queryable, no column, no input entry
+}
+```
+
+- **`@serverOnly` type.** Not in the output schema, the TS schema types or the AppSync resolver types, not even as an implementor of a public interface such as `Node`. It is still stored: Zod and dsqlbase generate it. On a `@model`, it keeps its table and Zod row schemas but gets **no operations** and no GraphQL inputs.
+- **`@clientOnly` type.** In the output schema, never stored: no table, no Zod create/update schemas and no `<Type>Input`. On a `@model`, it gets **only the read operations** (`get`, `list`) of those configured, and resolvers provide the data.
+- Fields on root types do not inherit `@clientOnly`: a query returning a client-only type is still a query.
 
 ## `@constraint`
 

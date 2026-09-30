@@ -28,6 +28,7 @@ gqlbase is a GraphQL schema transformer and code generator. It reads SDL, expand
 npm run build          # Build all packages (tsc via Turbo). Tests resolve workspace deps through dist/
 npm run dev            # Watch mode for all packages
 npm run lint           # ESLint with auto-fix (also runs in the pre-commit hook)
+npm run typecheck      # tsc over every package including tests, and example/ after codegen
 npm run test           # All tests: builds deps first, then unit tests + the example/ e2e suite
 npm run coverage       # Test coverage report
 npx vitest run packages/core   # One package

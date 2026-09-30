@@ -39,12 +39,10 @@ Create a configuration file:
 ```js
 // gqlbase.config.js
 import { defineConfig } from "gqlbase/config";
-import { basePreset } from "gqlbase/plugins/base";
 
 export default defineConfig({
   source: "src/schema/**/*.graphql",
   output: "generated",
-  plugins: [basePreset()],
 });
 ```
 
@@ -57,7 +55,7 @@ npx gqlbase
 This generates two files in the `generated/` directory:
 
 - `schema.graphql` — the transformed schema with all generated types and operations
-- `models.typegen.ts` — TypeScript type definitions for all schema types
+- `schema.types.ts` — TypeScript types that match the output schema
 
 ## CLI
 
@@ -105,47 +103,41 @@ export default defineConfig({
 | `@hasMany` | Defines a one-to-many relation |
 | `@readOnly` | Excludes the field from input types |
 | `@writeOnly` | Excludes the field from output types |
-| `@clientOnly` | Removes the field from the generated schema |
-| `@serverOnly` | Removes the field from client-facing schemas |
+| `@clientOnly` | Computed at runtime: the field (or type) is never stored or written |
+| `@serverOnly` | Stored, but the field (or type) is removed from client-facing schemas |
 | `@createOnly` | Includes the field only in create inputs |
 | `@updateOnly` | Includes the field only in update inputs |
 | `@filterOnly` | Includes the field only in filter inputs |
 
 ## Built-in Scalars
 
-The base preset registers the following scalar types:
+The core plugins register the following scalar types:
 
 `DateTime` · `Date` · `Time` · `Timestamp` · `UUID` · `URL` · `EmailAddress` · `PhoneNumber` · `IPAddress` · `JSON`
 
 ## Presets and Plugins
 
-Presets are collections of plugins. The `basePreset` provides the core transformation capabilities and should always be included.
-
-```js
-import { basePreset } from "gqlbase/plugins/base";
-import { relayPreset } from "gqlbase/plugins/relay";
-
-export default defineConfig({
-  plugins: [
-    basePreset(),
-    relayPreset(), // adds Relay-style connections and Node interface
-  ],
-});
-```
-
-**Base preset** includes:
+The core plugins are always registered, before any plugin in your config:
 
 - `ScalarsPlugin` — registers built-in scalar types
 - `UtilitiesPlugin` — processes visibility and scope directives
+- `InterfaceUtilsPlugin` — copies interface fields into implementing types
+- `RfcFeaturesPlugin` — `@semanticNonNull`, when `transform.semanticNullability` is on
 - `ModelPlugin` — generates CRUD operations from `@model` types
-- `RelationsPlugin` — resolves `@hasOne` and `@hasMany` relations
+- `RelationsPlugin` — resolves `@hasOne`, `@hasMany` and `@belongsTo` relations
+- `NodeInterfacePlugin` and `ConnectionPlugin` — the Relay `Node` interface and connections, when `transform.relay` is on
 - `SchemaGeneratorPlugin` — outputs the transformed `schema.graphql`
 - `ModelTypesGeneratorPlugin` — outputs TypeScript type definitions
 
-**Relay preset** adds:
+Transformer options switch core features on:
 
-- `NodeInterfacePlugin` — adds the Relay `Node` interface
-- `ConnectionPlugin` — generates connection and edge types for pagination
+```js
+export default defineConfig({
+  transform: {
+    relay: true, // Relay-style connections and the Node interface
+  },
+});
+```
 
 Additional presets for specific use cases (AppSync, Zod, etc.) are planned.
 

@@ -11,12 +11,14 @@ The repo is an npm workspaces monorepo orchestrated by Turborepo. All published 
 | Package | Path | Role |
 |---|---|---|
 | `@gqlbase/shared` | `packages/shared` | Logger, errors, string formatting, file I/O (`definitionFromFiles`, `writeOutputFile`), codegen helpers. No gqlbase dependencies. |
-| `@gqlbase/core` | `packages/core` | Definition nodes, `TransformerContext`, the plugin contract, `GraphQLTransformer`, `createTransformer`, and the always-on `InternalUtilsPlugin`. Depends on `shared`, with `graphql` as a peer dependency. |
-| `@gqlbase/plugins` | `packages/plugins` | Every built-in plugin and preset. Depends on `core` and `shared`, with `typescript` as a peer dependency (generators build code through the TS factory API). |
+| `@gqlbase/core` | `packages/core` | Definition nodes, `TransformerContext` and the transformer options, the plugin contract, `GraphQLTransformer`, `createTransformer`, and the core plugins every transformer registers (`packages/core/src/plugins/`). Depends on `shared`, with `graphql` as a peer dependency. |
+| `@gqlbase/plugins` | `packages/plugins` | The optional plugins and presets. Depends on `core` and `shared`, with `typescript` as a peer dependency (generators build code through the TS factory API). |
 | `@gqlbase/cli` | `packages/cli` | The `gqlbase` binary, config loading, and watch mode. Depends on `core` and `shared`. |
 | `gqlbase` | `packages/gqlbase` | Meta-package that re-exports the others. |
 
 Dependency direction is `shared ← core ← plugins`, with `cli` depending on `core` and `shared`. `cli` does not depend on `plugins`: the user's config imports the plugins and passes factories in.
+
+**Plugin dependency rule.** The core plugins are always registered, so any plugin may rely on the definitions they add and import their helpers from `@gqlbase/core/plugins`. A plugin must not depend on an optional plugin (anything in `@gqlbase/plugins`), because a config can leave it out. Optional plugins therefore never import each other; a helper two of them need belongs in core.
 
 Each package exposes subpaths through `"./*": "./dist/*/index.js"`, for example `@gqlbase/core/definition`, `@gqlbase/plugins/zod` and `@gqlbase/shared/errors`. A new subpath is therefore a new directory with an `index.ts`.
 
@@ -24,14 +26,12 @@ Each package exposes subpaths through `"./*": "./dist/*/index.js"`, for example 
 
 | Directory | Contents | How it is imported |
 |---|---|---|
-| `base/` | `UtilitiesPlugin`, `InterfaceUtilsPlugin`, `ScalarsPlugin`, `RfcFeaturesPlugin`, `ModelPlugin`, `RelationsPlugin`, `SchemaGeneratorPlugin`, `ModelTypesGeneratorPlugin`, plus the shared `TypesGeneratorBase` | `basePreset()` |
-| `relay/` | `NodeInterfacePlugin`, `ConnectionPlugin` | `relayPreset()` |
 | `appsync/` | `AppSyncUtilsPlugin`, `AppSyncSchemaGeneratorPlugin`, `MiddyAppSyncGraphQLPlugin` | `appsyncPreset()` |
 | `zod/` | `ZodSchemaGeneratorPlugin` | `@gqlbase/plugins/zod` |
 | `dsql/` | `DsqlBaseSchemaGeneratorPlugin` | `@gqlbase/plugins/dsql` |
 | `drizzle/` | `DrizzleSchemaGeneratorPlugin` | `@gqlbase/plugins/drizzle` |
 
-The root `packages/plugins/src/index.ts` exports only the base, relay and appsync presets. Each plugin's options, directives and output are covered in the [guide](../guide/README.md).
+The root `packages/plugins/src/index.ts` exports only the appsync preset. Each plugin's options, directives and output are covered in the [guide](../guide/README.md).
 
 ## Entry points
 
@@ -41,14 +41,18 @@ The root `packages/plugins/src/index.ts` exports only the base, relay and appsyn
   3. writes each `output.files[i]` relative to the configured output directory.
 
   Watch mode lives in `packages/cli/src/watch/`.
-- **Programmatic.** Call `createTransformer({ plugins, logger })` and then `transformer.transform(sdl)`. The result is a `TransformerOutput` (`{ schema, files, ...pluginKeys }`) and nothing is written to disk.
+- **Programmatic.** Call `createTransformer({ plugins, logger, ...transformerOptions })` and then `transformer.transform(sdl)`. The result is a `TransformerOutput` (`{ schema, files, ...pluginKeys }`) and nothing is written to disk.
 
 ## The transformer pipeline
 
 `createTransformer` (`packages/core/src/transformer/createTransformer.ts`) creates a `TransformerContext`. It then registers plugins in this order:
 
-1. `InternalUtilsPlugin`, always first;
+1. the core plugins, from `corePlugins()` (`packages/core/src/plugins/corePlugins.ts`), in a fixed order: `InternalUtilsPlugin`, `UtilitiesPlugin`, `InterfaceUtilsPlugin`, `ScalarsPlugin`, then `RfcFeaturesPlugin` when `options.semanticNullability` is on, then `ModelPlugin`, `RelationsPlugin`, then `NodeInterfacePlugin` and `ConnectionPlugin` when `options.relay` is on, then `SchemaGeneratorPlugin`, `ModelTypesGeneratorPlugin`;
 2. every factory from `options.plugins`, flattened in config order.
+
+`SchemaGeneratorPlugin.output` runs once every plugin has cleaned up. Before printing `schema.graphql`, it removes every definition that nothing public reaches (`collectPublicDefinitions`), leftover `@gqlbase_internal` definitions included. The AppSync schema is printed in a later `output` hook, from the same pruned document, so both contain only what the client can reach.
+
+The transformer options (`relay`, `semanticNullability`, `operations`) are resolved with their defaults and frozen onto `context.options` before any plugin is created.
 
 Presets are plain arrays of factories, so they expand in place. Registering a plugin calls its `init()` straight away. Plugin names must be unique.
 

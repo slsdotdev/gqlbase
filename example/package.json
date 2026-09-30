@@ -10,8 +10,8 @@
     "codegen": "gqlbase",
     "watch": "gqlbase --watch",
     "lint": "eslint 'src/**/*.ts' 'test/**/*.ts' --fix",
-    "typecheck": "tsc --noEmit",
-    "test": "gqlbase && tsc --noEmit && vitest run"
+    "typecheck": "gqlbase && tsc --noEmit",
+    "test": "npm run typecheck && vitest run"
   },
   "dependencies": {
     "@dsqlbase/migration": "latest",

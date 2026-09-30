@@ -2,7 +2,7 @@
 
 _Audience: people linking types with `@hasOne`, `@hasMany` and `@belongsTo`._
 
-Relations are handled by `RelationsPlugin` (`packages/plugins/src/base/RelationsPlugin/RelationsPlugin.ts`, key rules in `RelationsPlugin.utils.ts` → `parseFieldRelation`), part of `basePreset()`.
+Relations are handled by `RelationsPlugin` (`packages/core/src/plugins/RelationsPlugin/RelationsPlugin.ts`, key rules in `RelationsPlugin.utils.ts` → `parseFieldRelation`), a core plugin.
 
 ```graphql
 directive @hasOne(key: String) on FIELD_DEFINITION
@@ -38,12 +38,12 @@ type Post @model {
 }
 ```
 
-Output schema (base preset only):
+Output schema (default options):
 
 ```graphql
 type User {
   id: ID!
-  posts(filter: PostFilterInput): [Post]
+  posts(filter: PostFilterInput): [Post!]
 }
 
 type Post {
@@ -53,7 +53,7 @@ type Post {
 }
 ```
 
-`Post.userId`, `Post.authorId` and `Post.editorUserId` are present in `models.typegen.ts`, the Zod `Create/UpdatePostInputSchema` and the `posts` table, and absent from `schema.graphql`.
+`Post.userId`, `Post.authorId` and `Post.editorUserId` are present in the Zod `Create/UpdatePostInputSchema`, the `posts` table and the AppSync resolver `PostSource` type. They are absent from `schema.graphql` and `schema.types.ts`.
 
 > **Choosing between `@hasOne` and `@belongsTo`.** Use `@belongsTo` when the current type stores the foreign key (`Post.author`). Use `@hasOne` when the *other* type stores a key pointing back (`User.profile: Profile @hasOne` puts `userId` on `Profile`). The docstring example on `RelationsPlugin` shows `@hasOne` placing the key on the source; that is not what the code does. See [Known gaps](../internals/known-gaps.md).
 
@@ -81,13 +81,14 @@ A relation field marked `@clientOnly` gets no key field. It is still reshaped (l
 
 `@hasMany` fields are reshaped in `execute`:
 
-| Setup | `posts: Post @hasMany` becomes |
-| --- | --- |
-| `basePreset()` | `posts(filter: PostFilterInput): [Post]`. A type already written as a list is left as written. |
-| `basePreset()` + `relayPreset()` | `posts(filter: PostFilterInput, first: Int, after: String): PostConnection!` (see [Relay](./relay.md)) |
-| `relationPlugin({ usePaginationTypes: true })` | `posts(limit: Int, nextToken: String, …): PostConnection`, where `type PostConnection { items: [Post] nextToken: String }` |
+| Setup | `posts: Post @hasMany` becomes | `posts: Post! @hasMany` becomes |
+| --- | --- | --- |
+| Default (`relay: false`) | `posts(filter: PostFilterInput): [Post!]` | `posts(filter: PostFilterInput): [Post!]!` |
+| `relay: true` | `posts(filter: PostFilterInput, first: Int, after: String): PostConnection!` | the same (see [Relay](./relay.md)) |
 
-The `filter` argument is only added on `@model` types (see [Models](./models.md#where-the-filter-is-accepted)). `usePaginationTypes` cannot be combined with `relayPreset()`; `ConnectionPlugin` throws if it meets a `{ items, nextToken }` connection. `basePreset()` does not expose the option; compose the base plugins yourself to use it.
+Without Relay, a `@hasMany` becomes a plain list. The list keeps the field's own nullability, including `@semanticNonNull`, and its items are always non-null. There are no pagination arguments: `first` and `after` belong to Relay connections. A type already written as a list (`posts: [Post] @hasMany`) is left as written.
+
+The `filter` argument is only added on `@model` types (see [Models](./models.md#where-the-filter-is-accepted)).
 
 `@hasOne` and `@belongsTo` fields keep their declared type.
 

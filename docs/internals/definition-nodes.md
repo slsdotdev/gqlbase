@@ -63,9 +63,9 @@ These are type guards and predicates in `packages/core/src/definition/utils.ts`:
 | `isNullableTypeNode(type, level)` | Nullability at a list depth. |
 
 Directive predicates live next to the plugin that owns the directive:
-- `isModel`: `packages/plugins/src/base/ModelPlugin/ModelPlugin.utils.ts`.
-- `isServerOnly`, `isClientOnly`, `isReadOnly`, …: `packages/plugins/src/base/UtilitiesPlugin/UtilitiesPlugin.utils.ts`.
-- `isSemanticNullable`: `packages/plugins/src/base/RfcFeaturesPlugin/RfcFeaturesPlugin.utils.ts`.
+- `isModel`: `packages/core/src/plugins/ModelPlugin/ModelPlugin.utils.ts`.
+- `isServerOnly`, `isClientOnly`, `isReadOnly`, …: `packages/core/src/plugins/UtilitiesPlugin/UtilitiesPlugin.utils.ts`.
+- `isSemanticNullable`: `packages/core/src/plugins/RfcFeaturesPlugin/RfcFeaturesPlugin.utils.ts`.
 
 Built-in scalar names (`ID`, `String`, `Int`, `Float`, `Boolean`) are in `packages/shared/src/definition`.
 

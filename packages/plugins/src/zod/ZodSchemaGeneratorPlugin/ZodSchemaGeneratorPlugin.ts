@@ -2,7 +2,21 @@ import ts from "typescript";
 import { createPluginFactory, ITransformerContext, TransformerPluginBase } from "@gqlbase/core";
 import { isBuildInScalar } from "@gqlbase/shared/definition";
 import { pascalCase } from "@gqlbase/shared/format";
-import { getTypeHint, isInternal } from "@gqlbase/core/plugins";
+import {
+  getTypeHint,
+  isInternal,
+  isBaseScalar,
+  type BaseScalarName,
+  hasConstraints,
+  parseConstraints,
+  isWriteOnly,
+  isSemanticNullable,
+  isRelationField,
+  isModel,
+  isPrimaryKeyField,
+  collectReachableDefinitions,
+  isClientOnly,
+} from "@gqlbase/core/plugins";
 import {
   DefinitionNode,
   EnumNode,
@@ -27,11 +41,6 @@ import {
 } from "@gqlbase/core/definition";
 import { TransformerPluginExecutionError } from "@gqlbase/shared/errors";
 import { stronglyConnectedComponents } from "@gqlbase/shared/utils";
-import { isBaseScalar, type BaseScalarName } from "../../base/ScalarsPlugin/ScalarsPlugin.utils.js";
-import { hasConstraints, parseConstraints, isWriteOnly } from "../../base/UtilitiesPlugin/index.js";
-import { isSemanticNullable } from "../../base/RfcFeaturesPlugin/index.js";
-import { isRelationField } from "../../base/RelationsPlugin/index.js";
-import { isModel, isPrimaryKeyField } from "../../base/ModelPlugin/ModelPlugin.utils.js";
 import {
   CUSTOM_SCALAR_ZOD_MAP,
   mergeOptions,
@@ -60,7 +69,7 @@ import {
  * ```
  *
  * ```typescript
- * // generated/zod/validators.typegen.ts
+ * // generated/zod/schema.validators.ts
  * import { z } from "zod";
  *
  * export const UserRoleSchema = z.enum(["ADMIN", "USER"]);
@@ -96,6 +105,7 @@ interface PendingSchema {
 }
 
 export class ZodSchemaGeneratorPlugin extends TransformerPluginBase {
+  private reachable: Set<string> | null = null;
   private nodes: ts.Node[] = [];
   private pending: PendingSchema[] = [];
   private pendingByName = new Map<string, PendingSchema>();
@@ -562,7 +572,8 @@ export class ZodSchemaGeneratorPlugin extends TransformerPluginBase {
       return this._zCall("object", [ts.factory.createObjectLiteralExpression(properties, true)]);
     });
 
-    if (isObjectNode(definition) && isModel(definition)) {
+    // Create/update schemas describe the stored row; a client-only model is never stored.
+    if (isObjectNode(definition) && isModel(definition) && !isClientOnly(definition)) {
       this._generateModelMutationSchemas(definition);
     }
   }
@@ -680,6 +691,7 @@ export class ZodSchemaGeneratorPlugin extends TransformerPluginBase {
   }
 
   public before() {
+    this.reachable = null;
     this.nodes = [];
     this.pending = [];
     this.pendingByName = new Map();
@@ -711,6 +723,14 @@ export class ZodSchemaGeneratorPlugin extends TransformerPluginBase {
   }
 
   public generate(definition: DefinitionNode) {
+    // Stored rows and inputs: every non-internal field counts, including @serverOnly and @writeOnly ones.
+    // Collected on the first call: execute has finished, and nothing changes the document during generate.
+    this.reachable ??= collectReachableDefinitions(this.context, (field) => !isInternal(field));
+
+    if (!isOperationNode(definition) && !this.reachable.has(definition.name)) {
+      return;
+    }
+
     if (isOperationNode(definition)) {
       if (this.options.generateArgumentSchemas) {
         this._registerArgumentInputs(definition as ObjectNode);

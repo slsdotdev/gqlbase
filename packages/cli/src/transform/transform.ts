@@ -1,5 +1,5 @@
 import { Logger } from "@gqlbase/shared/logger";
-import { createTransformer, IPluginFactory } from "@gqlbase/core";
+import { createTransformer, IPluginFactory, TransformerOptions } from "@gqlbase/core";
 import { definitionFromFiles, ensureOutputDirectoryExists } from "@gqlbase/shared/files";
 import { writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
@@ -8,6 +8,7 @@ export interface TransformParams {
   outputDirectory: string;
   plugins: (IPluginFactory | IPluginFactory[])[];
   logger: Logger;
+  transform?: Partial<TransformerOptions>;
 }
 
 export function createTransform(params: TransformParams) {
@@ -16,6 +17,7 @@ export function createTransform(params: TransformParams) {
   const transformer = createTransformer({
     plugins: params.plugins,
     logger: params.logger,
+    ...params.transform,
   });
 
   return async (source: string[]) => {

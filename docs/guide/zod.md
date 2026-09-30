@@ -5,7 +5,7 @@ _Audience: people validating data with Zod schemas generated from the GraphQL sc
 ```js
 import { zodSchemaGeneratorPlugin } from "@gqlbase/plugins/zod";
 
-plugins: [basePreset(), zodSchemaGeneratorPlugin({ generateArgumentSchemas: true })];
+plugins: [zodSchemaGeneratorPlugin({ generateArgumentSchemas: true })];
 ```
 
 The plugin is `ZodSchemaGeneratorPlugin` (`packages/plugins/src/zod/ZodSchemaGeneratorPlugin/ZodSchemaGeneratorPlugin.ts`). It is not part of any preset. It writes `zod/schema.validators.ts`, which imports `* as z from "zod/v4"`.
@@ -27,6 +27,7 @@ The plugin is `ZodSchemaGeneratorPlugin` (`packages/plugins/src/zod/ZodSchemaGen
 | input type `I` | `ISchema`, only with `generateArgumentSchemas` |
 
 - Root types, scalars, directive definitions and `@gqlbase_internal` definitions produce nothing.
+- Definitions that no field reaches from the root types, including `@serverOnly` and `@writeOnly` fields, produce nothing (`collectReachableDefinitions`).
 - Schemas are emitted in dependency order, and cycles are wrapped in `z.lazy(...)`.
 - Self-referencing inputs (for example `and: [XFilterInput]`) are built as a base object plus `.extend(...)`.
 
@@ -38,7 +39,7 @@ The plugin is `ZodSchemaGeneratorPlugin` (`packages/plugins/src/zod/ZodSchemaGen
 
 ### Model create/update schemas
 
-`Create<Model>InputSchema` and `Update<Model>InputSchema` describe the **stored record** for a write. They are not the GraphQL `Create<Model>Input`. The field rules come from `shouldIncludeInZodCreate` / `shouldIncludeInZodUpdate` in `ZodSchemaGeneratorPlugin.utils.ts`:
+`Create<Model>InputSchema` and `Update<Model>InputSchema` describe the **stored record** for a write, so a `@clientOnly` model gets neither. They are not the GraphQL `Create<Model>Input`. The field rules come from `shouldIncludeInZodCreate` / `shouldIncludeInZodUpdate` in `ZodSchemaGeneratorPlugin.utils.ts`:
 
 - **Included:**
   - `@readOnly`, `@serverOnly` and `@writeOnly` fields;

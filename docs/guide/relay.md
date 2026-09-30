@@ -3,16 +3,16 @@
 _Audience: people exposing Relay-style connections and the `Node` interface._
 
 ```js
-import { basePreset, relayPreset } from "@gqlbase/plugins";
-
-plugins: [basePreset(), relayPreset()];
+defineConfig({
+  transform: { relay: true },
+});
 ```
 
-`relayPreset()` takes no options and registers two plugins:
-- `NodeInterfacePlugin` (`packages/plugins/src/relay/NodeInterfacePlugin/NodeInterfacePlugin.ts`);
-- `ConnectionPlugin` (`packages/plugins/src/relay/ConnectionPlugin/ConnectionPlugin.ts`).
+The `relay` [transformer option](./configuration.md#transformer-options) registers two core plugins, right after `RelationsPlugin`:
+- `NodeInterfacePlugin` (`packages/core/src/plugins/NodeInterfacePlugin/NodeInterfacePlugin.ts`);
+- `ConnectionPlugin` (`packages/core/src/plugins/ConnectionPlugin/ConnectionPlugin.ts`).
 
-Register it after `basePreset()`.
+With `relay` off (the default), neither is registered: there is no `Node` interface and list relations are not rewritten into connections.
 
 ## `Node` interface
 
@@ -42,13 +42,13 @@ type User implements Node {
 }
 
 type PostConnection {
-  edges: [PostEdge] @semanticNonNull(levels: [0, 1])
+  edges: [PostEdge!]!
   pageInfo: PageInfo!
 }
 
 type PostEdge {
   cursor: String
-  node: Post
+  node: Post!
 }
 
 type PageInfo {
@@ -60,13 +60,11 @@ type PageInfo {
 ```
 
 - The field type becomes `<Target>Connection!`, with `first: Int` and `after: String` arguments added. `filter` comes from `ModelPlugin`, and only on `@model` types.
-- `edges` carries `@semanticNonNull(levels: [0, 1])` only when `RfcFeaturesPlugin` is registered (it is part of `basePreset()`).
+- `edges` and `node` are non-null, as above. With the `semanticNullability` option on, they stay nullable and carry `@semanticNonNull` instead: `edges: [PostEdge] @semanticNonNull(levels: [0, 1])` and `node: Post @semanticNonNull`.
 - `cursor` and `node` on the edge are marked `@clientOnly` internally. They get no stored column and no input entry.
 - Connection and edge types are shared per target. A type already named `<Target>Connection` or `<Target>Edge` is reused.
 - Backward pagination (`last`/`before`), `totalCount` and ordering arguments are not generated.
 - Union and interface targets produce `<Union>Connection` / `<Union>Edge` the same way.
-
-`ConnectionPlugin` throws if it finds a `{ items, nextToken }` connection, the shape produced by `relationPlugin({ usePaginationTypes: true })`. The two list shapes cannot be mixed.
 
 ## Related
 

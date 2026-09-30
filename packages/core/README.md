@@ -1,6 +1,6 @@
 # @gqlbase/core
 
-The core library for gqlbase. It contains the transformer pipeline (`createTransformer`, `GraphQLTransformer`), the plugin system (`TransformerPluginBase`, `createPluginFactory`, `TransformerContext`), and the definition node classes that plugins read and mutate.
+The core library for gqlbase. It contains the transformer pipeline (`createTransformer`, `GraphQLTransformer`), the plugin system (`TransformerPluginBase`, `createPluginFactory`, `TransformerContext`), the core plugins that every transformer registers (models, relations, field visibility, scalars, the SDL and TypeScript types output; `@gqlbase/core/plugins`), and the definition node classes that plugins read and mutate.
 
 This is an internal package. Install the main [`gqlbase`](https://www.npmjs.com/package/gqlbase) package instead:
 

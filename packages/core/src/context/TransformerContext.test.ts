@@ -5,6 +5,7 @@ import { DocumentNode } from "../definition/DocumentNode.js";
 
 const testPlugin: ITransformerPlugin = {
   name: "TestPlugin",
+  context: new TransformerContext(),
   init: () => ({}),
   match: () => true,
 };
@@ -62,5 +63,36 @@ describe("TransformerContext", () => {
     context.finishWork();
 
     expect(() => context.document).toThrow("Work has not been started yet.");
+  });
+
+  it("defaults the transformer options", () => {
+    const context = new TransformerContext();
+
+    expect(context.options).toEqual({
+      relay: false,
+      semanticNullability: false,
+      operations: ["read", "write"],
+    });
+  });
+
+  it("keeps the transformer options it is given", () => {
+    const context = new TransformerContext({
+      relay: true,
+      semanticNullability: true,
+      operations: ["read"],
+    });
+
+    expect(context.options).toEqual({
+      relay: true,
+      semanticNullability: true,
+      operations: ["read"],
+    });
+  });
+
+  it("freezes the transformer options", () => {
+    const context = new TransformerContext({ operations: ["read"] });
+
+    expect(Object.isFrozen(context.options)).toBe(true);
+    expect(Object.isFrozen(context.options.operations)).toBe(true);
   });
 });

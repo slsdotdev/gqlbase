@@ -1,8 +1,7 @@
 import { BuildInScalar, isBuildInScalar } from "@gqlbase/shared/definition";
 import { snakeCase, pluralize, camelCase } from "@gqlbase/shared/format";
-import { BaseScalarName, isBaseScalar } from "../../base/index.js";
+import { BaseScalarName, isBaseScalar, TypeHintValueType } from "@gqlbase/core/plugins";
 import { JsonValue } from "@gqlbase/shared/codegen";
-import { TypeHintValueType } from "@gqlbase/core/plugins";
 
 export interface ScalarConfig {
   type: string;

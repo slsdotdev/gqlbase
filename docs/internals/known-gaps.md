@@ -6,21 +6,15 @@ These are verified defects and inconsistencies in the current code. **Fix them; 
 
 ## Schema transformation
 
-### 1. `XEdge.node` gets `@semanticNonNull` without a guard
-
-In `packages/plugins/src/relay/ConnectionPlugin/ConnectionPlugin.ts`, the generated connection's `edges` field checks `hasSemanticNonNull` before adding `@semanticNonNull`. The edge type's `node` field adds the directive unconditionally. If `RfcFeaturesPlugin` is not registered, the output SDL uses a directive it never declares, and generators read `node` as non-null regardless.
-
-**Fix:** use the same guard as `edges`.
-
 ### 2. Union relation targets always get an `ID!` key
 
-When a relation target is a union, `RelationsPlugin._setRelationKey` (`packages/plugins/src/base/RelationsPlugin/RelationsPlugin.ts`) recurses into each member. The recursive call passes only `key`, dropping `typeName` and `isNullable`. Every member therefore gets a non-null `ID` key field, whatever the relation's nullability or the id type `_getKeyTypeName` resolved.
+When a relation target is a union, `RelationsPlugin._setRelationKey` (`packages/core/src/plugins/RelationsPlugin/RelationsPlugin.ts`) recurses into each member. The recursive call passes only `key`, dropping `typeName` and `isNullable`. Every member therefore gets a non-null `ID` key field, whatever the relation's nullability or the id type `_getKeyTypeName` resolved.
 
 **Fix:** forward both arguments.
 
 ### 3. `RelationsPlugin` docstring contradicts the key placement
 
-The class docstring shows `author: User @hasOne` on `Post` adding `authorId` to `Post`. The code (`parseFieldRelation` in `packages/plugins/src/base/RelationsPlugin/RelationsPlugin.utils.ts`, plus `normalize`) does something else. Without an explicit key, `@hasOne` derives `camelCase(<parent>, "id")` and places it on the **target**, so the example actually adds `postId` to `User`. Only `@belongsTo` puts the key on the source, as `camelCase(<field>, "id")`.
+The class docstring shows `author: User @hasOne` on `Post` adding `authorId` to `Post`. The code (`parseFieldRelation` in `packages/core/src/plugins/RelationsPlugin/RelationsPlugin.utils.ts`, plus `normalize`) does something else. Without an explicit key, `@hasOne` derives `camelCase(<parent>, "id")` and places it on the **target**, so the example actually adds `postId` to `User`. Only `@belongsTo` puts the key on the source, as `camelCase(<field>, "id")`.
 
 **Fix:** correct the docstring. The documented behaviour is in [Relations](../guide/relations.md).
 
@@ -36,11 +30,11 @@ In `packages/core/src/plugins/InternalUtilsPlugin/`:
 
 ### 5. Object-like fields cannot be filtered
 
-`ModelPlugin._createFilterInput` (`packages/plugins/src/base/ModelPlugin/ModelPlugin.ts`) skips every field whose type is object-like: object, interface or union. Non-model object fields, union relations and interface fields never appear in `<Model>FilterInput`.
+`ModelPlugin._createFilterInput` (`packages/core/src/plugins/ModelPlugin/ModelPlugin.ts`) skips every field whose type is object-like: object, interface or union. Non-model object fields, union relations and interface fields never appear in `<Model>FilterInput`.
 
 ### 6. `SortDirection` is generated but never used
 
-`ModelPlugin.before` adds `enum SortDirection { ASC DESC }` to every document. No generated field or input references it, and list queries have no sort argument (a `TODO: Handle sort input` sits beside `_createListQueryField`).
+`ModelPlugin.before` adds `enum SortDirection { ASC DESC }` to every document. No generated field or input references it, and list queries have no sort argument (a `TODO: Handle sort input` sits beside `_createListQueryField`). Because nothing reaches it, `SchemaGeneratorPlugin` drops it from the output and the generators skip it, but it is still created on every run.
 
 ### 7. Type extensions of undeclared types are dropped silently
 
@@ -52,7 +46,7 @@ A relation field on a non-model type that has no `id` field throws "does not hav
 
 ### 9. `@writeOnly` fields appear in filter inputs
 
-`shouldSkipFieldFromFilterInput` (`packages/plugins/src/base/ModelPlugin/ModelPlugin.utils.ts`) does not skip `@writeOnly`, so clients can filter on a value they cannot read.
+`shouldSkipFieldFromFilterInput` (`packages/core/src/plugins/ModelPlugin/ModelPlugin.utils.ts`) does not skip `@writeOnly`, so clients can filter on a value they cannot read.
 
 ### 10. `@constraint` survives on inputs after its definition is removed
 
@@ -66,10 +60,6 @@ A non-model object field gets a nested `<Type>Input` built with the rules of whi
 
 `[String]` fields get `StringFilterInput` rather than a list filter. `<Type>ListFilterInput` is created only when no `<Type>FilterInput` exists yet.
 
-### 13. `@gqlbase_internal` definitions are not removed automatically
-
-`InternalUtilsPlugin` does not strip definitions marked `@gqlbase_internal`. The plugin that adds one must remove it itself.
-
 ## Code generation
 
 ### 14. Drizzle emits `json`, not `jsonb`
@@ -78,17 +68,13 @@ A non-model object field gets a nested `<Type>Input` built with the rules of whi
 
 The same plugin also ignores its `dialect` option, and it uses a union's name as a table variable when a relation targets a union.
 
-### 15. Unused enums leak into generated code
-
-The dsqlbase and Zod generators emit every enum in the document, so the unused `SortDirection` (see [`SortDirection` is generated but never used](#6-sortdirection-is-generated-but-never-used)) becomes a `$enum` and a Zod schema.
-
-### 16. Middy resolver types include `@serverOnly` root fields
-
-`MiddyAppSyncGraphQLPlugin` generates types during `generate`, which runs before `cleanup`. Its resolver types therefore still list `@serverOnly` operations. `@clientOnly` non-relation fields get no resolver entry unless `relationsOnly` is disabled.
-
 ### 17. `dsqlbase()` factory takes no options
 
 `dsqlbase()` (`packages/plugins/src/dsql/index.ts`) passes no options to `DsqlBaseSchemaGeneratorPlugin`, so `scalarMap` and `emitOutput` cannot be set from a config.
+
+### 19. Drizzle imports column types the schema types do not export
+
+`DrizzleSchemaGeneratorPlugin` imports the type of every object column from `../schema.types.js`. A column typed with an object that is not in the output schema (a `@serverOnly` object, or one only `@serverOnly` fields use) produces an import of a name that does not exist. The dsqlbase generator declares such types locally instead (`TypesGeneratorBase._referenceType`). Drizzle is frozen, so this stays until it is revived or removed.
 
 ## Tooling
 

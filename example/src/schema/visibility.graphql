@@ -1,0 +1,28 @@
+# Type-level visibility.
+
+# Stored and used by the server only: a table with no API.
+type ImportJob @model @serverOnly {
+  id: UUID!
+  source: String!
+  status: String!
+  startedAt: DateTime!
+}
+
+# Resolved at runtime and never stored: read operations only, no table.
+type ExchangeRate @model @clientOnly {
+  id: UUID!
+  currency: String!
+  rate: Float!
+}
+
+# Computed per request; never stored and never written.
+type CategoryStats @clientOnly {
+  productCount: Int!
+}
+
+extend type Category {
+  # Inherits @serverOnly from ImportJob: stored as lastImportId, never exposed.
+  lastImport: ImportJob @belongsTo
+  # Inherits @clientOnly from CategoryStats: no column, no input entry.
+  stats: CategoryStats
+}

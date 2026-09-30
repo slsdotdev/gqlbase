@@ -1,12 +1,13 @@
 import { FieldNode } from "@gqlbase/core/definition";
-import { BaseScalar, type BaseScalarName } from "../../base/ScalarsPlugin/ScalarsPlugin.utils.js";
 import {
+  BaseScalar,
+  type BaseScalarName,
   isClientOnly,
   isCreateOnly,
   isFilterOnly,
   isUpdateOnly,
-} from "../../base/UtilitiesPlugin/index.js";
-import { isRelationField } from "../../base/RelationsPlugin/index.js";
+  isRelationField,
+} from "@gqlbase/core/plugins";
 
 export interface ZodSchemaGeneratorPluginOptions {
   /**

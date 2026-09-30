@@ -1,5 +1,5 @@
 import ts from "typescript";
-import { TransformerPluginBase, ITransformerContext } from "@gqlbase/core";
+import { ITransformerContext } from "@gqlbase/core";
 import {
   DefinitionNode,
   EnumNode,
@@ -13,8 +13,26 @@ import {
   isScalarNode,
   ObjectNode,
 } from "@gqlbase/core/definition";
-import { createPluginFactory, getTypeHint, isInternal } from "@gqlbase/core/plugins";
-import { isClientOnly, isModel, isRelationField, isSemanticNullable } from "../../base/index.js";
+import {
+  createPluginFactory,
+  getTypeHint,
+  isInternal,
+  isClientOnly,
+  isModel,
+  isRelationField,
+  isSemanticNullable,
+  isPrimaryKeyField,
+  parseFieldRelation,
+  isBelongsToRelationship,
+  isManyRelationship,
+  isOneRelationship,
+  isRelayConnection,
+  isRelayEdge,
+  TypesGeneratorBase,
+  collectPublicDefinitions,
+  createTypeReferences,
+  type TypeReferences,
+} from "@gqlbase/core/plugins";
 import { TransformerPluginExecutionError } from "@gqlbase/shared/errors";
 import { camelCase, pluralize, snakeCase } from "@gqlbase/shared/format";
 import {
@@ -31,25 +49,18 @@ import {
   ScalarConfig,
 } from "./DsqlBaseSchemaGeneratorPlugin.utils.js";
 import { isBuildInScalar } from "@gqlbase/shared/definition";
-import { isPrimaryKeyField } from "../../base/ModelPlugin/index.js";
-import { parseFieldRelation } from "../../base/RelationsPlugin/index.js";
-import {
-  isBelongsToRelationship,
-  isManyRelationship,
-  isOneRelationship,
-  isPaginationConnection,
-} from "../../base/RelationsPlugin/RelationsPlugin.utils.js";
-import { isRelayConnection, isRelayEdge } from "../../relay/index.js";
 
 /**
  * Generates dsqlbase schema definitions from GraphQL type definitions.
  */
 
-export class DsqlBaseSchemaGeneratorPlugin extends TransformerPluginBase {
+export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
+  private _columnEnums: Set<string> | null = null;
   private _options: DsqlBaseSchemaGeneratorPluginOptions;
 
   private _imports = new Set<string>();
-  private _typeImports = new Set<string>();
+  private _typeRefs: TypeReferences = createTypeReferences();
+  private _publicDefinitions: Set<string> | null = null;
 
   private _enums: ts.Node[] = [];
   private _tables: ts.Node[] = [];
@@ -89,6 +100,29 @@ export class DsqlBaseSchemaGeneratorPlugin extends TransformerPluginBase {
 
   private _shouldSkipField(field: FieldNode): boolean {
     return isInternal(field) || isClientOnly(field) || isRelationField(field);
+  }
+
+  /**
+   * Enums that back a column: a non-list field of a stored model. A list of enums is a `json` column typed with the enum's TS type, so it needs no `$enum`.
+   */
+  private _collectColumnEnums() {
+    const enums = new Set<string>();
+
+    for (const node of this.context.document.definitions.values()) {
+      if (!isObjectNode(node) || !isModel(node) || isClientOnly(node)) continue;
+
+      for (const field of node.fields ?? []) {
+        if (this._shouldSkipField(field) || isListTypeNode(field.type)) continue;
+
+        const target = this.context.document.getNode(field.type.getTypeName());
+
+        if (target && isEnumNode(target)) {
+          enums.add(target.name);
+        }
+      }
+    }
+
+    return enums;
   }
 
   private _generateEnum(definition: EnumNode) {
@@ -195,7 +229,11 @@ export class DsqlBaseSchemaGeneratorPlugin extends TransformerPluginBase {
         );
       }
 
-      this._typeImports.add(fieldTypeName);
+      this._referenceType(
+        fieldTypeName,
+        this._typeRefs,
+        (this._publicDefinitions ??= collectPublicDefinitions(this.context))
+      );
 
       const column = this._callExp("json", [ts.factory.createStringLiteral(columnName)]);
       const columnType = ts.factory.createArrayTypeNode(
@@ -238,7 +276,11 @@ export class DsqlBaseSchemaGeneratorPlugin extends TransformerPluginBase {
 
     if (isObjectLike(typeDef) && !isModel(typeDef) && !isOperationNode(typeDef)) {
       this._imports.add("json");
-      this._typeImports.add(fieldTypeName);
+      this._referenceType(
+        fieldTypeName,
+        this._typeRefs,
+        (this._publicDefinitions ??= collectPublicDefinitions(this.context))
+      );
 
       const column = this._callExp("json", [ts.factory.createStringLiteral(columnName)]);
       const columnType = ts.factory.createTypeReferenceNode(fieldTypeName);
@@ -267,14 +309,6 @@ export class DsqlBaseSchemaGeneratorPlugin extends TransformerPluginBase {
     if (isManyRelationship(field)) {
       if (!isObjectNode(target)) {
         return target;
-      }
-
-      if (isPaginationConnection(target)) {
-        const targetName = target.getField("items")?.type.getTypeName();
-
-        if (targetName) {
-          return this.context.document.getNodeOrThrow(targetName);
-        }
       }
 
       if (isRelayConnection(target)) {
@@ -456,11 +490,13 @@ export class DsqlBaseSchemaGeneratorPlugin extends TransformerPluginBase {
   }
 
   public before() {
+    this._columnEnums = null;
     this._enums = [];
     this._tables = [];
     this._relations = [];
     this._imports.clear();
-    this._typeImports.clear();
+    this._typeRefs = createTypeReferences();
+    this._publicDefinitions = null;
   }
 
   public match(node: DefinitionNode): boolean {
@@ -474,10 +510,14 @@ export class DsqlBaseSchemaGeneratorPlugin extends TransformerPluginBase {
 
   public generate(definition: DefinitionNode) {
     if (isEnumNode(definition)) {
-      return this._generateEnum(definition);
+      // Collected on the first call: execute has finished, and nothing changes the document during generate.
+      this._columnEnums ??= this._collectColumnEnums();
+
+      return this._columnEnums.has(definition.name) ? this._generateEnum(definition) : undefined;
     }
 
-    if (isObjectNode(definition) && isModel(definition)) {
+    // A client-only model is never stored.
+    if (isObjectNode(definition) && isModel(definition) && !isClientOnly(definition)) {
       return this._generateTable(definition);
     }
   }
@@ -486,20 +526,40 @@ export class DsqlBaseSchemaGeneratorPlugin extends TransformerPluginBase {
     const importNodes: ts.Node[] = [];
 
     const imports = Array.from(this._imports);
-    const typeImports = Array.from(this._typeImports);
+    const { imports: typeImports, declarations } = this._typeRefs;
+    const reExports = Array.from(typeImports);
 
     if (imports.length > 0) {
       importNodes.push(namedImportStatement("dsqlbase/schema", imports));
     }
 
-    if (typeImports.length > 0) {
-      importNodes.push(namedImportStatement("./models.typegen.js", typeImports, true));
+    // Locally declared types (for stored shapes the schema types do not export) use Maybe.
+    const schemaTypeImports = declarations.size > 0 ? [...reExports, "Maybe"] : reExports;
+
+    if (schemaTypeImports.length > 0) {
+      importNodes.push(namedImportStatement("../schema.types.js", schemaTypeImports, true));
+    }
+
+    if (reExports.length > 0) {
+      importNodes.push(
+        ts.factory.createExportDeclaration(
+          undefined,
+          true,
+          ts.factory.createNamedExports(
+            reExports.map((name) =>
+              ts.factory.createExportSpecifier(false, undefined, ts.factory.createIdentifier(name))
+            )
+          ),
+          ts.factory.createStringLiteral("../schema.types.js")
+        )
+      );
     }
 
     const content = printNodeList(
       ts.factory.createNodeArray([
         ...importNodes,
         ts.factory.createIdentifier("\n"),
+        ...declarations.values(),
         ...this._enums,
         ...this._tables,
         ...this._relations,
@@ -508,8 +568,8 @@ export class DsqlBaseSchemaGeneratorPlugin extends TransformerPluginBase {
 
     this.context.files.push({
       type: "ts",
-      path: "dsqlbase.schema.ts",
-      filename: "dsqlbase.schema.ts",
+      path: "dsqlbase/schema.ts",
+      filename: "schema.ts",
       content,
     });
 

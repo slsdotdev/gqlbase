@@ -4,7 +4,7 @@ _Audience: people using the built-in scalars or adding their own._
 
 ## Built-in scalars
 
-`ScalarsPlugin` (`packages/plugins/src/base/ScalarsPlugin/ScalarsPlugin.ts`, part of `basePreset()`) declares these scalars. Each carries `@specifiedBy` and a type hint. The per-generator mappings live in each generator's utils file (paths in [the last section](#adding-a-built-in-scalar-contributors)).
+`ScalarsPlugin` (`packages/core/src/plugins/ScalarsPlugin/ScalarsPlugin.ts`, a core plugin) declares these scalars. Each carries `@specifiedBy` and a type hint. The per-generator mappings live in each generator's utils file (paths in [the last section](#adding-a-built-in-scalar-contributors)).
 
 | Scalar | Type hint | TS | Zod | dsqlbase column | Drizzle column | AppSync |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -96,7 +96,7 @@ A new *hint* value touches even more places:
 `@gqlbase_internal` marks a definition (type, field, enum, …) as internal to gqlbase. Plugins use it for helper definitions, such as the `ModelOperation` and `TypeHint` enums.
 
 - **What reads the marker:** the code generators skip internal definitions (TS types, Zod, dsqlbase, Drizzle, the AppSync schema and resolver types).
-- **What removes internal definitions:** nothing does automatically. The plugin that adds one also removes it in `after()`. `InternalUtilsPlugin` only removes the directive's own definition.
+- **What removes internal definitions:** the plugin that adds one should remove it in `after()`. Internal definitions never reach the client schema, so `SchemaGeneratorPlugin` removes any that are left before it prints the schema.
 
 This is a plugin-author tool, not something to put in application schemas.
 

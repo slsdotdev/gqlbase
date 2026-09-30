@@ -1,8 +1,7 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { TransformerContext } from "@gqlbase/core";
 import { DocumentNode } from "@gqlbase/core/definition";
-import { ScalarsPlugin } from "../../base/ScalarsPlugin/ScalarsPlugin.js";
-import { UtilitiesPlugin } from "../../base/UtilitiesPlugin/UtilitiesPlugin.js";
+import { ScalarsPlugin, UtilitiesPlugin } from "@gqlbase/core/plugins";
 import { ZodSchemaGeneratorPlugin } from "./ZodSchemaGeneratorPlugin.js";
 
 const generateSchemas = (
@@ -50,7 +49,7 @@ describe("ZodSchemaGeneratorPlugin", () => {
             USER
           }
           type Query {
-            me: String
+            role: UserRole
           }
         `,
         ["UserRole"]
@@ -68,13 +67,53 @@ describe("ZodSchemaGeneratorPlugin", () => {
             ACTIVE
           }
           type Query {
-            me: String
+            status: Status
           }
         `,
         ["Status"]
       );
 
       expect(output).toContain('export const StatusSchema = z.enum(["ACTIVE"])');
+    });
+
+    it("skips an enum nothing references", () => {
+      const output = generateSchemas(
+        plugin,
+        context,
+        /* GraphQL */ `
+          enum Unused {
+            A
+          }
+          type Query {
+            me: String
+          }
+        `,
+        ["Unused"]
+      );
+
+      expect(output).not.toContain("UnusedSchema");
+    });
+
+    it("keeps an enum used only by a @serverOnly field", () => {
+      const output = generateSchemas(
+        plugin,
+        context,
+        /* GraphQL */ `
+          enum Visibility {
+            HIDDEN
+          }
+          type Post {
+            id: ID!
+            visibility: Visibility @serverOnly
+          }
+          type Query {
+            post: Post
+          }
+        `,
+        ["Visibility"]
+      );
+
+      expect(output).toContain('export const VisibilitySchema = z.enum(["HIDDEN"])');
     });
   });
 
@@ -1317,6 +1356,7 @@ describe("ZodSchemaGeneratorPlugin", () => {
           }
           type User {
             id: ID!
+            role: Role
           }
           type Query {
             me: User

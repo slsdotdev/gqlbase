@@ -8,7 +8,7 @@ _Audience: contributors and agents._
 - **TypeScript:** strict, `module`/`moduleResolution: "nodenext"`, ES modules everywhere (`"type": "module"`). Imports use explicit `.js` extensions, even from `.ts` files.
 - **Formatting and lint:** Prettier (`.prettierrc`: double quotes, semicolons, `trailingComma: "es5"`, 100-column print width) and one flat ESLint config (`eslint.config.mjs`). Husky runs `npm run lint` before every commit; do not bypass it.
 - **Changesets:** every change to a published package gets a changeset (`npm run changeset`). Never edit `version` by hand. `@gqlbase/*` and `gqlbase` are one `fixed` group, so they always release together.
-- **CI:** `.github/workflows/release.yml` builds, lints, tests and publishes on pushes to `main`. There is no pull-request workflow yet ([Known gaps](./known-gaps.md)).
+- **CI:** `.github/workflows/ci.yml` builds, lints, typechecks and tests every pull request. `.github/workflows/release.yml` does the same on pushes to `main`, then publishes.
 - **Branches:** work on a branch off `main`. `main` is the release branch.
 
 ## Code conventions
@@ -19,6 +19,7 @@ _Audience: contributors and agents._
 - **Directive names:** keep them in a constant object in the owning plugin's utils (e.g. `UtilityDirective`, `RelationDirective`), never as string literals scattered through other plugins.
 - **Errors:** throw the classes from `@gqlbase/shared/errors`. A plugin rejecting a schema throws `TransformerPluginExecutionError` with its own name.
 - **Logging:** use `context.logger`, or a child from `logger.createChild(scope)`. Do not use `console`.
+- **Generated files:** each capability plugin writes into its own folder under the output directory (`appsync/`, `zod/`, `dsqlbase/`, `drizzle/`); only core writes to the root (`schema.graphql`, `schema.types.ts`). Generated files that hold only TypeScript types end in `.types.ts` (`schema.types.ts`, `appsync/middy-appsync.types.ts`).
 - **Mutation:** mutate definition nodes in place through their methods ([Definition nodes](./definition-nodes.md)). Do not rebuild graphql-js AST by hand.
 
 ## Design workflow
@@ -60,7 +61,7 @@ _Audience: contributors and agents._
 Page rules:
 
 - Every page opens with an `_Audience_` line and ends with `## Related`.
-- Cite code by path (`packages/plugins/src/base/ModelPlugin/ModelPlugin.ts`), never by line number.
+- Cite code by path (`packages/core/src/plugins/ModelPlugin/ModelPlugin.ts`), never by line number.
 - The guide describes shipped behaviour only. Planned behaviour belongs in proposals.
 - Stubs carry `> **Status: stub**` and list their intended contents.
 - Nothing consumer-specific: describe needs in general terms, never by application name.
