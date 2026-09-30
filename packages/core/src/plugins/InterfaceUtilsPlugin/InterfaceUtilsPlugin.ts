@@ -60,8 +60,13 @@ export class InterfaceUtilsPlugin extends TransformerPluginBase {
     super("InterfaceUtilsPlugin", context);
   }
 
-  private _getValidInterface(name: string): InterfaceNode {
-    const iface = this.context.document.getNodeOrThrow(name);
+  private _getValidInterface(name: string): InterfaceNode | null {
+    const iface = this.context.document.getNode(name);
+
+    // An unknown interface is reported by the validation that runs after execute.
+    if (!iface) {
+      return null;
+    }
 
     if (!(iface instanceof InterfaceNode)) {
       throw new TransformerPluginExecutionError(
@@ -77,7 +82,7 @@ export class InterfaceUtilsPlugin extends TransformerPluginBase {
     for (const ifaceName of node.getInterfaces()) {
       const iface = this._getValidInterface(ifaceName.getTypeName());
 
-      if (!hasInterfaces(iface)) {
+      if (!iface || !hasInterfaces(iface)) {
         continue;
       }
 
@@ -92,6 +97,10 @@ export class InterfaceUtilsPlugin extends TransformerPluginBase {
   private _normalizeInterfaceFields(node: InterfaceNode | ObjectNode) {
     for (const ifaceName of node.getInterfaces()) {
       const iface = this._getValidInterface(ifaceName.getTypeName());
+
+      if (!iface) {
+        continue;
+      }
 
       for (const field of iface.getFields()) {
         if (node.hasField(field.name)) {

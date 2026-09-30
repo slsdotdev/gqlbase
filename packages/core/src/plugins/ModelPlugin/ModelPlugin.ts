@@ -11,8 +11,10 @@ import {
   InterfaceNode,
   isEnumNode,
   isInputObjectNode,
+  isInterfaceNode,
   isListTypeNode,
   isObjectLike,
+  isObjectNode,
   isScalarNode,
   ListTypeNode,
   NamedTypeNode,
@@ -356,9 +358,10 @@ export class ModelPlugin implements ITransformerPlugin {
           continue;
         }
 
-        const typeDef = this.context.document.getNodeOrThrow(typeName);
+        const typeDef = this.context.document.getNode(typeName);
 
-        if (isObjectLike(typeDef)) {
+        // An unknown type is reported by the validation that runs after execute.
+        if (!typeDef || isObjectLike(typeDef)) {
           continue;
         }
 
@@ -529,8 +532,9 @@ export class ModelPlugin implements ITransformerPlugin {
 
         const typeDef = this.context.document.getNode(fieldTypeName);
 
+        // An unknown type is reported by the validation that runs after execute.
         if (!typeDef) {
-          throw new TransformerPluginExecutionError(this.name, `Unknown type ${fieldTypeName}`);
+          continue;
         }
 
         if (isScalarNode(typeDef) || isEnumNode(typeDef)) {
@@ -791,7 +795,12 @@ export class ModelPlugin implements ITransformerPlugin {
 
     for (const field of definition.fields ?? []) {
       if (isManyRelationship(field) && !field.hasArgument("filter")) {
-        const target = this.context.document.getNodeOrThrow(field.type.getTypeName()) as ObjectNode;
+        const target = this.context.document.getNode(field.type.getTypeName());
+
+        if (!target || !(isObjectNode(target) || isInterfaceNode(target))) {
+          continue;
+        }
+
         this._createFilterInput(target);
 
         field.addArgument(

@@ -6,6 +6,8 @@ import {
   Source,
   TypeExtensionNode,
 } from "graphql";
+import { specifiedSDLRules } from "graphql/validation/specifiedRules.js";
+import type { SDLValidationRule } from "graphql/validation/ValidationContext.js";
 import { validateSDL } from "graphql/validation/validate.js";
 import { InvalidDefinitionError } from "@gqlbase/shared/errors";
 import { ObjectNode } from "./ObjectNode.js";
@@ -15,7 +17,7 @@ import { EnumNode } from "./EnumNode.js";
 import { UnionNode } from "./UnionNode.js";
 import { ScalarNode } from "./ScalarNode.js";
 import { DirectiveDefinitionNode } from "./DirectiveDefinitionNode.js";
-import { DefinitionNode } from "./utils.js";
+import { DefinitionNode, OPERATION_NODE_NAME } from "./utils.js";
 
 export class DocumentNode {
   kind: Kind.DOCUMENT = Kind.DOCUMENT;
@@ -98,9 +100,14 @@ export class DocumentNode {
     return this;
   }
 
-  public validate() {
+  /**
+   * Validates the document as SDL.
+   *
+   * @param rules The SDL validation rules to run. Defaults to graphql-js `specifiedSDLRules`.
+   */
+  public validate(rules: readonly SDLValidationRule[] = specifiedSDLRules) {
     const document = this.serialize();
-    const errors = validateSDL(document);
+    const errors = validateSDL(document, undefined, rules);
     return errors;
   }
 
@@ -161,7 +168,24 @@ export class DocumentNode {
     // we need to make sure we load extensions at the end.
 
     for (const extension of extensions) {
-      const node = document.getNode(extension.name.value);
+      const name = extension.name.value;
+      let node = document.getNode(name);
+
+      // Multi-file schemas often only extend the root types, which plugins create when missing.
+      if (
+        !node &&
+        extension.kind === Kind.OBJECT_TYPE_EXTENSION &&
+        (OPERATION_NODE_NAME as readonly string[]).includes(name)
+      ) {
+        node = ObjectNode.create(name);
+        document.addNode(node);
+      }
+
+      if (!node) {
+        throw new InvalidDefinitionError(
+          `Cannot extend ${name}: it is not declared in the schema. Declare the type instead; to change a type gqlbase generates, declare it with the same name.`
+        );
+      }
 
       if (node instanceof ObjectNode && extension.kind === Kind.OBJECT_TYPE_EXTENSION) {
         node.extend(extension);
@@ -181,6 +205,10 @@ export class DocumentNode {
         node.extend(extension);
       } else if (node instanceof ScalarNode && extension.kind === Kind.SCALAR_TYPE_EXTENSION) {
         node.extend(extension);
+      } else {
+        throw new InvalidDefinitionError(
+          `Cannot extend ${name}: the extension kind (${extension.kind}) does not match its declaration (${node.kind}).`
+        );
       }
     }
 

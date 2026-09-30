@@ -61,13 +61,15 @@ Presets are plain arrays of factories, so they expand in place. Registering a pl
 | # | Phase | Scope | What happens |
 |---|---|---|---|
 | 0 | init | per plugin, at registration | Plugins add directive, enum and scalar definitions to `context.base`. |
-| 1 | start + validate | document | `context.startWork` merges `base` with the parsed source (`DocumentNode.merge`, which throws on duplicate names). It then runs `validateSDL`; any errors throw `TransformerValidationError`. |
+| 1 | start + validate | document | `context.startWork` merges `base` with the parsed source (`DocumentNode.merge`, which throws on duplicate names). It then runs `validateSDL` **without** the known-type-names rule, because the source may reference types plugins generate later (`StringFilterInput`, `<Model>FilterInput`, `<T>Connection`). Unknown directives, duplicate names and bad arguments still throw `TransformerValidationError` here. |
 | 2 | `before()` | per plugin | Setup that needs the merged document, e.g. shared filter inputs or the `Node` interface. |
 | 3 | `normalize(def)` | every definition × every matching plugin | Prepare the schema, e.g. add relation key fields or model operations. |
 | 4 | `execute(def)` | same | Core transformation, e.g. filter and mutation inputs, list wrapping, connections. |
+| 4b | validate | document | Full `validateSDL` once `execute` has run: every type exists by now, so an unknown type name (a typo, or a type nothing generates) throws here, before any generator runs. Transforming plugins skip a reference they cannot resolve and leave it to this check. |
 | 5 | `generate(def)` | same | Code generators collect per-definition output. |
 | 6 | `cleanup(def)` | same | Strip utility directives and `@serverOnly`/`@writeOnly` fields from the public SDL. |
 | 7 | `after()` | per plugin | Remove internal definitions (directive definitions, internal enums). |
+| 7b | validate | document | Full `validateSDL` of the final document, so a plugin that leaves invalid SDL behind (a directive usage whose definition was removed) fails instead of printing it. |
 | 8 | output | per plugin | `output.schema = document.print()`. Then each plugin's `output()` return value is `Object.assign`-ed in, and finally `output.files = context.files`. |
 
 Things every plugin author needs to know:

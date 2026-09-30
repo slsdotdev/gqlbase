@@ -131,6 +131,27 @@ describe("field visibility", () => {
 
       expect(result.errors?.[0]?.message).toMatch(/Cannot query field "importRef"/);
     });
+
+    it("is not accepted in filters", async () => {
+      const result = await execute(
+        /* GraphQL */ `
+          query List($filter: CategoryFilterInput) {
+            listCategories(filter: $filter) {
+              edges {
+                node {
+                  id
+                }
+              }
+            }
+          }
+        `,
+        { variables: { filter: { importRef: { eq: "legacy-7" } } } }
+      );
+
+      expect(result.errors?.[0]?.message).toMatch(
+        /"importRef" is not defined by type "CategoryFilterInput"/
+      );
+    });
   });
 
   describe("@clientOnly", () => {

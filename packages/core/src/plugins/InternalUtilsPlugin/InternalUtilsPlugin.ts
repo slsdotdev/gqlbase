@@ -1,3 +1,5 @@
+import { Kind } from "graphql";
+import { TransformerPluginExecutionError } from "@gqlbase/shared/errors";
 import { ITransformerContext } from "../../context/ITransformerContext.js";
 import {
   DefinitionNode,
@@ -17,7 +19,7 @@ import { InternalDirective, TypeHintValue } from "./InternalUtilsPlugin.utils.js
  *
  * This plugin is intended for use by other plugins and should not be used directly in user code.
  *
- * The plugins are responsible for cleaning up any *internal* marked nodes after the transformation process is complete.
+ * The plugin that adds an *internal* node removes it in `after()`. `SchemaGeneratorPlugin` removes any that are left, since internal definitions never reach the client schema.
  *
  * @example
  * ```graphql
@@ -33,10 +35,11 @@ import { InternalDirective, TypeHintValue } from "./InternalUtilsPlugin.utils.js
  *   string
  *   number
  *   boolean
+ *   object
  *   unknown
  * }
  *
- * # Usage
+ * # Usage: the type is an enum value, not a string literal
  * scalar DateTime `@gqlbase_typehint(type: string)`
  *
  * type ConfigType `@gqlbase_internal` {
@@ -76,7 +79,7 @@ export class InternalUtilsPlugin implements ITransformerPlugin {
           InternalDirective.TYPE_HINT,
           undefined,
           ["SCALAR"],
-          InputValueNode.create("type", undefined, undefined, NonNullTypeNode.create("String"))
+          InputValueNode.create("type", undefined, undefined, NonNullTypeNode.create("TypeHint"))
         )
       )
       .addNode(
@@ -91,6 +94,26 @@ export class InternalUtilsPlugin implements ITransformerPlugin {
 
   public match(node: DefinitionNode): boolean {
     return node instanceof ScalarNode;
+  }
+
+  /**
+   * `validateSDL` does not check argument values, so a string literal (`type: "string"`) or an unknown value would silently become `unknown`. Reject both.
+   */
+  public normalize(definition: ScalarNode): void {
+    const argument = definition.getDirective(InternalDirective.TYPE_HINT)?.getArgument("type");
+
+    if (!argument) {
+      return;
+    }
+
+    const allowed = Object.values(TypeHintValue) as string[];
+
+    if (argument.value.kind !== Kind.ENUM || !allowed.includes(argument.value.value)) {
+      throw new TransformerPluginExecutionError(
+        this.name,
+        `Invalid @${InternalDirective.TYPE_HINT} on scalar ${definition.name}: "type" must be one of the enum values ${allowed.join(", ")} (for example \`type: string\`, not \`type: "string"\`).`
+      );
+    }
   }
 
   public cleanup(definition: ScalarNode): void {

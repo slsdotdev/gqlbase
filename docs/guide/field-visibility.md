@@ -33,7 +33,7 @@ The entries were checked by running the transformer.
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | *(nothing)* | ✓ | ✓ | ✓ (nullable) | ✓ | ✓ | ✓ | ✓ / ✓ | ✓ |
 | `@readOnly` | ✓ | — | — | — | ✓ | ✓ | ✓ / ✓ | ✓ |
-| `@writeOnly` | — | ✓ | ✓ | ✓ ¹ | — | — | ✓ / ✓ | ✓ |
+| `@writeOnly` | — | ✓ | ✓ | — ¹ | — | — | ✓ / ✓ | ✓ |
 | `@serverOnly` | — | — | — | — | — | ✓ | ✓ / ✓ | ✓ |
 | `@clientOnly` | ✓ | — | — | — | ✓ | ✓ | — / — | — |
 | `@createOnly` | ✓ | ✓ | — | — ² | ✓ | ✓ | ✓ / — | ✓ |
@@ -42,7 +42,7 @@ The entries were checked by running the transformer.
 | relation field (`@hasOne`…) | ✓ | — | — | — | ✓ (optional) | — | — / — | relation, not a column |
 | relation key (added, `@serverOnly @writeOnly`) | — | — | — | — | — | — | ✓ / ✓ | ✓ |
 
-1. `@writeOnly` is not excluded from filter inputs, so clients can filter on a value they cannot read. See [Known gaps](../internals/known-gaps.md).
+1. Clients cannot filter on a value they cannot read. Add `@filterOnly` to a `@writeOnly` field to filter on it anyway.
 2. The `…Only` directives combine. `@createOnly @filterOnly` puts a field in both the create input and the filter; the same applies to the Zod create/update schemas.
 
 Notes:
@@ -82,11 +82,7 @@ directive @constraint(min: Float, max: Float, pattern: String)
 
 Only the Zod generator reads it. It appends `.min(n)`, `.max(n)` and `.regex(/pattern/)` to the leaf schema: string length for strings, value for numbers. It applies to object schemas, the model create/update schemas and, with `generateArgumentSchemas`, to input schemas.
 
-Removal from the output schema is incomplete:
-- it is removed from object and interface fields;
-- it is **not** removed from input fields or arguments, even though its directive definition is removed. `input SearchInput { term: String @constraint(min: 2) }` is printed with a dangling directive.
-
-See [Known gaps](../internals/known-gaps.md).
+It is removed from the output schema everywhere it can appear: object and interface fields, input fields and arguments.
 
 ## Related
 

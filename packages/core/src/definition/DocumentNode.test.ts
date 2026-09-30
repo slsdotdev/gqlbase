@@ -134,13 +134,62 @@ describe("DocumentNode", () => {
     expect(document.definitions.size).toEqual(10);
   });
 
-  it("ignores extension if node does not exist", () => {
+  it("creates an undeclared root type from its extensions", () => {
     const document = DocumentNode.fromSource(/* GraphQL */ `
       extend type Query {
         getUser(id: ID!): User
       }
+
+      extend type Query {
+        me: User
+      }
+
+      extend type Mutation {
+        logout: Boolean
+      }
     `);
-    expect(document.definitions.size).toEqual(0);
+
+    expect(
+      document
+        .getQueryNode()
+        .getFields()
+        .map((field) => field.name)
+    ).toEqual(["getUser", "me"]);
+    expect(document.getMutationNode().hasField("logout")).toBe(true);
+  });
+
+  it("throws when extending an undeclared type", () => {
+    expect(() =>
+      DocumentNode.fromSource(/* GraphQL */ `
+        extend type Ghost {
+          id: ID!
+        }
+      `)
+    ).toThrow(/Cannot extend Ghost: it is not declared/);
+  });
+
+  it("throws when the extension kind does not match the declaration", () => {
+    expect(() =>
+      DocumentNode.fromSource(/* GraphQL */ `
+        type User {
+          id: ID!
+        }
+
+        extend input User {
+          name: String
+        }
+      `)
+    ).toThrow(/Cannot extend User: the extension kind/);
+  });
+
+  it("throws when extending a root type as another kind", () => {
+    expect(() =>
+      DocumentNode.fromSource(/* GraphQL */ `
+        extend input Query {
+          name: String
+        }
+      `)
+    ).toThrow(/Cannot extend Query: it is not declared/);
   });
 
   it("gets query node", () => {

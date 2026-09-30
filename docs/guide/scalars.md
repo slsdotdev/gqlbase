@@ -39,9 +39,7 @@ A type hint tells every generator what kind of value a scalar carries. It is dec
 scalar Decimal @gqlbase_typehint(type: string)
 ```
 
-The value must be written as a bare **enum literal** (`string`, not `"string"`). A quoted string is ignored and the scalar is treated as `unknown`. The allowed values are `id`, `string`, `number`, `boolean`, `object` and `unknown` (`TypeHintValue` in `packages/core/src/plugins/InternalUtilsPlugin/InternalUtilsPlugin.utils.ts`). A scalar without a hint is `unknown`.
-
-> The directive's argument is declared as `String!` while every reader expects an enum literal, and the `getTypeHint` docstring says the default is `"string"` when it is actually `"unknown"`. See [Known gaps](../internals/known-gaps.md).
+The argument is declared `type: TypeHint!`, so the value is a bare **enum literal** (`string`, not `"string"`). The allowed values are `id`, `string`, `number`, `boolean`, `object` and `unknown` (`TypeHintValue` in `packages/core/src/plugins/InternalUtilsPlugin/InternalUtilsPlugin.utils.ts`). A quoted string or any other value fails the transform with an error naming the scalar. A scalar without a hint is `unknown`.
 
 | Hint | TS | Zod | Filter input | dsqlbase column | Drizzle column |
 | --- | --- | --- | --- | --- | --- |

@@ -39,6 +39,24 @@ const listCategories = createQueryResolver({
   },
 });
 
+// The name argument is the generated StringFilterInput, referenced from the source schema.
+const searchCategories = createQueryResolver({
+  fieldName: "searchCategories",
+  resolve: async ({ args }) => {
+    const first = args.first ?? DEFAULT_PAGE_SIZE;
+    const rows = await dsql.categories.findMany({
+      where: allOf<CategoryWhere>(
+        toWhere({ name: args.name }),
+        args.after ? { id: { gt: args.after } } : null
+      ),
+      orderBy: { id: "asc" },
+      limit: first + 1,
+    });
+
+    return toConnection(rows, first);
+  },
+});
+
 const createCategory = createMutationResolver({
   fieldName: "createCategory",
   resolve: async ({ args }) => {
@@ -109,6 +127,7 @@ const categoryChildren = createResolver({
 export default defineResolvers(
   getCategory,
   listCategories,
+  searchCategories,
   createCategory,
   updateCategory,
   deleteCategory,

@@ -54,7 +54,9 @@ Defined in `packages/cli/src/config/config.ts`.
 | `semanticNullability` | `boolean` | `false` | Declares `@semanticNonNull`. When off, a schema that uses the directive fails validation. See [Models](./models.md#nullability-and-semanticnonnull). |
 | `operations` | `OperationType[]` | `["read", "write"]` | Operations generated for every `@model` that does not list its own. See [Models](./models.md#operations). |
 
-All matching files are read and concatenated into one document before parsing (`packages/shared/src/files/definitionFromFiles.ts`), so types can be split across files and extended with `extend type`.
+All matching files are read and joined into one document, separated by a newline, before parsing (`packages/shared/src/files/definitionFromFiles.ts`), so types can be split across files and extended with `extend`.
+
+**Extensions.** An `extend` applies to a type declared in the source, in any file. `extend type Query`, `Mutation` or `Subscription` with no declaration creates that root type, and plugins add their operations to it. Any other extension of an undeclared type throws, as does an extension whose kind does not match the declaration (`extend input User` for `type User`). Types gqlbase declares or generates cannot be extended: declare them yourself instead (see [Models → Referencing generated types](./models.md#referencing-generated-types)).
 
 ## CLI
 
@@ -70,7 +72,7 @@ gqlbase [source] [options]
 | `-v, --verbose` | `verbose` |
 | `-w, --watch` | `watch` |
 
-Resolution order is defaults → config file → CLI flags (`packages/cli/src/config/resolveConfig.ts`). In watch mode, runs are debounced by 100 ms.
+Resolution order is defaults → config file → CLI flags (`packages/cli/src/config/resolveConfig.ts`). A single run exits with code 1 when the transform fails. In watch mode, runs are debounced by 100 ms, and a failed run is logged without stopping the watcher.
 
 ## Plugins, presets and order
 
