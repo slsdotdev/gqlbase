@@ -1,10 +1,10 @@
-import { FieldNode, InputValueNode } from "../../definition/index.js";
+import { FieldNode, InputValueNode, InterfaceNode, ObjectNode } from "../../definition/index.js";
 
 export const UtilityDirective = {
-  /** @serverOnly Marks a field as server-only, meaning it should only be resolved on the server and not exposed to the client. The field will be removed from the final schema */
+  /** @serverOnly Marks a field or object type as server-only: stored and used by the server, never exposed to the client. Fields whose type is a server-only object are server-only too. */
   SERVER_ONLY: "serverOnly",
 
-  /** @clientOnly Marks a field as client-only, meaning it will be resolved at runtime. This field does not get added to inputs. */
+  /** @clientOnly Marks a field or object type as client-only: resolved at runtime, never stored and never in inputs. Fields whose type is a client-only object are client-only too. */
   CLIENT_ONLY: "clientOnly",
 
   /** @readOnly Marks a field as read-only, meaning it will be included in the schema but cannot be modified by the user. This field does not get added to inputs. */
@@ -42,11 +42,11 @@ export const isWriteOnly = (node: FieldNode): boolean => {
   return node.hasDirective(UtilityDirective.WRITE_ONLY);
 };
 
-export const isServerOnly = (node: FieldNode): boolean => {
+export const isServerOnly = (node: FieldNode | ObjectNode | InterfaceNode): boolean => {
   return node.hasDirective(UtilityDirective.SERVER_ONLY);
 };
 
-export const isClientOnly = (node: FieldNode): boolean => {
+export const isClientOnly = (node: FieldNode | ObjectNode | InterfaceNode): boolean => {
   return node.hasDirective(UtilityDirective.CLIENT_ONLY);
 };
 

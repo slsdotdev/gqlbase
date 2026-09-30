@@ -39,7 +39,7 @@ The plugin is `ZodSchemaGeneratorPlugin` (`packages/plugins/src/zod/ZodSchemaGen
 
 ### Model create/update schemas
 
-`Create<Model>InputSchema` and `Update<Model>InputSchema` describe the **stored record** for a write. They are not the GraphQL `Create<Model>Input`. The field rules come from `shouldIncludeInZodCreate` / `shouldIncludeInZodUpdate` in `ZodSchemaGeneratorPlugin.utils.ts`:
+`Create<Model>InputSchema` and `Update<Model>InputSchema` describe the **stored record** for a write, so a `@clientOnly` model gets neither. They are not the GraphQL `Create<Model>Input`. The field rules come from `shouldIncludeInZodCreate` / `shouldIncludeInZodUpdate` in `ZodSchemaGeneratorPlugin.utils.ts`:
 
 - **Included:**
   - `@readOnly`, `@serverOnly` and `@writeOnly` fields;

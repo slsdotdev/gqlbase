@@ -38,6 +38,7 @@ import {
   shouldSkipFieldFromUpdateInput,
 } from "./ModelPlugin.utils.js";
 import { isManyRelationship } from "../RelationsPlugin/RelationsPlugin.utils.js";
+import { isClientOnly, isServerOnly } from "../UtilitiesPlugin/index.js";
 import { isSemanticNullable } from "../RfcFeaturesPlugin/RfcFeaturesPlugin.utils.js";
 
 /**
@@ -138,17 +139,27 @@ export class ModelPlugin implements ITransformerPlugin {
       );
     }
 
-    const args = directive.getArgumentsJSON<{ operations?: OperationType[] }>();
-
-    if (args.operations) {
-      return this._expandOperations(
-        args.operations
-          .map((op) => ModelOperation[op as keyof typeof ModelOperation])
-          .filter(Boolean) as OperationType[]
-      );
+    // A server-only model is a table the API never exposes.
+    if (isServerOnly(object)) {
+      return [];
     }
 
-    return this._defaultOperations;
+    const args = directive.getArgumentsJSON<{ operations?: OperationType[] }>();
+
+    const operations = args.operations
+      ? this._expandOperations(
+          args.operations
+            .map((op) => ModelOperation[op as keyof typeof ModelOperation])
+            .filter(Boolean) as OperationType[]
+        )
+      : this._defaultOperations;
+
+    // A client-only model is not stored, so there is nothing to write.
+    if (isClientOnly(object)) {
+      return operations.filter((op) => op === "get" || op === "list");
+    }
+
+    return operations;
   }
 
   // #region Filter Inputs

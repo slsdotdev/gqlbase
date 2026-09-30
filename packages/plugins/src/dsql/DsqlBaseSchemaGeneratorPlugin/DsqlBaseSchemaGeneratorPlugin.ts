@@ -51,6 +51,7 @@ import { isBuildInScalar } from "@gqlbase/shared/definition";
  */
 
 export class DsqlBaseSchemaGeneratorPlugin extends TransformerPluginBase {
+  private _columnEnums: Set<string> | null = null;
   private _options: DsqlBaseSchemaGeneratorPluginOptions;
 
   private _imports = new Set<string>();
@@ -94,6 +95,29 @@ export class DsqlBaseSchemaGeneratorPlugin extends TransformerPluginBase {
 
   private _shouldSkipField(field: FieldNode): boolean {
     return isInternal(field) || isClientOnly(field) || isRelationField(field);
+  }
+
+  /**
+   * Enums that back a column: a non-list field of a stored model. A list of enums is a `json` column typed with the enum's TS type, so it needs no `$enum`.
+   */
+  private _collectColumnEnums() {
+    const enums = new Set<string>();
+
+    for (const node of this.context.document.definitions.values()) {
+      if (!isObjectNode(node) || !isModel(node) || isClientOnly(node)) continue;
+
+      for (const field of node.fields ?? []) {
+        if (this._shouldSkipField(field) || isListTypeNode(field.type)) continue;
+
+        const target = this.context.document.getNode(field.type.getTypeName());
+
+        if (target && isEnumNode(target)) {
+          enums.add(target.name);
+        }
+      }
+    }
+
+    return enums;
   }
 
   private _generateEnum(definition: EnumNode) {
@@ -453,6 +477,7 @@ export class DsqlBaseSchemaGeneratorPlugin extends TransformerPluginBase {
   }
 
   public before() {
+    this._columnEnums = null;
     this._enums = [];
     this._tables = [];
     this._relations = [];
@@ -471,10 +496,14 @@ export class DsqlBaseSchemaGeneratorPlugin extends TransformerPluginBase {
 
   public generate(definition: DefinitionNode) {
     if (isEnumNode(definition)) {
-      return this._generateEnum(definition);
+      // Collected on the first call: execute has finished, and nothing changes the document during generate.
+      this._columnEnums ??= this._collectColumnEnums();
+
+      return this._columnEnums.has(definition.name) ? this._generateEnum(definition) : undefined;
     }
 
-    if (isObjectNode(definition) && isModel(definition)) {
+    // A client-only model is never stored.
+    if (isObjectNode(definition) && isModel(definition) && !isClientOnly(definition)) {
       return this._generateTable(definition);
     }
   }

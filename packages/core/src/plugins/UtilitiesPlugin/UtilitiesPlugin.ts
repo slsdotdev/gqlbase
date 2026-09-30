@@ -8,10 +8,11 @@ import {
   InterfaceNode,
   isInterfaceNode,
   isObjectNode,
+  isOperationNode,
   ObjectNode,
   ValueNode,
 } from "../../definition/index.js";
-import { UtilityDirective } from "./UtilitiesPlugin.utils.js";
+import { isClientOnly, isServerOnly, UtilityDirective } from "./UtilitiesPlugin.utils.js";
 
 /**
  * Adds utility directives to the schema that can be used to mark fields as server-only, client-only, read-only, write-only, filter-only, create-only, or update-only.
@@ -51,20 +52,20 @@ export class UtilitiesPlugin implements ITransformerPlugin {
         DirectiveDefinitionNode.create(
           UtilityDirective.SERVER_ONLY,
           ValueNode.string(
-            "Marks a field as server-only, meaning it should only be included in the persistence layer and not exposed in final GraphQL schema.",
+            "Marks a field as server-only, meaning it should only be included in the persistence layer and not exposed in final GraphQL schema.\n\nOn an object type, the type is server-only, and so is every field whose type it is. A server-only model keeps its table but gets no operations.",
             true
           ),
-          ["FIELD_DEFINITION"]
+          ["FIELD_DEFINITION", "OBJECT"]
         )
       )
       .addNode(
         DirectiveDefinitionNode.create(
           UtilityDirective.CLIENT_ONLY,
           ValueNode.string(
-            `Marks a field as client-only, meaning the output value for this field is computed at runtime, and should not be included in the persistence layer.\n\nThis is useful for fields that are computed from other fields, or for fields that are only relevant to the client and should not be stored in the database.\n\nThe field will not be included in input objects.`,
+            `Marks a field as client-only, meaning the output value for this field is computed at runtime, and should not be included in the persistence layer.\n\nThis is useful for fields that are computed from other fields, or for fields that are only relevant to the client and should not be stored in the database.\n\nThe field will not be included in input objects.\n\nOn an object type, the type is client-only, and so is every field whose type it is. A client-only model gets only read operations and no table.`,
             true
           ),
-          ["FIELD_DEFINITION"]
+          ["FIELD_DEFINITION", "OBJECT"]
         )
       )
       .addNode(
@@ -114,6 +115,27 @@ export class UtilitiesPlugin implements ITransformerPlugin {
     return isObjectNode(definition) || isInterfaceNode(definition);
   }
 
+  /**
+   * Fields inherit the visibility of the object type they return: a field whose type is a `@serverOnly` object becomes `@serverOnly`, and one whose type is a `@clientOnly` object becomes `@clientOnly` (except on root types, where it would mean nothing).
+   */
+  public normalize(definition: ObjectNode | InterfaceNode): void {
+    for (const field of definition.fields ?? []) {
+      const target = this.context.document.getNode(field.type.getTypeName());
+
+      if (!target || !isObjectNode(target)) {
+        continue;
+      }
+
+      if (isServerOnly(target) && !isServerOnly(field)) {
+        field.addDirective(UtilityDirective.SERVER_ONLY);
+      }
+
+      if (isClientOnly(target) && !isClientOnly(field) && !isOperationNode(definition)) {
+        field.addDirective(UtilityDirective.CLIENT_ONLY);
+      }
+    }
+  }
+
   public cleanup(definition: ObjectNode | InterfaceNode): void {
     for (const field of definition.fields ?? []) {
       if (field.hasDirective(UtilityDirective.READ_ONLY)) {
@@ -147,6 +169,16 @@ export class UtilitiesPlugin implements ITransformerPlugin {
       if (field.hasDirective(UtilityDirective.CONSTRAINT)) {
         field.removeDirective(UtilityDirective.CONSTRAINT);
       }
+    }
+
+    // Like a @serverOnly field, a @serverOnly type is removed from the output schema.
+    if (definition.hasDirective(UtilityDirective.SERVER_ONLY)) {
+      this.context.document.removeNode(definition.name);
+      return;
+    }
+
+    if (definition.hasDirective(UtilityDirective.CLIENT_ONLY)) {
+      definition.removeDirective(UtilityDirective.CLIENT_ONLY);
     }
   }
 

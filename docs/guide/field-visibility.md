@@ -2,7 +2,7 @@
 
 _Audience: people controlling where a field appears — public schema, inputs, filters, generated code, database._
 
-The utility directives are declared by `UtilitiesPlugin` (`packages/core/src/plugins/UtilitiesPlugin/UtilitiesPlugin.ts`; predicates such as `isReadOnly` in `UtilitiesPlugin.utils.ts`), a core plugin. All of them go on `FIELD_DEFINITION`. `@constraint` also goes on `INPUT_FIELD_DEFINITION` and `ARGUMENT_DEFINITION`.
+The utility directives are declared by `UtilitiesPlugin` (`packages/core/src/plugins/UtilitiesPlugin/UtilitiesPlugin.ts`; predicates such as `isReadOnly` in `UtilitiesPlugin.utils.ts`), a core plugin. All of them go on `FIELD_DEFINITION`. `@serverOnly` and `@clientOnly` also go on `OBJECT` (see [On an object type](#on-an-object-type)), and `@constraint` also goes on `INPUT_FIELD_DEFINITION` and `ARGUMENT_DEFINITION`.
 
 | Directive | Intent |
 | --- | --- |
@@ -53,6 +53,25 @@ Notes:
 - **The Middy AppSync resolver types** list only public fields, so `@serverOnly` operations get no entry. A resolver's `source` is typed `<Type>Source` when the parent type has hidden stored fields, so resolvers can read relation keys and `@serverOnly` values from the parent row (see [AppSync](./appsync.md)).
 - **Unused definitions are removed.** A type, input, enum, union or scalar that nothing public reaches is removed from `schema.graphql` and the AppSync schema, and left out of the TS schema types. Zod skips definitions that no stored field or input reaches.
 - **Directives stay on the type that declares them.** Visibility directives on a non-model object type apply to that type's own `<Type>Input` (see [Models](./models.md#mutation-inputs)); they are not inherited from the field that embeds it.
+
+## On an object type
+
+`@serverOnly` and `@clientOnly` can mark a whole object type. A field whose type is such an object inherits the directive (`UtilitiesPlugin.normalize`), so everything in the table above applies to it.
+
+```graphql
+type ImportJob @model @serverOnly { … }      # stored, never exposed
+type ExchangeRate @model @clientOnly { … }   # resolved at runtime, never stored
+type CategoryStats @clientOnly { … }
+
+type Category @model {
+  lastImport: ImportJob @belongsTo   # becomes @serverOnly: stored as lastImportId, not exposed
+  stats: CategoryStats               # becomes @clientOnly: queryable, no column, no input entry
+}
+```
+
+- **`@serverOnly` type.** Not in the output schema, the TS schema types or the AppSync resolver types, not even as an implementor of a public interface such as `Node`. It is still stored: Zod and dsqlbase generate it. On a `@model`, it keeps its table and Zod row schemas but gets **no operations** and no GraphQL inputs.
+- **`@clientOnly` type.** In the output schema, never stored: no table, no Zod create/update schemas and no `<Type>Input`. On a `@model`, it gets **only the read operations** (`get`, `list`) of those configured, and resolvers provide the data.
+- Fields on root types do not inherit `@clientOnly`: a query returning a client-only type is still a query.
 
 ## `@constraint`
 

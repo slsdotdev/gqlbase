@@ -90,6 +90,8 @@ type AuditLog @model(operations: [LIST]) { … }
 type Setting @model(operations: []) { … }   # a model with no root operations
 ```
 
+**Type-level visibility.** A `@serverOnly` model gets no operations at all, and a `@clientOnly` model gets only `get` and `list` of those configured (see [Field visibility](./field-visibility.md#on-an-object-type)).
+
 If a field with the generated name already exists on `Query` or `Mutation`, it is left alone. For `list`, a missing `filter` argument is still added to it.
 
 ## Mutation inputs

@@ -15,14 +15,20 @@ import { isInternal } from "../InternalUtilsPlugin/index.js";
 import { isServerOnly, isWriteOnly } from "../UtilitiesPlugin/index.js";
 
 /**
- * Whether a field reaches the client schema. `@serverOnly` and `@writeOnly` fields are stored but never returned, and internal fields are gqlbase's own. Generators run before `cleanup` removes them, so they use this to leave them out themselves.
+ * Whether a field reaches the client schema. `@serverOnly` and `@writeOnly` fields are stored but never returned, internal fields are gqlbase's own, and a `@serverOnly` type has no public fields. Generators run before `cleanup` removes them, so they use this to leave them out themselves.
  *
  * @param field The field to check.
  * @param parent The object or interface that declares the field.
  */
 
 export const isPublicSchemaField = (field: FieldNode, parent: ObjectNode | InterfaceNode) => {
-  return !isInternal(parent) && !isInternal(field) && !isServerOnly(field) && !isWriteOnly(field);
+  return (
+    !isInternal(parent) &&
+    !isServerOnly(parent) &&
+    !isInternal(field) &&
+    !isServerOnly(field) &&
+    !isWriteOnly(field)
+  );
 };
 
 /**
@@ -31,11 +37,13 @@ export const isPublicSchemaField = (field: FieldNode, parent: ObjectNode | Inter
  * Plugin-declared directive definitions (those on `context.base`) are not roots: most of them are removed before the output is printed.
  *
  * @param includeField Which object and interface fields to follow.
+ * @param includeDefinition Which definitions can be reached at all.
  */
 
 export const collectReachableDefinitions = (
   context: ITransformerContext,
-  includeField: (field: FieldNode, parent: ObjectNode | InterfaceNode) => boolean
+  includeField: (field: FieldNode, parent: ObjectNode | InterfaceNode) => boolean,
+  includeDefinition: (node: DefinitionNode) => boolean = () => true
 ): Set<string> => {
   const { document, base } = context;
   const reached = new Set<string>();
@@ -46,7 +54,7 @@ export const collectReachableDefinitions = (
 
     const node = document.getNode(name);
 
-    if (!node || isInternal(node)) return;
+    if (!node || isInternal(node) || !includeDefinition(node)) return;
 
     reached.add(name);
     queue.push(node);
@@ -111,9 +119,13 @@ export const collectReachableDefinitions = (
 };
 
 /**
- * Collects the names of the definitions that reach the client schema: everything reachable through public fields (see `isPublicSchemaField`).
+ * Collects the names of the definitions that reach the client schema: everything reachable through public fields (see `isPublicSchemaField`), except `@serverOnly` types, which are not reached even as implementors of a public interface.
  */
 
 export const collectPublicDefinitions = (context: ITransformerContext): Set<string> => {
-  return collectReachableDefinitions(context, isPublicSchemaField);
+  return collectReachableDefinitions(
+    context,
+    isPublicSchemaField,
+    (node) => !(isObjectNode(node) && isServerOnly(node))
+  );
 };

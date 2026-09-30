@@ -37,7 +37,8 @@ These pages describe what the library does **today**. Planned behaviour is not d
 | `@hasOne(key: String)` | FIELD_DEFINITION | [Relations](./relations.md) |
 | `@hasMany(key: String)` | FIELD_DEFINITION | [Relations](./relations.md) |
 | `@belongsTo(key: String)` | FIELD_DEFINITION | [Relations](./relations.md) |
-| `@readOnly` `@writeOnly` `@serverOnly` `@clientOnly` | FIELD_DEFINITION | [Field visibility](./field-visibility.md) |
+| `@readOnly` `@writeOnly` | FIELD_DEFINITION | [Field visibility](./field-visibility.md) |
+| `@serverOnly` `@clientOnly` | FIELD_DEFINITION, OBJECT | [Field visibility](./field-visibility.md) |
 | `@createOnly` `@updateOnly` `@filterOnly` | FIELD_DEFINITION | [Field visibility](./field-visibility.md) |
 | `@constraint(min: Float, max: Float, pattern: String)` | FIELD_DEFINITION, INPUT_FIELD_DEFINITION, ARGUMENT_DEFINITION | [Field visibility](./field-visibility.md) |
 | `@semanticNonNull(levels: [Int!]! = [0])` | FIELD_DEFINITION | [Models](./models.md#nullability-and-semanticnonnull) |

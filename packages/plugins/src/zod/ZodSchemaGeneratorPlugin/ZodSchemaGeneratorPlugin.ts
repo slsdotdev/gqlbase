@@ -15,6 +15,7 @@ import {
   isModel,
   isPrimaryKeyField,
   collectReachableDefinitions,
+  isClientOnly,
 } from "@gqlbase/core/plugins";
 import {
   DefinitionNode,
@@ -571,7 +572,8 @@ export class ZodSchemaGeneratorPlugin extends TransformerPluginBase {
       return this._zCall("object", [ts.factory.createObjectLiteralExpression(properties, true)]);
     });
 
-    if (isObjectNode(definition) && isModel(definition)) {
+    // Create/update schemas describe the stored row; a client-only model is never stored.
+    if (isObjectNode(definition) && isModel(definition) && !isClientOnly(definition)) {
       this._generateModelMutationSchemas(definition);
     }
   }

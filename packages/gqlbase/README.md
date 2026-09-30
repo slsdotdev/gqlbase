@@ -103,8 +103,8 @@ export default defineConfig({
 | `@hasMany` | Defines a one-to-many relation |
 | `@readOnly` | Excludes the field from input types |
 | `@writeOnly` | Excludes the field from output types |
-| `@clientOnly` | Removes the field from the generated schema |
-| `@serverOnly` | Removes the field from client-facing schemas |
+| `@clientOnly` | Computed at runtime: the field (or type) is never stored or written |
+| `@serverOnly` | Stored, but the field (or type) is removed from client-facing schemas |
 | `@createOnly` | Includes the field only in create inputs |
 | `@updateOnly` | Includes the field only in update inputs |
 | `@filterOnly` | Includes the field only in filter inputs |

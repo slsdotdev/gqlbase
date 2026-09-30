@@ -71,12 +71,12 @@ export const postRelations = relations(posts, {
 
 ### Rules
 
-- **Tables.** Every `@model` object becomes `table("<snake_plural>", {...})`, exported as `<camelPlural>`. Non-model types produce no table.
+- **Tables.** Every `@model` object becomes `table("<snake_plural>", {...})`, exported as `<camelPlural>`, except `@clientOnly` models, which are never stored. Non-model types produce no table. A `@serverOnly` model keeps its table.
 - **Columns.** Every field except `@gqlbase_internal`, `@clientOnly` and relation fields. `@serverOnly`, `@writeOnly` and `@readOnly` fields, and relation keys, are all columns. Column names are `snake_case` of the field name.
 - **`id`.** Always `.primaryKey().defaultRandom()`, whatever its type.
 - **Not null.** `.notNull()` when the field is non-null or `@semanticNonNull`.
 - **Scalars.** Mapped as in [Scalars](./scalars.md): `ID` → `uuid`, `String` → `text`, `Int` → `int`, `Float` → `real`, `Boolean` → `bool`, `DateTime` → `timestamp(…, { mode: "iso" })`, … Custom scalars use `scalarMap`, then their type hint.
-- **Enums.** **Every** enum in the document becomes `$enum("<snake>_enum", [...])`, not only the ones used by models. That includes `SortDirection`, which `ModelPlugin` adds. Enum fields use `<camel>Enum.column("<col>")`.
+- **Enums.** An enum becomes `$enum("<snake>_enum", [...])` only when a non-list column of a stored model uses it; the column is `<camel>Enum.column("<col>")`. A list of enums is a `json` column typed with the enum's TS type.
 - **Lists.** Every list field, scalar or not, becomes a single `json(...)` column typed `.$type<T[]>()`.
 - **Non-model object, interface or union fields.** A single `json(...)` column typed `.$type<Type>()`. There is no nesting, no per-field filtering and no validation.
 - **A field typed as another `@model` without a relation directive** throws "Unsupported field type".
