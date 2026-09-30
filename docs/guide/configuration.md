@@ -117,6 +117,48 @@ output.files; // [{ type, path, filename, content }]
 
 `createTransformer` takes the [transformer options](#transformer-options) at the top level, next to `plugins`, with the same defaults. `transform()` returns `{ schema, files }` merged with whatever each plugin's `output()` returns (`schemaTypes` holds the content of `schema.types.ts`). Nothing is written to disk; the CLI does that.
 
+## Migrating from 0.1
+
+0.2.0 moves the base and Relay plugins into core, adds transformer options, and changes some output paths ([decision 0003](../decisions/0003-core-plugins-and-transformer-options.md)).
+
+**Config.**
+
+```diff
+  import { defineConfig } from "gqlbase/config";
+- import { basePreset, relayPreset, appsyncPreset } from "gqlbase/plugins";
++ import { appsyncPreset } from "gqlbase/plugins";
+
+  export default defineConfig({
+    source: "src/schema",
+    output: "generated",
++   transform: {
++     relay: true,               // was relayPreset()
++     semanticNullability: true, // needed if the schema uses @semanticNonNull
++     operations: ["read"],      // was basePreset({ operations })
++   },
+-   plugins: [basePreset({ operations: ["read"] }), relayPreset(), appsyncPreset()],
++   plugins: [appsyncPreset()],
+  });
+```
+
+- `basePreset()`, `relayPreset()` and the `plugins/base` and `plugins/relay` subpaths are removed. The base plugins and their helpers (`isModel`, `isRelationField`, `isSemanticNullable`, …) are exported from `@gqlbase/core/plugins`.
+- `@semanticNonNull` is declared only with `semanticNullability: true`. Without it, a schema that uses the directive fails validation.
+
+**Imports of generated files.**
+
+| 0.1 | 0.2 |
+| --- | --- |
+| `generated/models.typegen` | `generated/schema.types` |
+| `generated/dsqlbase.schema` | `generated/dsqlbase/schema` |
+| `generated/appsync/middy-appsync.typegen` | `generated/appsync/middy-appsync.types` |
+
+**Output changes to check.**
+
+- `schema.types.ts` matches `schema.graphql`: it no longer has `@serverOnly` or `@writeOnly` fields, relation keys or unused definitions. Resolver code that reads those from a parent uses the AppSync `<Type>Source` type, which its `source` now has.
+- Unused enums, inputs, unions and scalars are no longer printed in `schema.graphql` or the AppSync schema.
+- Without Relay, `@hasMany` fields and list queries return `[T!]` (was `[T]`), or `[T!]!` for a non-null field. `relationPlugin({ usePaginationTypes })` and its `{ items, nextToken }` shape are removed.
+- With Relay and without `semanticNullability`, `edges` is `[XEdge!]!` and `XEdge.node` is non-null.
+
 ## Related
 
 - [Install](./install.md)
