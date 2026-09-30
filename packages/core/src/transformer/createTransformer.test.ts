@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ITransformerContext } from "../context/index.js";
+import { TransformerValidationError } from "@gqlbase/shared/errors";
 import { createTransformer } from "./createTransformer.js";
 
 describe("createTransformer", () => {
@@ -50,7 +51,6 @@ describe("createTransformer", () => {
       "UtilitiesPlugin",
       "InterfaceUtilsPlugin",
       "ScalarsPlugin",
-      "RfcFeaturesPlugin",
       "ModelPlugin",
       "RelationsPlugin",
       "SchemaGeneratorPlugin",
@@ -115,5 +115,52 @@ describe("createTransformer", () => {
     expect(withRelay.schema).toContain("type PostConnection");
     expect(withoutRelay.schema).not.toContain("interface Node");
     expect(withoutRelay.schema).not.toContain("PostEdge");
+  });
+
+  it("registers RfcFeaturesPlugin after ScalarsPlugin only when semanticNullability is on", () => {
+    let withOption: ITransformerContext | undefined;
+    let withoutOption: ITransformerContext | undefined;
+
+    createTransformer({
+      semanticNullability: true,
+      plugins: [
+        {
+          create: (ctx) => {
+            withOption = ctx;
+            return { name: "ProbePlugin", context: ctx, init: () => undefined, match: () => false };
+          },
+        },
+      ],
+    });
+
+    createTransformer({
+      plugins: [
+        {
+          create: (ctx) => {
+            withoutOption = ctx;
+            return { name: "ProbePlugin", context: ctx, init: () => undefined, match: () => false };
+          },
+        },
+      ],
+    });
+
+    const names = withOption?.plugins.map((plugin) => plugin.name) ?? [];
+
+    expect(names[names.indexOf("ScalarsPlugin") + 1]).toBe("RfcFeaturesPlugin");
+    expect(withoutOption?.plugins.map((plugin) => plugin.name)).not.toContain("RfcFeaturesPlugin");
+  });
+
+  it("rejects @semanticNonNull when semanticNullability is off", () => {
+    const source = /* GraphQL */ `
+      type Post @model {
+        id: ID!
+        title: String @semanticNonNull
+      }
+    `;
+
+    expect(createTransformer({ semanticNullability: true }).transform(source).schema).toContain(
+      "title: String @semanticNonNull"
+    );
+    expect(() => createTransformer().transform(source)).toThrow(TransformerValidationError);
   });
 });

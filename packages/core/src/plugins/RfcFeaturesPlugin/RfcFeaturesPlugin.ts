@@ -31,7 +31,7 @@ import {
  *
  * In the above example, the `name` field is decorated with the `@semanticNonNull` directive, indicating that it is semantically non-nullable. The plugin will use this information to enforce non-nullability at runtime, even if the field is not marked as non-nullable in the schema.
  *
- * The directive is defined only when `context.options.semanticNullability` is on. Otherwise a schema that uses it fails validation.
+ * Core registers this plugin only when `context.options.semanticNullability` is on. Otherwise the directive is not declared, and a schema that uses it fails validation.
  */
 
 export class RfcFeaturesPlugin extends TransformerPluginBase {
@@ -40,10 +40,6 @@ export class RfcFeaturesPlugin extends TransformerPluginBase {
   }
 
   public init() {
-    if (!this.context.options.semanticNullability) {
-      return;
-    }
-
     this.context.base.addNode(
       DirectiveDefinitionNode.create(
         "semanticNonNull",

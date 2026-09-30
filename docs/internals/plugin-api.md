@@ -53,7 +53,7 @@ The interface is `packages/core/src/context/ITransformerContext.ts` and the impl
 
 ## Depending on other plugins
 
-The core plugins (`packages/core/src/plugins/`, listed in `corePlugins.ts`) are always registered before any configured plugin. A plugin may rely on what they add and import their helpers (`isModel`, `isRelationField`, `isSemanticNullable`, `isRelayConnection`, …) from `@gqlbase/core/plugins`.
+The core plugins (`packages/core/src/plugins/`, listed in `corePlugins.ts`) are registered before any configured plugin. Feature plugins among them (`RfcFeaturesPlugin`, `NodeInterfacePlugin`, `ConnectionPlugin`) are registered only when their option is on, so check `context.options` rather than assuming their definitions exist. A plugin may rely on what they add and import their helpers (`isModel`, `isRelationField`, `isSemanticNullable`, `isRelayConnection`, …) from `@gqlbase/core/plugins`.
 
 A plugin must not depend on an optional plugin, because a config can leave it out: capability plugins in `@gqlbase/plugins` never import each other. If two of them need the same helper, move it into core.
 
@@ -69,7 +69,7 @@ public init() {
 }
 ```
 
-It then removes the directive's usages in `cleanup` and its definition in `after`, so the public schema carries neither. Examples include `packages/core/src/plugins/UtilitiesPlugin/UtilitiesPlugin.ts` and `packages/core/src/plugins/ModelPlugin/ModelPlugin.ts`. `RfcFeaturesPlugin` keeps `@semanticNonNull` in the output on purpose, and declares it only when `context.options.semanticNullability` is on.
+It then removes the directive's usages in `cleanup` and its definition in `after`, so the public schema carries neither. Examples include `packages/core/src/plugins/UtilitiesPlugin/UtilitiesPlugin.ts` and `packages/core/src/plugins/ModelPlugin/ModelPlugin.ts`. `RfcFeaturesPlugin` keeps `@semanticNonNull` in the output on purpose, and is registered only when `context.options.semanticNullability` is on.
 
 Internal-only definitions carry `@gqlbase_internal`. Scalars carry `@gqlbase_typehint(type: …)` to tell generators how to type them. Both come from `InternalUtilsPlugin` (`packages/core/src/plugins/InternalUtilsPlugin/`), which removes them in `cleanup` and `after`.
 

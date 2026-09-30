@@ -20,7 +20,7 @@ describe("RfcFeaturesPlugin", () => {
   let context: TransformerContext;
 
   beforeAll(() => {
-    context = new TransformerContext({ semanticNullability: true });
+    context = new TransformerContext();
     plugin = new RfcFeaturesPlugin(context);
     context.registerPlugin(plugin);
   });
@@ -59,36 +59,6 @@ describe("RfcFeaturesPlugin", () => {
     expect(tagsField).toBeDefined();
     expect(nameField?.hasDirective(RfcDirective.SEMANTIC_NON_NULL)).toBe(true);
     expect(tagsField?.hasDirective(RfcDirective.SEMANTIC_NON_NULL)).toBe(true);
-  });
-});
-
-describe("RfcFeaturesPlugin without semanticNullability", () => {
-  let context: TransformerContext;
-
-  beforeAll(() => {
-    context = new TransformerContext();
-    context.registerPlugin(new RfcFeaturesPlugin(context));
-  });
-
-  beforeEach(() => {
-    context.finishWork();
-    context.startWork(
-      DocumentNode.fromSource(/* GraphQL */ `
-        type User {
-          name: String @semanticNonNull
-        }
-      `)
-    );
-  });
-
-  it("does not add the semanticNonNull directive definition", () => {
-    expect(context.document.getNode(RfcDirective.SEMANTIC_NON_NULL)).toBeUndefined();
-  });
-
-  it("fails validation when the schema uses @semanticNonNull", () => {
-    expect(context.document.validate()).toEqual([
-      expect.objectContaining({ message: 'Unknown directive "@semanticNonNull".' }),
-    ]);
   });
 });
 

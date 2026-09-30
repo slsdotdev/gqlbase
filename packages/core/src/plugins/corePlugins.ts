@@ -13,16 +13,18 @@ import { schemaGeneratorPlugin } from "./SchemaGeneratorPlugin/index.js";
 import { modelTypesGeneratorPlugin } from "./ModelTypesGeneratorPlugin/index.js";
 
 /**
- * The plugins every transformer registers, in order, before the configured ones. They are always present, so any plugin may rely on them and import their helpers. The Relay plugins are registered only when `options.relay` is on.
+ * The plugins every transformer registers, in order, before the configured ones. Any plugin may rely on the always-on ones and import their helpers. Feature plugins are registered only when their option is on: `RfcFeaturesPlugin` with `options.semanticNullability`, the Relay plugins with `options.relay`.
  */
 
-export function corePlugins(options: Pick<TransformerOptions, "relay">): IPluginFactory[] {
+export function corePlugins(
+  options: Pick<TransformerOptions, "relay" | "semanticNullability">
+): IPluginFactory[] {
   return [
     internalPlugin(),
     utilsPlugin(),
     interfaceUtilsPlugin(),
     scalarsPlugin(),
-    rfcFeaturesPlugin(),
+    ...(options.semanticNullability ? [rfcFeaturesPlugin()] : []),
     modelPlugin(),
     relationPlugin(),
     ...(options.relay ? [nodeInterfacePlugin(), connectionPlugin()] : []),

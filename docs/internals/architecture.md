@@ -47,7 +47,7 @@ The root `packages/plugins/src/index.ts` exports only the appsync preset. Each p
 
 `createTransformer` (`packages/core/src/transformer/createTransformer.ts`) creates a `TransformerContext`. It then registers plugins in this order:
 
-1. the core plugins, from `corePlugins()` (`packages/core/src/plugins/corePlugins.ts`), in a fixed order: `InternalUtilsPlugin`, `UtilitiesPlugin`, `InterfaceUtilsPlugin`, `ScalarsPlugin`, `RfcFeaturesPlugin`, `ModelPlugin`, `RelationsPlugin`, then `NodeInterfacePlugin` and `ConnectionPlugin` when `options.relay` is on, then `SchemaGeneratorPlugin`, `ModelTypesGeneratorPlugin`;
+1. the core plugins, from `corePlugins()` (`packages/core/src/plugins/corePlugins.ts`), in a fixed order: `InternalUtilsPlugin`, `UtilitiesPlugin`, `InterfaceUtilsPlugin`, `ScalarsPlugin`, then `RfcFeaturesPlugin` when `options.semanticNullability` is on, then `ModelPlugin`, `RelationsPlugin`, then `NodeInterfacePlugin` and `ConnectionPlugin` when `options.relay` is on, then `SchemaGeneratorPlugin`, `ModelTypesGeneratorPlugin`;
 2. every factory from `options.plugins`, flattened in config order.
 
 The transformer options (`relay`, `semanticNullability`, `operations`) are resolved with their defaults and frozen onto `context.options` before any plugin is created.
