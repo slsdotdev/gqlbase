@@ -56,12 +56,6 @@ The same plugin also ignores its `dialect` option, and it uses a union's name as
 
 ## Tooling
 
-### 18. Source files are concatenated without a separator
-
-`definitionFromFiles` (`packages/shared/src/files/definitionFromFiles.ts`) joins file contents with `+=`. A file that ends in a name token with no trailing newline fuses with the first token of the next file.
-
-**Fix:** join with `"\n"`.
-
 ## Related
 
 - [Architecture](./architecture.md)

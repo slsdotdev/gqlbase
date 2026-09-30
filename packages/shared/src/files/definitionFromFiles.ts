@@ -67,11 +67,6 @@ export function definitionFromFiles(source: string | string[]): string {
     );
   }
 
-  let definition = "";
-
-  for (const path of paths) {
-    definition += readFileSync(path, { encoding: "utf-8" });
-  }
-
-  return definition;
+  // A newline between files, so a file that ends in a name token does not fuse with the next one.
+  return paths.map((path) => readFileSync(path, { encoding: "utf-8" })).join("\n");
 }
