@@ -66,8 +66,6 @@ type PageInfo {
 - Backward pagination (`last`/`before`), `totalCount` and ordering arguments are not generated.
 - Union and interface targets produce `<Union>Connection` / `<Union>Edge` the same way.
 
-`ConnectionPlugin` throws if it finds a `{ items, nextToken }` connection.
-
 ## Related
 
 - [Relations](./relations.md)

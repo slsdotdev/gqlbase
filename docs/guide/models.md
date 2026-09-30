@@ -31,7 +31,7 @@ type Post {
 
 type Query {
   getPost(id: ID!): Post
-  listPosts(filter: PostFilterInput): [Post]
+  listPosts(filter: PostFilterInput): [Post!]
 }
 
 type Mutation {

@@ -5,7 +5,6 @@ import { RfcDirective } from "../RfcFeaturesPlugin/index.js";
 import { UtilityDirective } from "../UtilitiesPlugin/index.js";
 import {
   type FieldRelationship,
-  isPaginationConnection,
   isRelationField,
   isValidRelationTarget,
   parseFieldRelation,
@@ -88,13 +87,6 @@ export class ConnectionPlugin extends TransformerPluginBase {
       throw new TransformerPluginExecutionError(
         this.name,
         `Type ${target?.name ?? "unknwon type"} is not a valid connection target for ${object.name}.${field.name} `
-      );
-    }
-
-    if (isPaginationConnection(target)) {
-      throw new TransformerPluginExecutionError(
-        this.name,
-        `Unexpected conflicting pagination connection type ${target.name} used as a connection target for ${object.name}.${field.name}. Make sure you set "usePaginationTypes" to "false" when using relay ConnectionPlugin.`
       );
     }
 

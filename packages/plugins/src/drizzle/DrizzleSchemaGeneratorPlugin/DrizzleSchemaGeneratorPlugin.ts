@@ -12,7 +12,6 @@ import {
   isBelongsToRelationship,
   isManyRelationship,
   isOneRelationship,
-  isPaginationConnection,
   parseFieldRelation,
   RelationTarget,
   isRelayConnection,
@@ -319,14 +318,6 @@ export class DrizzleSchemaGeneratorPlugin extends TransformerPluginBase {
     let typeName = node.name;
 
     if (isObjectNode(node)) {
-      if (isPaginationConnection(node)) {
-        const targetName = node.getField("items")?.type.getTypeName();
-
-        if (targetName) {
-          typeName = targetName;
-        }
-      }
-
       if (isRelayConnection(node)) {
         const edgesField = node.getField("edges");
         const edgeNode = edgesField

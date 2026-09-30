@@ -15,21 +15,19 @@ import {
   ObjectNode,
   UnionNode,
   isListTypeNode,
+  isNullableTypeNode,
   DirectiveNode,
   NonNullTypeNode,
 } from "../../definition/index.js";
 import { TransformerPluginExecutionError } from "@gqlbase/shared/errors";
-import { pascalCase } from "@gqlbase/shared/format";
 import {
   FieldRelationship,
-  isPaginationConnection,
   isManyRelationship,
   isOneRelationship,
   isRelationField,
   isValidRelationTarget,
   parseFieldRelation,
   RelationDirective,
-  RelationPluginOptions,
   RelationTarget,
   isBelongsToRelationship,
 } from "./RelationsPlugin.utils.js";
@@ -64,11 +62,11 @@ import { isSemanticNullable } from "../RfcFeaturesPlugin/RfcFeaturesPlugin.utils
  *   author: User `@hasOne`
  * }
  *
- * # After
+ * # After (with the `relay` option off; with it on, `ConnectionPlugin` makes `posts` a connection)
  * type User {
  *   id: ID!
  *   name: String!
- *   posts: [Post] # formatted by the plugin
+ *   posts: [Post!] # formatted by the plugin; `Post!` becomes `[Post!]!`
  * }
  *
  * type Post {
@@ -83,13 +81,8 @@ import { isSemanticNullable } from "../RfcFeaturesPlugin/RfcFeaturesPlugin.utils
 export class RelationsPlugin implements ITransformerPlugin {
   readonly name = "RelationsPlugin";
   readonly context: ITransformerContext;
-  private readonly options: Required<RelationPluginOptions>;
-
-  constructor(context: ITransformerContext, options: RelationPluginOptions = {}) {
+  constructor(context: ITransformerContext) {
     this.context = context;
-    this.options = {
-      usePaginationTypes: options.usePaginationTypes ?? false,
-    };
   }
 
   private _getRelationshipTarget(
@@ -207,46 +200,6 @@ export class RelationsPlugin implements ITransformerPlugin {
     }
   }
 
-  private _setConnectionArguments(field: FieldNode) {
-    if (!field.hasArgument("limit")) {
-      field.addArgument(
-        InputValueNode.create("limit", undefined, undefined, NamedTypeNode.create("Int"))
-      );
-    }
-
-    if (!field.hasArgument("nextToken")) {
-      field.addArgument(
-        InputValueNode.create("nextToken", undefined, undefined, NamedTypeNode.create("String"))
-      );
-    }
-  }
-
-  private _createFieldConnection(field: FieldNode, target: ObjectNode | InterfaceNode | UnionNode) {
-    this._setConnectionArguments(field);
-
-    if (isPaginationConnection(target)) {
-      return target;
-    }
-
-    const connectionTypeName = pascalCase(target.name, "Connection");
-
-    return this.context.document.getOrCreateNode(
-      connectionTypeName,
-      ObjectNode.create(connectionTypeName)
-        .addField(
-          FieldNode.create(
-            "items",
-            undefined,
-            undefined,
-            ListTypeNode.create(NamedTypeNode.create(target.name))
-          )
-        )
-        .addField(
-          FieldNode.create("nextToken", undefined, undefined, NamedTypeNode.create("String"))
-        )
-    );
-  }
-
   public init() {
     this.context.base
       .addNode(
@@ -278,7 +231,6 @@ export class RelationsPlugin implements ITransformerPlugin {
   public match(definition: DefinitionNode): boolean {
     if (definition instanceof InterfaceNode || definition instanceof ObjectNode) {
       if (definition.name === "Mutation") return false;
-      if (isPaginationConnection(definition)) return false;
       if (!definition.fields?.length) return false;
       return true;
     }
@@ -323,15 +275,13 @@ export class RelationsPlugin implements ITransformerPlugin {
         continue;
       }
 
-      if (this.options.usePaginationTypes) {
-        const connection = this._createFieldConnection(field, relation.target);
-        field.setType(NamedTypeNode.create(connection.name));
+      // With relay on, ConnectionPlugin turns the field into a connection instead.
+      if (this.context.options.relay || isListTypeNode(field.type)) {
         continue;
       }
 
-      if (!isListTypeNode(field.type)) {
-        field.setType(ListTypeNode.create(field.type));
-      }
+      const list = ListTypeNode.create(NonNullTypeNode.create(field.type.getTypeName()));
+      field.setType(isNullableTypeNode(field.type) ? list : NonNullTypeNode.create(list));
     }
   }
 

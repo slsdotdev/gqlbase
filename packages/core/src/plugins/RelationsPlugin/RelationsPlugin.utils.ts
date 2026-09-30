@@ -9,10 +9,6 @@ import {
 } from "../../definition/index.js";
 import { camelCase } from "@gqlbase/shared/format";
 
-export interface RelationPluginOptions {
-  usePaginationTypes?: boolean;
-}
-
 export const RelationDirective = {
   HAS_ONE: "hasOne",
   HAS_MANY: "hasMany",
@@ -41,17 +37,6 @@ export const isBelongsToRelationship = (field: FieldNode): boolean => {
 
 export const isRelationField = (field: FieldNode): boolean => {
   return isOneRelationship(field) || isBelongsToRelationship(field) || isManyRelationship(field);
-};
-
-export const isPaginationConnection = (node: DefinitionNode): boolean => {
-  if (node instanceof ObjectNode) {
-    if (!node.name.endsWith("Connection")) return false;
-    if (!node.fields || node.fields.length < 2) return false;
-    if (!node.hasField("items") || !node.hasField("nextToken")) return false;
-    return true;
-  }
-
-  return false;
 };
 
 export const isValidRelationTarget = (node: DefinitionNode): node is RelationTarget => {

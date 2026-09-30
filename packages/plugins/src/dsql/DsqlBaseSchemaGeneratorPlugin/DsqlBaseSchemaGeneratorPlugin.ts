@@ -26,7 +26,6 @@ import {
   isBelongsToRelationship,
   isManyRelationship,
   isOneRelationship,
-  isPaginationConnection,
   isRelayConnection,
   isRelayEdge,
 } from "@gqlbase/core/plugins";
@@ -273,14 +272,6 @@ export class DsqlBaseSchemaGeneratorPlugin extends TransformerPluginBase {
     if (isManyRelationship(field)) {
       if (!isObjectNode(target)) {
         return target;
-      }
-
-      if (isPaginationConnection(target)) {
-        const targetName = target.getField("items")?.type.getTypeName();
-
-        if (targetName) {
-          return this.context.document.getNodeOrThrow(targetName);
-        }
       }
 
       if (isRelayConnection(target)) {

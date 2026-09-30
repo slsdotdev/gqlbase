@@ -38,12 +38,12 @@ type Post @model {
 }
 ```
 
-Output schema (base preset only):
+Output schema (default options):
 
 ```graphql
 type User {
   id: ID!
-  posts(filter: PostFilterInput): [Post]
+  posts(filter: PostFilterInput): [Post!]
 }
 
 type Post {
@@ -81,10 +81,12 @@ A relation field marked `@clientOnly` gets no key field. It is still reshaped (l
 
 `@hasMany` fields are reshaped in `execute`:
 
-| Setup | `posts: Post @hasMany` becomes |
-| --- | --- |
-| Default | `posts(filter: PostFilterInput): [Post]`. A type already written as a list is left as written. |
-| `relay: true` | `posts(filter: PostFilterInput, first: Int, after: String): PostConnection!` (see [Relay](./relay.md)) |
+| Setup | `posts: Post @hasMany` becomes | `posts: Post! @hasMany` becomes |
+| --- | --- | --- |
+| Default (`relay: false`) | `posts(filter: PostFilterInput): [Post!]` | `posts(filter: PostFilterInput): [Post!]!` |
+| `relay: true` | `posts(filter: PostFilterInput, first: Int, after: String): PostConnection!` | the same (see [Relay](./relay.md)) |
+
+Without Relay, a `@hasMany` becomes a plain list. The list keeps the field's own nullability, including `@semanticNonNull`, and its items are always non-null. There are no pagination arguments: `first` and `after` belong to Relay connections. A type already written as a list (`posts: [Post] @hasMany`) is left as written.
 
 The `filter` argument is only added on `@model` types (see [Models](./models.md#where-the-filter-is-accepted)).
 
