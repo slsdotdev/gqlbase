@@ -158,6 +158,18 @@ The built-in inputs are added in `before()`: `IDFilterInput`, `StringFilterInput
 
 Sorting is not generated: there is no `orderBy` argument.
 
+## Referencing generated types
+
+The source may use the types plugins generate: the scalar filter inputs (`StringFilterInput`, `IntFilterInput`, …), `<Model>FilterInput`, `Create<Model>Input` / `Update<Model>Input`, and with Relay, `<Model>Connection`, `<Model>Edge`, `PageInfo` and `Node`.
+
+```graphql
+extend type Query {
+  searchCategories(name: StringFilterInput!, first: Int, after: String): CategoryConnection!
+}
+```
+
+Unknown type names are checked once `execute` has run, when every generated type exists; a name nothing declares or generates still fails with "Unknown type". To change a generated type, declare it yourself: plugins skip a name that already exists, so `input StringFilterInput { … }` in the source replaces the generated one.
+
 ## Nullability and `@semanticNonNull`
 
 With the `semanticNullability` transformer option on ([Configuration](./configuration.md#transformer-options)), core registers `RfcFeaturesPlugin`, which declares the draft-RFC directive. With it off (the default), the directive is not declared and a schema that uses it fails validation.

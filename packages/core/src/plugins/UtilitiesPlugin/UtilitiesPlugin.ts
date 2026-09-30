@@ -6,6 +6,8 @@ import {
   DirectiveDefinitionNode,
   InputValueNode,
   InterfaceNode,
+  InputObjectNode,
+  isInputObjectNode,
   isInterfaceNode,
   isObjectNode,
   isOperationNode,
@@ -112,13 +114,17 @@ export class UtilitiesPlugin implements ITransformerPlugin {
   }
 
   public match(definition: DefinitionNode) {
-    return isObjectNode(definition) || isInterfaceNode(definition);
+    return isObjectNode(definition) || isInterfaceNode(definition) || isInputObjectNode(definition);
   }
 
   /**
    * Fields inherit the visibility of the object type they return: a field whose type is a `@serverOnly` object becomes `@serverOnly`, and one whose type is a `@clientOnly` object becomes `@clientOnly` (except on root types, where it would mean nothing).
    */
-  public normalize(definition: ObjectNode | InterfaceNode): void {
+  public normalize(definition: ObjectNode | InterfaceNode | InputObjectNode): void {
+    if (isInputObjectNode(definition)) {
+      return;
+    }
+
     for (const field of definition.fields ?? []) {
       const target = this.context.document.getNode(field.type.getTypeName());
 
@@ -136,8 +142,21 @@ export class UtilitiesPlugin implements ITransformerPlugin {
     }
   }
 
-  public cleanup(definition: ObjectNode | InterfaceNode): void {
+  public cleanup(definition: ObjectNode | InterfaceNode | InputObjectNode): void {
+    // @constraint is also allowed on input fields and arguments; its definition is removed in after().
+    if (isInputObjectNode(definition)) {
+      for (const field of definition.fields ?? []) {
+        field.removeDirective(UtilityDirective.CONSTRAINT);
+      }
+
+      return;
+    }
+
     for (const field of definition.fields ?? []) {
+      for (const argument of field.arguments ?? []) {
+        argument.removeDirective(UtilityDirective.CONSTRAINT);
+      }
+
       if (field.hasDirective(UtilityDirective.READ_ONLY)) {
         field.removeDirective(UtilityDirective.READ_ONLY);
       }

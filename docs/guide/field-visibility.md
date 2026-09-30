@@ -82,11 +82,7 @@ directive @constraint(min: Float, max: Float, pattern: String)
 
 Only the Zod generator reads it. It appends `.min(n)`, `.max(n)` and `.regex(/pattern/)` to the leaf schema: string length for strings, value for numbers. It applies to object schemas, the model create/update schemas and, with `generateArgumentSchemas`, to input schemas.
 
-Removal from the output schema is incomplete:
-- it is removed from object and interface fields;
-- it is **not** removed from input fields or arguments, even though its directive definition is removed. `input SearchInput { term: String @constraint(min: 2) }` is printed with a dangling directive.
-
-See [Known gaps](../internals/known-gaps.md).
+It is removed from the output schema everywhere it can appear: object and interface fields, input fields and arguments.
 
 ## Related
 

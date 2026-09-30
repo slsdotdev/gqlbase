@@ -1,3 +1,4 @@
+import { isBuildInScalar } from "@gqlbase/shared/definition";
 import { type ITransformerContext } from "../../context/index.js";
 import { createPluginFactory } from "../createPluginFactory.js";
 import { TransformerPluginBase } from "../TransformerPluginBase.js";
@@ -83,10 +84,25 @@ export class ConnectionPlugin extends TransformerPluginBase {
   private _getConnectionTarget(object: ObjectNode | InterfaceNode, field: FieldNode) {
     const target = this.context.document.getNode(field.type.getTypeName());
 
-    if (!target || !isValidRelationTarget(target)) {
+    const typeName = field.type.getTypeName();
+
+    // Built-in scalars are not document nodes, but they are never a valid target.
+    if (!target && isBuildInScalar(typeName)) {
       throw new TransformerPluginExecutionError(
         this.name,
-        `Type ${target?.name ?? "unknwon type"} is not a valid connection target for ${object.name}.${field.name} `
+        `Type ${typeName} is not a valid connection target for ${object.name}.${field.name}`
+      );
+    }
+
+    // An unknown type is reported by the validation that runs after execute.
+    if (!target) {
+      return null;
+    }
+
+    if (!isValidRelationTarget(target)) {
+      throw new TransformerPluginExecutionError(
+        this.name,
+        `Type ${target.name} is not a valid connection target for ${object.name}.${field.name}`
       );
     }
 
@@ -103,7 +119,7 @@ export class ConnectionPlugin extends TransformerPluginBase {
 
     const target = this._getConnectionTarget(object, field);
 
-    return parseFieldRelation(object, field, target);
+    return target ? parseFieldRelation(object, field, target) : null;
   }
 
   private _setConnectionArguments(field: FieldNode) {

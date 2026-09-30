@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it, vi } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { Logger } from "@gqlbase/shared/logger";
 import { GraphQLTransformer } from "./GraphQLTransformer.js";
 import { TransformerContext } from "../context/TransformerContext.js";
@@ -26,6 +26,10 @@ describe("GraphQLTransformer", () => {
   beforeAll(() => {
     context.registerPlugin(testPlugin);
     transformer = new GraphQLTransformer(context);
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
   });
 
   it("should throw error on schema with duplicate definition", () => {

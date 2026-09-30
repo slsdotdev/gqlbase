@@ -6,6 +6,8 @@ import {
   Source,
   TypeExtensionNode,
 } from "graphql";
+import { specifiedSDLRules } from "graphql/validation/specifiedRules.js";
+import type { SDLValidationRule } from "graphql/validation/ValidationContext.js";
 import { validateSDL } from "graphql/validation/validate.js";
 import { InvalidDefinitionError } from "@gqlbase/shared/errors";
 import { ObjectNode } from "./ObjectNode.js";
@@ -98,9 +100,14 @@ export class DocumentNode {
     return this;
   }
 
-  public validate() {
+  /**
+   * Validates the document as SDL.
+   *
+   * @param rules The SDL validation rules to run. Defaults to graphql-js `specifiedSDLRules`.
+   */
+  public validate(rules: readonly SDLValidationRule[] = specifiedSDLRules) {
     const document = this.serialize();
-    const errors = validateSDL(document);
+    const errors = validateSDL(document, undefined, rules);
     return errors;
   }
 

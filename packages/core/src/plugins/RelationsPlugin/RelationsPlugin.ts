@@ -1,3 +1,4 @@
+import { isBuildInScalar } from "@gqlbase/shared/definition";
 import { createPluginFactory } from "../createPluginFactory.js";
 import { type ITransformerContext } from "../../context/index.js";
 import { type ITransformerPlugin } from "../ITransformerPlugin.js";
@@ -88,13 +89,28 @@ export class RelationsPlugin implements ITransformerPlugin {
   private _getRelationshipTarget(
     object: ObjectNode | InterfaceNode,
     field: FieldNode
-  ): RelationTarget {
+  ): RelationTarget | null {
     const target = this.context.document.getNode(field.type.getTypeName());
 
-    if (!target || !isValidRelationTarget(target)) {
+    const typeName = field.type.getTypeName();
+
+    // Built-in scalars are not document nodes, but they are never a valid target.
+    if (!target && isBuildInScalar(typeName)) {
       throw new TransformerPluginExecutionError(
         this.name,
-        `Type ${target?.name ?? "unknwon type"} is not a valid relationship target for ${object.name}.${field.name}`
+        `Type ${typeName} is not a valid relationship target for ${object.name}.${field.name}`
+      );
+    }
+
+    // An unknown type is reported by the validation that runs after execute.
+    if (!target) {
+      return null;
+    }
+
+    if (!isValidRelationTarget(target)) {
+      throw new TransformerPluginExecutionError(
+        this.name,
+        `Type ${target.name} is not a valid relationship target for ${object.name}.${field.name}`
       );
     }
 
@@ -106,7 +122,9 @@ export class RelationsPlugin implements ITransformerPlugin {
       const idTypes = new Set<string>();
 
       for (const type of target.types ?? []) {
-        const unionType = this.context.document.getNodeOrThrow(type.getTypeName());
+        const unionType = this.context.document.getNode(type.getTypeName());
+
+        if (!unionType) continue;
 
         if (isObjectNode(unionType) || isInterfaceNode(unionType)) {
           const idField = unionType.getField("id");
@@ -156,7 +174,7 @@ export class RelationsPlugin implements ITransformerPlugin {
     }
 
     const target = this._getRelationshipTarget(object, field);
-    return parseFieldRelation(object, field, target);
+    return target ? parseFieldRelation(object, field, target) : null;
   }
 
   private _setRelationKey(
@@ -167,7 +185,9 @@ export class RelationsPlugin implements ITransformerPlugin {
   ) {
     if (isUnionNode(node)) {
       for (const type of node.types ?? []) {
-        const unionType = this.context.document.getNodeOrThrow(type.getTypeName());
+        const unionType = this.context.document.getNode(type.getTypeName());
+
+        if (!unionType) continue;
 
         if (isObjectNode(unionType) || isInterfaceNode(unionType)) {
           this._setRelationKey(unionType, key);

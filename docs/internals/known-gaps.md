@@ -48,10 +48,6 @@ A relation field on a non-model type that has no `id` field throws "does not hav
 
 `shouldSkipFieldFromFilterInput` (`packages/core/src/plugins/ModelPlugin/ModelPlugin.utils.ts`) does not skip `@writeOnly`, so clients can filter on a value they cannot read.
 
-### 10. `@constraint` survives on inputs after its definition is removed
-
-Cleanup removes the `@constraint` directive definition. The directive's usages on input fields and arguments stay in the output SDL, so the printed schema is invalid.
-
 ### 11. Nested `<Type>Input` is shared across operations
 
 A non-model object field gets a nested `<Type>Input` built with the rules of whichever operation reaches it first (`ModelPlugin.ts`). Every operation then reuses that input. For example, the update input inherits non-null fields from the create input.

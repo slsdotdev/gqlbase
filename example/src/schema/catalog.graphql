@@ -357,3 +357,11 @@ type PriceHistoryEntry implements Node & Timestamped
 
   variant: ProductVariant @belongsTo @semanticNonNull
 }
+
+extend type Query {
+  """
+  Search categories by name. References generated types (StringFilterInput, CategoryConnection)
+  directly from the source.
+  """
+  searchCategories(name: StringFilterInput!, first: Int, after: String): CategoryConnection!
+}

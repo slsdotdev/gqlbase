@@ -134,4 +134,29 @@ describe("list filters", () => {
 
     expect(result.errors?.[0]?.message).toMatch(/contains/);
   });
+
+  it("accepts a generated filter input referenced from the source schema", async () => {
+    const result = await execute<{
+      searchCategories: { edges: { node: { name: string } }[] };
+    }>(
+      /* GraphQL */ `
+        query Search($name: StringFilterInput!) {
+          searchCategories(name: $name) {
+            edges {
+              node {
+                name
+              }
+            }
+          }
+        }
+      `,
+      { variables: { name: { beginsWith: "Ap" } } }
+    );
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data?.searchCategories.edges.map((edge) => edge.node.name).sort()).toEqual([
+      "Apples",
+      "Apricots",
+    ]);
+  });
 });
