@@ -60,7 +60,7 @@ type PageInfo {
 ```
 
 - The field type becomes `<Target>Connection!`, with `first: Int` and `after: String` arguments added. `filter` comes from `ModelPlugin`, and only on `@model` types.
-- `edges` carries `@semanticNonNull(levels: [0, 1])` only when `RfcFeaturesPlugin` is registered (it is part of `basePreset()`).
+- `edges` carries `@semanticNonNull(levels: [0, 1])` only when the `semanticNullability` option is on.
 - `cursor` and `node` on the edge are marked `@clientOnly` internally. They get no stored column and no input entry.
 - Connection and edge types are shared per target. A type already named `<Target>Connection` or `<Target>Edge` is reused.
 - Backward pagination (`last`/`before`), `totalCount` and ordering arguments are not generated.

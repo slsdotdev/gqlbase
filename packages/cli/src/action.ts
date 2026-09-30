@@ -22,6 +22,7 @@ export async function run(source: string | undefined, options: CliOptions) {
       outputDirectory: config.output,
       plugins: config.plugins ?? [],
       logger: mainLogger,
+      transform: config.transform,
     });
 
     const runTransform = debouncePromise(async () => transform(sources), 100);

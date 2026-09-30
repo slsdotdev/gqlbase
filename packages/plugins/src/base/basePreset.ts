@@ -23,11 +23,7 @@ import { modelTypesGeneratorPlugin } from "./ModelTypesGeneratorPlugin/index.js"
  * @returns An array of plugin factories for the base plugins.
  */
 
-export function basePreset(
-  config: BasePresetConfig = {
-    operations: ["read", "write"],
-  }
-) {
+export function basePreset(config: BasePresetConfig = {}) {
   const { operations } = config;
 
   return [
@@ -43,5 +39,6 @@ export function basePreset(
 }
 
 export interface BasePresetConfig {
-  operations: OperationType[];
+  /** Overrides the transformer's `operations` option. */
+  operations?: OperationType[];
 }

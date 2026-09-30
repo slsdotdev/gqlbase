@@ -1,3 +1,4 @@
+import { ModelOperation, type OperationType } from "@gqlbase/core";
 import { DefinitionNode, FieldNode, isObjectNode, ObjectNode } from "@gqlbase/core/definition";
 import {
   isClientOnly,
@@ -10,36 +11,15 @@ import {
 import { isRelationField } from "../RelationsPlugin/index.js";
 
 export interface ModelPluginOptions {
-  operations: OperationType[];
+  /** Overrides `context.options.operations`. */
+  operations?: OperationType[];
 }
 
 export const ModelDirective = {
   MODEL: "model",
 } as const;
 
-export const ModelOperation = {
-  /** Shorthand for read operations (`get`, `list`) */
-  READ: "read",
-
-  /** Shorthand for write operations (`create`, `update`, `delete`) */
-  WRITE: "write",
-
-  // Query operations
-  GET: "get",
-  LIST: "list",
-
-  // Mutation operations
-  CREATE: "create",
-  UPDATE: "update",
-  UPSERT: "upsert",
-  DELETE: "delete",
-
-  // TBD
-  // SYNC: "sync",
-  // SUBSCRIBE: "subscribe",
-} as const;
-
-export type OperationType = (typeof ModelOperation)[keyof typeof ModelOperation];
+export { ModelOperation, type OperationType };
 
 export const DEFAULT_READ_OPERATIONS = ["get", "list"] as const satisfies OperationType[];
 export const DEFAULT_WRITE_OPERATIONS = [

@@ -158,7 +158,7 @@ Sorting is not generated: there is no `orderBy` argument.
 
 ## Nullability and `@semanticNonNull`
 
-`basePreset()` includes `RfcFeaturesPlugin`, which declares the draft-RFC directive:
+With the `semanticNullability` transformer option on ([Configuration](./configuration.md#transformer-options)), `RfcFeaturesPlugin` declares the draft-RFC directive. With it off (the default), the directive is not declared and a schema that uses it fails validation.
 
 ```graphql
 directive @semanticNonNull(levels: [Int!]! = [0]) on FIELD_DEFINITION

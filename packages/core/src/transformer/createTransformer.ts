@@ -1,9 +1,9 @@
 import { type Logger, createLogger } from "@gqlbase/shared/logger";
 import { type IPluginFactory, internalPlugin } from "../plugins/index.js";
-import { TransformerContext } from "../context/index.js";
+import { TransformerContext, type TransformerOptions } from "../context/index.js";
 import { GraphQLTransformer } from "./GraphQLTransformer.js";
 
-export interface GraphQLTransformerOptions {
+export interface GraphQLTransformerOptions extends Partial<TransformerOptions> {
   /**
    * An array of plugin factories to be registered with the transformer.
    */
@@ -22,10 +22,9 @@ export interface GraphQLTransformerOptions {
  */
 
 export function createTransformer(options: GraphQLTransformerOptions) {
-  const { plugins } = options;
+  const { plugins, logger = createLogger("GraphQLTransformer"), ...transformerOptions } = options;
 
-  const logger = options.logger ?? createLogger("GraphQLTransformer");
-  const context = new TransformerContext({ logger });
+  const context = new TransformerContext({ logger, ...transformerOptions });
 
   const internalUtils = internalPlugin().create(context);
   context.registerPlugin(internalUtils);

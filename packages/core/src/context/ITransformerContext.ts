@@ -1,6 +1,7 @@
 import { Logger } from "@gqlbase/shared/logger";
 import { DocumentNode } from "../definition/DocumentNode.js";
 import { ITransformerPlugin } from "../plugins/ITransformerPlugin.js";
+import { TransformerOptions } from "./TransformerOptions.js";
 
 export interface FileArtifact {
   type: string;
@@ -23,6 +24,11 @@ export interface ITransformerContext {
    */
 
   readonly logger: Logger;
+
+  /**
+   * The transformer options, frozen for the life of the transformer. Plugins read them to decide what to generate, for example `options.relay`.
+   */
+  readonly options: Readonly<TransformerOptions>;
 
   /**
    * The GraphQL document being transformed. This is a mutable object that plugins can modify during the transformation process.

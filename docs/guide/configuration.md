@@ -22,6 +22,10 @@ import { dsqlbase } from "@gqlbase/plugins/dsql";
 export default defineConfig({
   source: "src/schema",
   output: "generated",
+  transform: {
+    relay: true,
+    semanticNullability: true,
+  },
   plugins: [basePreset(), relayPreset(), zodSchemaGeneratorPlugin(), dsqlbase()],
 });
 ```
@@ -37,8 +41,19 @@ Defined in `packages/cli/src/config/config.ts`.
 | `source` | `string \| string[]` | `"**/*.graphql"` | Files, globs or directories. A directory is expanded to every `.graphql`, `.gql` and `.graphqls` file below it. `node_modules`, `dist`, `build` and `.git` are always ignored. |
 | `output` | `string` | `"generated"` | Output directory. Each plugin chooses its file path relative to it. |
 | `plugins` | `(IPluginFactory \| IPluginFactory[])[]` | `[]` | Plugin factories and presets (arrays of factories), in execution order. |
+| `transform` | `object` | `{}` | Transformer options, below. |
 | `verbose` | `boolean` | `false` | Debug logging. |
 | `watch` | `boolean` | `false` | Re-run on changes to `source` (the output directory is ignored). |
+
+### Transformer options
+
+`transform` holds the options that shape the generated schema. The CLI passes them to the transformer, which fills in defaults and freezes them onto `context.options`; every plugin reads them there. They are defined in `packages/core/src/context/TransformerOptions.ts`.
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `relay` | `boolean` | `false` | Relay output: the `Node` interface on models and Relay connections for list relations. Still needs `relayPreset()` for now. |
+| `semanticNullability` | `boolean` | `false` | Declares `@semanticNonNull`. When off, a schema that uses the directive fails validation. See [Models](./models.md#nullability-and-semanticnonnull). |
+| `operations` | `OperationType[]` | `["read", "write"]` | Operations generated for every `@model` that does not list its own. See [Models](./models.md#operations). |
 
 All matching files are read and concatenated into one document before parsing (`packages/shared/src/files/definitionFromFiles.ts`), so types can be split across files and extended with `extend type`.
 
@@ -73,7 +88,7 @@ A plugin factory is a function returning `{ create(context) }`; presets are plai
 | `dsqlbase()` | `@gqlbase/plugins/dsql` | `DsqlBaseSchemaGeneratorPlugin` |
 | `drizzleSchemaGeneratorPlugin({ … })` | `@gqlbase/plugins/drizzle` | `DrizzleSchemaGeneratorPlugin` |
 
-`basePreset` takes one option, `operations` (default `["read", "write"]`): the operations generated for every `@model` that does not list its own. See [Models](./models.md#operations).
+`basePreset` takes one option, `operations`, which overrides the `operations` config option for `ModelPlugin`.
 
 The individual base plugins are also exported from `@gqlbase/plugins/base` (`modelPlugin`, `relationPlugin`, `utilsPlugin`, `scalarsPlugin`, `rfcFeaturesPlugin`, `schemaGeneratorPlugin`, `modelTypesGeneratorPlugin`) if you need to compose your own preset. `relationPlugin({ usePaginationTypes: true })` is only reachable this way (see [Relations](./relations.md#list-shape)).
 
@@ -97,14 +112,14 @@ Existing files are overwritten; files a plugin no longer produces are not delete
 import { createTransformer } from "@gqlbase/core";
 import { basePreset } from "@gqlbase/plugins";
 
-const transformer = createTransformer({ plugins: [basePreset()] });
+const transformer = createTransformer({ semanticNullability: true, plugins: [basePreset()] });
 const output = transformer.transform(sdlString);
 
 output.schema; // printed schema.graphql
 output.files; // [{ type, path, filename, content }]
 ```
 
-`transform()` returns `{ schema, files }` merged with whatever each plugin's `output()` returns (for example `modelTypes` when `modelTypesGeneratorPlugin({ emitOutput: true })`). Nothing is written to disk; the CLI does that.
+`createTransformer` takes the [transformer options](#transformer-options) at the top level, next to `plugins`, with the same defaults. `transform()` returns `{ schema, files }` merged with whatever each plugin's `output()` returns (for example `modelTypes` when `modelTypesGeneratorPlugin({ emitOutput: true })`). Nothing is written to disk; the CLI does that.
 
 ## Related
 

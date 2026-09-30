@@ -2,8 +2,9 @@ import { createLogger, Logger } from "@gqlbase/shared/logger";
 import { DocumentNode } from "../definition/DocumentNode.js";
 import { ITransformerPlugin } from "../plugins/ITransformerPlugin.js";
 import { FileArtifact, ITransformerContext } from "./ITransformerContext.js";
+import { resolveTransformerOptions, TransformerOptions } from "./TransformerOptions.js";
 
-interface TransformerContextOptions {
+export interface TransformerContextOptions extends Partial<TransformerOptions> {
   logger?: Logger;
 }
 
@@ -11,13 +12,17 @@ export class TransformerContext implements ITransformerContext {
   readonly plugins: ITransformerPlugin[] = [];
   readonly base: DocumentNode;
   readonly logger: Logger;
+  readonly options: Readonly<TransformerOptions>;
 
   private _workInProgress: DocumentNode | null = null;
   private _fileArtifacts: FileArtifact[] | null = [];
 
   constructor(options: TransformerContextOptions = {}) {
+    const { logger, ...transformerOptions } = options;
+
     this.base = DocumentNode.create();
-    this.logger = options.logger ?? createLogger("TransformerContext", "error");
+    this.logger = logger ?? createLogger("TransformerContext", "error");
+    this.options = resolveTransformerOptions(transformerOptions);
   }
 
   get document() {

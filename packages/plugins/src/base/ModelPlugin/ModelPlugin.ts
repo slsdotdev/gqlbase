@@ -106,13 +106,12 @@ export class ModelPlugin implements ITransformerPlugin {
   readonly context: ITransformerContext;
   private _defaultOperations: OperationType[];
 
-  constructor(
-    context: ITransformerContext,
-    options: ModelPluginOptions = { operations: ["read", "write"] }
-  ) {
+  constructor(context: ITransformerContext, options: ModelPluginOptions = {}) {
     this.context = context;
 
-    this._defaultOperations = this._expandOperations(options.operations);
+    this._defaultOperations = this._expandOperations(
+      options.operations ?? context.options.operations
+    );
   }
 
   private _expandOperations(operations: OperationType[]) {

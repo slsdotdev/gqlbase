@@ -133,3 +133,40 @@ describe("ModelPlugin", () => {
     });
   });
 });
+
+describe("ModelPlugin operations", () => {
+  let context: TransformerContext;
+  let source: DocumentNode;
+
+  beforeEach(() => {
+    context = new TransformerContext({ operations: ["read"] });
+    source = DocumentNode.fromSource(/* GraphQL */ `
+      type Model @model {
+        id: ID!
+        name: String!
+      }
+    `);
+  });
+
+  it("uses the transformer's operations option", () => {
+    const plugin = new ModelPlugin(context);
+    context.registerPlugin(plugin);
+    context.startWork(source);
+    plugin.normalize(context.document.getNode("Model") as ObjectNode);
+    plugin.execute(context.document.getNode("Model") as ObjectNode);
+
+    expect(context.document.getQueryNode().hasField("getModel")).toBe(true);
+    expect(context.document.getNode("Mutation")).toBeUndefined();
+  });
+
+  it("prefers its own operations option", () => {
+    const plugin = new ModelPlugin(context, { operations: ["create"] });
+    context.registerPlugin(plugin);
+    context.startWork(source);
+    plugin.normalize(context.document.getNode("Model") as ObjectNode);
+    plugin.execute(context.document.getNode("Model") as ObjectNode);
+
+    expect(context.document.getMutationNode().hasField("createModel")).toBe(true);
+    expect(context.document.getNode("Query")).toBeUndefined();
+  });
+});

@@ -1,4 +1,4 @@
-import { IPluginFactory } from "@gqlbase/core";
+import { IPluginFactory, TransformerOptions } from "@gqlbase/core";
 
 export interface Config {
   /** * The path to the GraphQL schema file(s) to be transformed.
@@ -23,6 +23,11 @@ export interface Config {
   watch: boolean;
 
   /**
+   * Options that shape the generated schema. They are passed to the transformer and read by every plugin from `context.options`. Omitted options take the transformer's defaults.
+   */
+  transform: Partial<TransformerOptions>;
+
+  /**
    * An array of plugin factories to be registered with the transformer.
    */
   plugins: (IPluginFactory | IPluginFactory[])[];
@@ -33,5 +38,6 @@ export const DEFAULT_CONFIG = Object.freeze<Config>({
   output: "generated",
   verbose: false,
   watch: false,
+  transform: {},
   plugins: [],
 });

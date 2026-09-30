@@ -43,6 +43,7 @@ The interface is `packages/core/src/context/ITransformerContext.ts` and the impl
 
 | Member | Use |
 |---|---|
+| `options: Readonly<TransformerOptions>` | The transformer options (`relay`, `semanticNullability`, `operations`), resolved with their defaults and frozen (`packages/core/src/context/TransformerOptions.ts`). Read them here to decide what to generate; do not probe the document for a directive definition. |
 | `base: DocumentNode` | Definitions the plugin contributes: directive definitions, internal enums, built-in scalars. It is merged with the user's source at `startWork`. A name that appears in both throws. |
 | `document: DocumentNode` | The working document. It exists only between `startWork` and `finishWork`; reading it outside that window throws. Plugins mutate it in place. |
 | `files: FileArtifact[]` | Generated files: `{ type, path, filename, content }`, where `path` is relative to the configured output directory. Like `document`, it is only valid during work. |
@@ -62,7 +63,7 @@ public init() {
 }
 ```
 
-It then removes the directive's usages in `cleanup` and its definition in `after`, so the public schema carries neither. Examples include `packages/plugins/src/base/UtilitiesPlugin/UtilitiesPlugin.ts` and `packages/plugins/src/base/ModelPlugin/ModelPlugin.ts`. `RfcFeaturesPlugin` keeps `@semanticNonNull` in the output on purpose.
+It then removes the directive's usages in `cleanup` and its definition in `after`, so the public schema carries neither. Examples include `packages/plugins/src/base/UtilitiesPlugin/UtilitiesPlugin.ts` and `packages/plugins/src/base/ModelPlugin/ModelPlugin.ts`. `RfcFeaturesPlugin` keeps `@semanticNonNull` in the output on purpose, and declares it only when `context.options.semanticNullability` is on.
 
 Internal-only definitions carry `@gqlbase_internal`. Scalars carry `@gqlbase_typehint(type: …)` to tell generators how to type them. Both come from `InternalUtilsPlugin` (`packages/core/src/plugins/InternalUtilsPlugin/`), which removes them in `cleanup` and `after`.
 
@@ -74,7 +75,7 @@ Generators accumulate state during `generate` (and sometimes `before`/`after`). 
 
 1. Extend `TransformerPluginBase`, pass a unique name, and export a factory made with `createPluginFactory`.
 2. Declare the plugin's directives, enums and scalars on `context.base` in `init()`.
-3. Keep `match()` narrow. It gates every per-definition hook.
+3. Keep `match()` narrow. It gates every per-definition hook. Read `context.options` for feature switches.
 4. Add schema in `normalize`, transform in `execute`, and collect generated output in `generate`. Anything that depends on another plugin's work must run in a later phase than that work.
 5. Remove the plugin's directives and temporary fields in `cleanup`, and its definitions in `after`.
 6. Co-locate `<Plugin>.test.ts` (see [Testing](./testing.md)). If the plugin adds or changes documented behaviour, update the guide page in the same PR ([Conventions → Documentation](./conventions.md#documentation)).

@@ -7,6 +7,10 @@ export default defineConfig({
   source: "src/schema",
   output: "generated",
   verbose: false,
+  transform: {
+    relay: true,
+    semanticNullability: true,
+  },
   plugins: [
     basePreset(),
     relayPreset(),
