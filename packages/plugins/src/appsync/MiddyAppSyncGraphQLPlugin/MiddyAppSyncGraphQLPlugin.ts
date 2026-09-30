@@ -17,8 +17,9 @@ import {
   isRelationField,
   isSemanticNullable,
   TypesGeneratorBase,
+  createTypeReferences,
+  type TypeReferences,
 } from "@gqlbase/core/plugins";
-import { isBuildInScalar } from "@gqlbase/shared/definition";
 import { createFileHeaders } from "@gqlbase/shared/codegen";
 import {
   getAuthModeIdentityType,
@@ -42,8 +43,8 @@ import {
  * ```
  *
  * ```typescript
- * // generated/middy/middy-appsync.typegen.ts
- * import { User } from "../models.typegen";
+ * // generated/appsync/middy-appsync.types.ts
+ * import { User } from "../schema.types";
  *
  * declare module "@middy-appsync/graphql" {
  *   interface Definition {
@@ -77,7 +78,7 @@ import {
 export class MiddyAppSyncGraphQLPlugin extends TypesGeneratorBase {
   readonly options: MiddyAppSyncGraphQLPluginOptions;
   private definitions: ts.TypeElement[] = [];
-  private typeImports = new Set<string>();
+  private refs: TypeReferences = createTypeReferences();
   private sourceTypes = new Map<string, ts.TypeAliasDeclaration>();
   private publicDefinitions: Set<string> | null = null;
 
@@ -141,7 +142,7 @@ export class MiddyAppSyncGraphQLPlugin extends TypesGeneratorBase {
   }
 
   private _getTypeImports() {
-    const specifiers = Array.from(this.typeImports).map((typeName) =>
+    const specifiers = Array.from(this.refs.imports).map((typeName) =>
       ts.factory.createImportSpecifier(false, undefined, ts.factory.createIdentifier(typeName))
     );
 
@@ -152,8 +153,26 @@ export class MiddyAppSyncGraphQLPlugin extends TypesGeneratorBase {
         undefined,
         ts.factory.createNamedImports(specifiers)
       ),
-      ts.factory.createStringLiteral("../models.typegen"),
+      ts.factory.createStringLiteral("../schema.types"),
       undefined
+    );
+  }
+
+  /**
+   * Re-exports the schema types this file uses, so resolver code imports its types from one place.
+   */
+  private _getTypeReExports() {
+    const specifiers = Array.from(this.refs.imports)
+      .filter((typeName) => typeName !== "Maybe")
+      .map((typeName) =>
+        ts.factory.createExportSpecifier(false, undefined, ts.factory.createIdentifier(typeName))
+      );
+
+    return ts.factory.createExportDeclaration(
+      undefined,
+      true,
+      ts.factory.createNamedExports(specifiers),
+      ts.factory.createStringLiteral("../schema.types")
     );
   }
 
@@ -197,16 +216,17 @@ export class MiddyAppSyncGraphQLPlugin extends TypesGeneratorBase {
       this._addAuthModeImports(nodes);
     }
 
-    if (this.typeImports.size > 0) {
-      nodes.push(this._getTypeImports());
+    if (this.refs.imports.size > 0) {
+      nodes.push(this._getTypeImports(), this._getTypeReExports());
     }
 
+    nodes.push(...this.refs.declarations.values());
     nodes.push(...this.sourceTypes.values());
 
     nodes.push(this._createModuleDeclaration());
 
     const file = ts.createSourceFile(
-      "middy-appsync.typegen.ts",
+      "middy-appsync.types.ts",
       /*sourceText*/ "",
       ts.ScriptTarget.Latest,
       /*setParentNodes*/ false,
@@ -222,30 +242,20 @@ export class MiddyAppSyncGraphQLPlugin extends TypesGeneratorBase {
   }
 
   /**
-   * A hidden field's type, imported from the schema types when it is public there, and `unknown` otherwise.
+   * A hidden field's type: imported from the schema types when it is public there, and declared in this file otherwise.
    */
   private _createHiddenFieldType(field: FieldNode) {
-    const typeName = field.type.getTypeName();
-    const node = this.context.document.getNode(typeName);
-
-    if (isBuildInScalar(typeName) || (node && isScalarNode(node))) {
-      return this._createValueTypeReference(field, field.type);
-    }
-
-    if (!this.publicDefinitions?.has(typeName)) {
-      return ts.factory.createKeywordTypeNode(ts.SyntaxKind.UnknownKeyword);
-    }
-
-    this.typeImports.add(typeName);
+    this._referenceType(field.type.getTypeName(), this.refs, this.publicDefinitions ?? new Set());
     return this._createValueTypeReference(field, field.type);
   }
 
   /**
-   * The type a resolver receives as `source`. The schema types hold only public fields, but a parent resolver usually returns the stored row, so when a type has hidden stored fields (`@serverOnly`, `@writeOnly`, relation keys) the source is `<Type>Source`: the schema type plus those fields.
+   * The type a resolver receives as `source`. The schema types hold only public fields, but a parent resolver usually returns the stored row, so when a type has hidden stored fields (`@serverOnly`, `@writeOnly`, relation keys) the source is `<Type>Source`: the schema type plus those fields. Hidden relation fields are left out: the row holds their key, not the related object.
    */
   private _getSourceTypeName(parent: ObjectNode) {
     const hidden = (parent.fields ?? []).filter(
-      (field) => !isInternal(field) && !isPublicSchemaField(field, parent)
+      (field) =>
+        !isInternal(field) && !isRelationField(field) && !isPublicSchemaField(field, parent)
     );
 
     if (!hidden.length) {
@@ -259,7 +269,7 @@ export class MiddyAppSyncGraphQLPlugin extends TypesGeneratorBase {
         ts.factory.createPropertySignature(
           undefined,
           ts.factory.createIdentifier(field.name),
-          isSemanticNullable(field) || isRelationField(field)
+          isSemanticNullable(field)
             ? ts.factory.createToken(ts.SyntaxKind.QuestionToken)
             : undefined,
           this._createHiddenFieldType(field)
@@ -285,7 +295,7 @@ export class MiddyAppSyncGraphQLPlugin extends TypesGeneratorBase {
 
   private _createFieldSource(parent: ObjectNode) {
     if (!isOperationNode(parent)) {
-      this.typeImports.add(parent.name);
+      this.refs.imports.add(parent.name);
     }
 
     return ts.factory.createPropertySignature(
@@ -317,7 +327,7 @@ export class MiddyAppSyncGraphQLPlugin extends TypesGeneratorBase {
       const maybeNode = this.context.document.getNode(arg.type.getTypeName());
 
       if (maybeNode && !isScalarNode(maybeNode)) {
-        this.typeImports.add(arg.type.getTypeName());
+        this.refs.imports.add(arg.type.getTypeName());
       }
 
       const typeNode = this._createInputValueTypeReference(arg, arg.type);
@@ -347,7 +357,7 @@ export class MiddyAppSyncGraphQLPlugin extends TypesGeneratorBase {
     const maybeNode = this.context.document.getNode(field.type.getTypeName());
 
     if (maybeNode && !isScalarNode(maybeNode)) {
-      this.typeImports.add(field.type.getTypeName());
+      this.refs.imports.add(field.type.getTypeName());
     }
 
     return ts.factory.createPropertySignature(
@@ -373,8 +383,8 @@ export class MiddyAppSyncGraphQLPlugin extends TypesGeneratorBase {
 
   public before() {
     this.definitions = [];
-    this.typeImports.clear();
-    this.typeImports.add("Maybe");
+    this.refs = createTypeReferences();
+    this.refs.imports.add("Maybe");
     this.sourceTypes.clear();
     this.publicDefinitions = null;
   }
@@ -423,8 +433,8 @@ export class MiddyAppSyncGraphQLPlugin extends TypesGeneratorBase {
 
     this.context.files.push({
       type: "ts",
-      path: "appsync/middy-appsync.typegen.ts",
-      filename: "middy-appsync.typegen.ts",
+      path: "appsync/middy-appsync.types.ts",
+      filename: "middy-appsync.types.ts",
       content,
     });
     return {};

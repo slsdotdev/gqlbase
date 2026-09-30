@@ -30,7 +30,7 @@ describe("type-level @serverOnly and @clientOnly", () => {
     `);
 
     schema = output.schema;
-    types = output.files.find((file) => file.path === "models.typegen.ts")?.content ?? "";
+    types = output.files.find((file) => file.path === "schema.types.ts")?.content ?? "";
   });
 
   describe("@serverOnly type", () => {

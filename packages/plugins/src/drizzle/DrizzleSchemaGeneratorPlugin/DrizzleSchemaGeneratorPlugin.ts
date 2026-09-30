@@ -517,7 +517,7 @@ export class DrizzleSchemaGeneratorPlugin extends TransformerPluginBase {
 
     if (this.typeImports.size > 0) {
       importNodes.push(
-        this._createNamedImport("../models.typegen.js", [...this.typeImports].sort(), true)
+        this._createNamedImport("../schema.types.js", [...this.typeImports].sort(), true)
       );
     }
 

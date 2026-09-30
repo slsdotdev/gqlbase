@@ -69,7 +69,7 @@ import {
  * ```
  *
  * ```typescript
- * // generated/zod/validators.typegen.ts
+ * // generated/zod/schema.validators.ts
  * import { z } from "zod";
  *
  * export const UserRoleSchema = z.enum(["ADMIN", "USER"]);

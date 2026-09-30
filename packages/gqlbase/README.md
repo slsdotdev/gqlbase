@@ -55,7 +55,7 @@ npx gqlbase
 This generates two files in the `generated/` directory:
 
 - `schema.graphql` — the transformed schema with all generated types and operations
-- `models.typegen.ts` — TypeScript types that match the output schema
+- `schema.types.ts` — TypeScript types that match the output schema
 
 ## CLI
 

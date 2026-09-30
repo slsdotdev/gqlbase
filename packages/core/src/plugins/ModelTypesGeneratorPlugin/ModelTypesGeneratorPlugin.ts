@@ -15,10 +15,7 @@ import {
   isUnionNode,
   ObjectNode,
 } from "../../definition/index.js";
-import {
-  mergeOptions,
-  ModelTypesGeneratorPluginOptions,
-} from "./ModelTypesGeneratorPlugin.utils.js";
+import { SCHEMA_TYPES_FILE } from "./ModelTypesGeneratorPlugin.utils.js";
 import { isRelationField } from "../RelationsPlugin/RelationsPlugin.utils.js";
 import { isInternal } from "../InternalUtilsPlugin/index.js";
 import { isSemanticNullable } from "../RfcFeaturesPlugin/RfcFeaturesPlugin.utils.js";
@@ -26,23 +23,19 @@ import { TypesGeneratorBase } from "../TypesGeneratorBase/TypesGeneratorBase.js"
 import { collectPublicDefinitions, isPublicSchemaField } from "../SchemaGeneratorPlugin/index.js";
 
 /**
- * Generates TypeScript types that match the output schema: the definitions and fields that reach the client schema (see `isPublicSchemaField` and `collectPublicDefinitions`). It runs in `generate`, before `cleanup`, so it leaves out what cleanup will remove itself.
+ * Writes `schema.types.ts`: TypeScript types that match the output schema: the definitions and fields that reach the client schema (see `isPublicSchemaField` and `collectPublicDefinitions`). It runs in `generate`, before `cleanup`, so it leaves out what cleanup will remove itself.
  */
 
 export class ModelTypesGeneratorPlugin extends TypesGeneratorBase {
   private nodes: ts.Node[] = [];
   private publicDefinitions: Set<string> | null = null;
-  private options: Required<ModelTypesGeneratorPluginOptions>;
-
-  constructor(context: ITransformerContext, options: ModelTypesGeneratorPluginOptions = {}) {
+  constructor(context: ITransformerContext) {
     super("ModelTypesGeneratorPlugin", context);
-
-    this.options = mergeOptions(options);
   }
 
   private _getContent() {
     const file = ts.createSourceFile(
-      this.options.fileName,
+      SCHEMA_TYPES_FILE,
       /*sourceText*/ "",
       ts.ScriptTarget.Latest,
       /*setParentNodes*/ false,
@@ -197,12 +190,12 @@ export class ModelTypesGeneratorPlugin extends TypesGeneratorBase {
 
     this.context.files.push({
       type: "ts",
-      path: this.options.fileName,
-      filename: this.options.fileName,
+      path: SCHEMA_TYPES_FILE,
+      filename: SCHEMA_TYPES_FILE,
       content,
     });
 
-    return this.options.emitOutput ? { modelTypes: content } : {};
+    return { schemaTypes: content };
   }
 }
 

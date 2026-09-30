@@ -70,7 +70,7 @@ The end-to-end suite checks what gqlbase promises users: that an API built on th
 `npm test -w example` (and therefore `npm test`) does three things:
 
 1. **Generates** the artifacts with the example config (`gqlbase`, writing `example/generated/`).
-2. **Typechecks** the example (`npm run typecheck -w example`, which is codegen plus `tsc --noEmit`). The resolvers are typed by the generated `appsync/middy-appsync.typegen.ts` and the generated dsqlbase schema, so a generated type that no longer fits real resolver code fails here.
+2. **Typechecks** the example (`npm run typecheck -w example`, which is codegen plus `tsc --noEmit`). The resolvers are typed by the generated `appsync/middy-appsync.types.ts` and the generated dsqlbase schema, so a generated type that no longer fits real resolver code fails here.
 3. **Runs the specs** (`vitest run`, `example/vitest.config.ts`).
 
 ### How an operation runs

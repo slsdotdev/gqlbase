@@ -2,6 +2,8 @@
 
 _Audience: people generating a Drizzle ORM (PostgreSQL) schema from their `@model` types._
 
+> **Frozen.** The Drizzle generator keeps compiling and gets no new features; dsqlbase is the maintained database target. Its known gaps stay open. In particular, it imports object column types from `schema.types.ts` without the fallback dsqlbase has, so a column typed with a `@serverOnly` object produces a broken import.
+
 ```js
 import { drizzleSchemaGeneratorPlugin } from "@gqlbase/plugins/drizzle";
 
@@ -11,7 +13,7 @@ plugins: [drizzleSchemaGeneratorPlugin({ scalarMap: { Decimal: "numeric" } })];
 The plugin is `DrizzleSchemaGeneratorPlugin` (`packages/plugins/src/drizzle/DrizzleSchemaGeneratorPlugin/DrizzleSchemaGeneratorPlugin.ts`). It writes `drizzle/<fileName>`, which imports:
 - `relations` from `drizzle-orm`;
 - column builders from `drizzle-orm/pg-core`;
-- object types from `../models.typegen.js`.
+- object types from `../schema.types.js`.
 
 | Option | Default | Description |
 | --- | --- | --- |

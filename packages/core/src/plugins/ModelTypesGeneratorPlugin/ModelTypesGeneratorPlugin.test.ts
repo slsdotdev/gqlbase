@@ -17,8 +17,7 @@ const generateTypes = (
   const userNode = context.document.getNode("User") as ObjectNode;
   plugin.generate(userNode);
 
-  const result = plugin.output() as { modelTypes: string };
-  return result.modelTypes;
+  return plugin.output().schemaTypes;
 };
 
 describe("ModelTypesGeneratorPlugin", () => {
@@ -28,7 +27,7 @@ describe("ModelTypesGeneratorPlugin", () => {
 
     beforeAll(() => {
       context = new TransformerContext();
-      plugin = new ModelTypesGeneratorPlugin(context, { emitOutput: true });
+      plugin = new ModelTypesGeneratorPlugin(context);
       context.registerPlugin(plugin);
     });
 
@@ -144,7 +143,7 @@ describe("ModelTypesGeneratorPlugin", () => {
 
     beforeAll(() => {
       context = new TransformerContext();
-      plugin = new ModelTypesGeneratorPlugin(context, { emitOutput: true });
+      plugin = new ModelTypesGeneratorPlugin(context);
       context.registerPlugin(plugin);
     });
 
@@ -272,7 +271,7 @@ describe("ModelTypesGeneratorPlugin output schema", () => {
       }
     `);
 
-    content = output.files.find((file) => file.path === "models.typegen.ts")?.content ?? "";
+    content = output.files.find((file) => file.path === "schema.types.ts")?.content ?? "";
   });
 
   it("keeps public fields", () => {

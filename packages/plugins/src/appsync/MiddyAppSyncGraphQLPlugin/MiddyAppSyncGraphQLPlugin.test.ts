@@ -31,7 +31,7 @@ describe("MiddyAppSyncGraphQLPlugin", () => {
     `);
 
     content =
-      output.files.find((file) => file.path === "appsync/middy-appsync.typegen.ts")?.content ?? "";
+      output.files.find((file) => file.path === "appsync/middy-appsync.types.ts")?.content ?? "";
   });
 
   it("omits @serverOnly operations", () => {
@@ -51,8 +51,21 @@ describe("MiddyAppSyncGraphQLPlugin", () => {
     expect(content).toMatch(/parent: \{\s+source: CategorySource;/);
   });
 
-  it("types a hidden field whose type is not public as unknown", () => {
-    expect(content).toMatch(/visibility\?: unknown;/);
+  it("leaves hidden relation fields out of <Type>Source", () => {
+    const source = content.match(/export type CategorySource = Category & \{[^}]*\}/)?.[0] ?? "";
+
+    expect(source).toContain("parentId");
+    expect(source).not.toMatch(/\bparent\??:/);
+  });
+
+  it("declares a hidden field's type locally when the schema types do not export it", () => {
+    expect(content).toMatch(/export type Visibility = "PUBLIC" \| "HIDDEN";/);
+    expect(content).toMatch(/visibility\?: Maybe<Visibility>;/);
     expect(content).not.toMatch(/import type \{[^}]*\bVisibility\b/);
+  });
+
+  it("imports and re-exports the schema types it uses", () => {
+    expect(content).toMatch(/import type \{[^}]*\bCategory\b[^}]*\} from "\.\.\/schema\.types";/);
+    expect(content).toMatch(/export type \{[^}]*\bCategory\b[^}]*\} from "\.\.\/schema\.types";/);
   });
 });

@@ -1,1 +1,5 @@
-export { TypesGeneratorBase } from "./TypesGeneratorBase.js";
+export {
+  TypesGeneratorBase,
+  createTypeReferences,
+  type TypeReferences,
+} from "./TypesGeneratorBase.js";

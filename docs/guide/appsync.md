@@ -51,7 +51,7 @@ Defined in `packages/plugins/src/appsync/appSyncPreset.ts`.
 
 ## Resolver types
 
-`MiddyAppSyncGraphQLPlugin` writes `appsync/middy-appsync.typegen.ts`. This file augments the `Definition` interface of `@middy-appsync/graphql` with one entry per object and interface type:
+`MiddyAppSyncGraphQLPlugin` writes `appsync/middy-appsync.types.ts`. This file augments the `Definition` interface of `@middy-appsync/graphql` with one entry per object and interface type:
 
 ```ts
 declare module "@middy-appsync/graphql" {
@@ -69,7 +69,9 @@ declare module "@middy-appsync/graphql" {
 }
 ```
 
-- `source` is `null` for root types. Otherwise it is the parent type (imported from `../models.typegen`), or `<Type>Source` when the parent has hidden stored fields: `@serverOnly` and `@writeOnly` fields and relation keys. `<Type>Source` is the schema type plus those fields, since a parent resolver usually returns the stored row. A hidden field whose type is not in the output schema is typed `unknown`.
+- `source` is `null` for root types. Otherwise it is the parent type (imported from `../schema.types`), or `<Type>Source` when the parent has hidden stored fields: `@serverOnly` and `@writeOnly` fields and relation keys. `<Type>Source` is the schema type plus those fields, since a parent resolver usually returns the stored row.
+
+  Hidden relation fields are not part of the row (their key is), so they are left out. A hidden field whose type is not in the schema types is declared in this file.
 
   ```ts
   export type PostSource = Post & {
@@ -82,6 +84,7 @@ declare module "@middy-appsync/graphql" {
   - with `relationsOnly: false`, every field.
 
   **A `@clientOnly` scalar or object field gets no entry under the default**, so its value has to be set on the parent object by the parent's resolver.
+- **Re-exports.** The file re-exports the schema types it uses (`export type { … } from "../schema.types"`), so resolver code imports its types from one place.
 - `Authorization` is emitted only when `authorizationModes` is set. It imports the identity types from `aws-lambda`; `apiKey` contributes `null`.
 - **Only public fields get an entry** (`isPublicSchemaField`, see [Field visibility](./field-visibility.md)), so `@serverOnly` operations are not listed. Types that are not in the output schema get no entry.
 

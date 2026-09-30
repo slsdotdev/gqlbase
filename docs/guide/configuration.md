@@ -94,11 +94,11 @@ The core plugins and their helpers (`isModel`, `isRelationField`, `isSemanticNul
 | File (relative to `output`) | Written by |
 | --- | --- |
 | `schema.graphql` | `SchemaGeneratorPlugin` |
-| `models.typegen.ts` | `ModelTypesGeneratorPlugin` |
+| `schema.types.ts` | `ModelTypesGeneratorPlugin`: types that match `schema.graphql`. Capability plugins import from it and re-export what they use. |
 | `appsync/schema.graphql` | `AppSyncSchemaGeneratorPlugin` |
-| `appsync/middy-appsync.typegen.ts` | `MiddyAppSyncGraphQLPlugin` |
+| `appsync/middy-appsync.types.ts` | `MiddyAppSyncGraphQLPlugin` |
 | `zod/schema.validators.ts` | `ZodSchemaGeneratorPlugin` (`fileName` option) |
-| `dsqlbase.schema.ts` | `DsqlBaseSchemaGeneratorPlugin` |
+| `dsqlbase/schema.ts` | `DsqlBaseSchemaGeneratorPlugin` |
 | `drizzle/schema.ts` | `DrizzleSchemaGeneratorPlugin` (`fileName` option) |
 
 Existing files are overwritten; files a plugin no longer produces are not deleted.
@@ -115,7 +115,7 @@ output.schema; // printed schema.graphql
 output.files; // [{ type, path, filename, content }]
 ```
 
-`createTransformer` takes the [transformer options](#transformer-options) at the top level, next to `plugins`, with the same defaults. `transform()` returns `{ schema, files }` merged with whatever each plugin's `output()` returns (for example `modelTypes` when `modelTypesGeneratorPlugin({ emitOutput: true })`). Nothing is written to disk; the CLI does that.
+`createTransformer` takes the [transformer options](#transformer-options) at the top level, next to `plugins`, with the same defaults. `transform()` returns `{ schema, files }` merged with whatever each plugin's `output()` returns (`schemaTypes` holds the content of `schema.types.ts`). Nothing is written to disk; the CLI does that.
 
 ## Related
 

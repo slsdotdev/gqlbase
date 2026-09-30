@@ -11,9 +11,18 @@ describe("type-level visibility in stored outputs", () => {
     const output = createTransformer({
       plugins: [dsqlbase(), zodSchemaGeneratorPlugin()],
     }).transform(/* GraphQL */ `
+      type ImportMeta @serverOnly {
+        rows: Int!
+      }
+
+      type Address {
+        city: String!
+      }
+
       type ImportJob @model @serverOnly {
         id: ID!
         source: String!
+        meta: ImportMeta
       }
 
       type ExchangeRate @model @clientOnly {
@@ -37,11 +46,12 @@ describe("type-level visibility in stored outputs", () => {
         id: ID!
         status: Status
         tags: [Tag!]
+        address: Address
         lastImport: ImportJob @belongsTo
       }
     `);
 
-    tables = output.files.find((file) => file.path === "dsqlbase.schema.ts")?.content ?? "";
+    tables = output.files.find((file) => file.path === "dsqlbase/schema.ts")?.content ?? "";
     validators =
       output.files.find((file) => file.path === "zod/schema.validators.ts")?.content ?? "";
   });
@@ -63,5 +73,16 @@ describe("type-level visibility in stored outputs", () => {
     expect(tables).toContain('$enum("status_enum"');
     expect(tables).not.toContain("tag_enum");
     expect(tables).not.toContain("unused_enum");
+  });
+
+  it("imports and re-exports public column types from the schema types", () => {
+    expect(tables).toMatch(/import \{[^}]*type Address[^}]*\} from "\.\.\/schema\.types\.js";/);
+    expect(tables).toMatch(/export type \{[^}]*\bAddress\b[^}]*\} from "\.\.\/schema\.types\.js";/);
+  });
+
+  it("declares a column type locally when the schema types do not export it", () => {
+    expect(tables).toMatch(/export type ImportMeta = \{\s*rows: number;\s*\};/);
+    expect(tables).toContain('json("meta").$type<ImportMeta>()');
+    expect(tables).not.toMatch(/import \{[^}]*ImportMeta[^}]*\} from/);
   });
 });

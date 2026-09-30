@@ -22,11 +22,11 @@ These pages describe what the library does **today**. Planned behaviour is not d
 
 | Page | Import | Output |
 | --- | --- | --- |
-| [Models](./models.md), [Relations](./relations.md) | core plugins, always registered | `schema.graphql`, `models.typegen.ts` |
+| [Models](./models.md), [Relations](./relations.md) | core plugins, always registered | `schema.graphql`, `schema.types.ts` |
 | [Relay](./relay.md) | core plugins, `transform.relay` | connections, `Node` |
-| [AppSync](./appsync.md) | `@gqlbase/plugins` → `appsyncPreset` | `appsync/schema.graphql`, `appsync/middy-appsync.typegen.ts` |
+| [AppSync](./appsync.md) | `@gqlbase/plugins` → `appsyncPreset` | `appsync/schema.graphql`, `appsync/middy-appsync.types.ts` |
 | [Zod](./zod.md) | `@gqlbase/plugins/zod` | `zod/schema.validators.ts` |
-| [dsqlbase](./dsqlbase.md) | `@gqlbase/plugins/dsql` | `dsqlbase.schema.ts` |
+| [dsqlbase](./dsqlbase.md) | `@gqlbase/plugins/dsql` | `dsqlbase/schema.ts` |
 | [Drizzle](./drizzle.md) | `@gqlbase/plugins/drizzle` | `drizzle/schema.ts` |
 
 ## Directive quick reference

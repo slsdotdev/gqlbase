@@ -70,7 +70,7 @@ describe("createTransformer", () => {
     expect(output.schema).toContain("getPost(id: ID!): Post");
     expect(output.files.map((file) => file.filename)).toEqual([
       "schema.graphql",
-      "models.typegen.ts",
+      "schema.types.ts",
     ]);
   });
 

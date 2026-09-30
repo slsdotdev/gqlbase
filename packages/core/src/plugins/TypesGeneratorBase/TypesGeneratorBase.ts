@@ -5,6 +5,11 @@ import { getTypeHint } from "../InternalUtilsPlugin/index.js";
 import {
   EnumNode,
   FieldNode,
+  isEnumNode,
+  isInputObjectNode,
+  isInterfaceNode,
+  isObjectNode,
+  isUnionNode,
   InputObjectNode,
   InputValueNode,
   InterfaceNode,
@@ -19,8 +24,112 @@ import {
 import { isSemanticNullable } from "../RfcFeaturesPlugin/index.js";
 import { isRelationField } from "../RelationsPlugin/index.js";
 import { TransformerPluginExecutionError } from "@gqlbase/shared/errors";
+import { isInternal } from "../InternalUtilsPlugin/index.js";
+
+/**
+ * The named types a generated file references: those it imports from `schema.types.ts`, and local declarations for those the schema types do not export.
+ */
+export interface TypeReferences {
+  imports: Set<string>;
+  declarations: Map<string, ts.Node>;
+}
+
+export const createTypeReferences = (): TypeReferences => ({
+  imports: new Set(),
+  declarations: new Map(),
+});
 
 export abstract class TypesGeneratorBase extends TransformerPluginBase {
+  /**
+   * Records a named type that generated code references. Scalars need nothing. A public definition is imported from the schema types. Any other definition is declared locally, with the stored shape (every non-internal field), and the types it references are recorded the same way.
+   *
+   * Call it during `generate`: definitions that are not public are removed from the document before `output`.
+   *
+   * @param name The referenced type name.
+   * @param refs Where imports and local declarations are collected.
+   * @param publicDefinitions The definitions the schema types export (see `collectPublicDefinitions`).
+   */
+  protected _referenceType(name: string, refs: TypeReferences, publicDefinitions: Set<string>) {
+    if (isBuildInScalar(name) || refs.imports.has(name) || refs.declarations.has(name)) {
+      return;
+    }
+
+    const node = this.context.document.getNode(name);
+
+    if (!node || isScalarNode(node) || isInternal(node)) {
+      return;
+    }
+
+    if (publicDefinitions.has(name)) {
+      refs.imports.add(name);
+      return;
+    }
+
+    if (isEnumNode(node)) {
+      refs.declarations.set(name, this._createEnumType(node));
+      return;
+    }
+
+    if (isUnionNode(node)) {
+      const members = (node.types ?? []).map((member) => member.getTypeName());
+
+      refs.declarations.set(
+        name,
+        ts.factory.createTypeAliasDeclaration(
+          [ts.factory.createModifier(ts.SyntaxKind.ExportKeyword)],
+          ts.factory.createIdentifier(name),
+          undefined,
+          ts.factory.createUnionTypeNode(
+            members.map((member) => ts.factory.createTypeReferenceNode(member))
+          )
+        )
+      );
+
+      members.forEach((member) => this._referenceType(member, refs, publicDefinitions));
+      return;
+    }
+
+    if (isInputObjectNode(node)) {
+      refs.declarations.set(name, this._createInputObjectType(node));
+
+      for (const field of node.fields ?? []) {
+        this._referenceType(field.type.getTypeName(), refs, publicDefinitions);
+      }
+
+      return;
+    }
+
+    if (isObjectNode(node) || isInterfaceNode(node)) {
+      const fields = (node.fields ?? []).filter((field) => !isInternal(field));
+
+      // Declared before its fields are followed, so a type that references itself stops the walk.
+      refs.declarations.set(
+        name,
+        ts.factory.createTypeAliasDeclaration(
+          [ts.factory.createModifier(ts.SyntaxKind.ExportKeyword)],
+          ts.factory.createIdentifier(name),
+          undefined,
+          ts.factory.createTypeLiteralNode(
+            fields.map((field) =>
+              ts.factory.createPropertySignature(
+                undefined,
+                ts.factory.createIdentifier(field.name),
+                isSemanticNullable(field)
+                  ? ts.factory.createToken(ts.SyntaxKind.QuestionToken)
+                  : undefined,
+                this._createValueTypeReference(field, field.type)
+              )
+            )
+          )
+        )
+      );
+
+      for (const field of fields) {
+        this._referenceType(field.type.getTypeName(), refs, publicDefinitions);
+      }
+    }
+  }
+
   protected _createTypeNameIdentifier(typeName: string): ts.Identifier {
     if (isBuildInScalar(typeName)) {
       switch (typeName) {

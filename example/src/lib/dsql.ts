@@ -2,7 +2,7 @@ import { PGlite } from "@electric-sql/pglite";
 import { createMigrationRunner, getSerializedSchemaObjects } from "@dsqlbase/migration";
 import { createClient } from "dsqlbase";
 import { createPgLiteSession } from "dsqlbase/pglite";
-import * as schema from "../../generated/dsqlbase.schema";
+import * as schema from "../../generated/dsqlbase/schema";
 
 /**
  * The example is never deployed, so it runs on an in-memory PGlite database. Every process (and

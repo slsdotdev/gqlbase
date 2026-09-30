@@ -8,7 +8,7 @@ import { dsqlbase } from "@gqlbase/plugins/dsql";
 plugins: [dsqlbase()];
 ```
 
-`dsqlbase()` returns `[dsqlbaseSchemaGeneratorPlugin()]`. The plugin is `DsqlBaseSchemaGeneratorPlugin` (`packages/plugins/src/dsql/DsqlBaseSchemaGeneratorPlugin/DsqlBaseSchemaGeneratorPlugin.ts`). It writes `dsqlbase.schema.ts`, which imports builders from `dsqlbase/schema` and model types from `./models.typegen.js`.
+`dsqlbase()` returns `[dsqlbaseSchemaGeneratorPlugin()]`. The plugin is `DsqlBaseSchemaGeneratorPlugin` (`packages/plugins/src/dsql/DsqlBaseSchemaGeneratorPlugin/DsqlBaseSchemaGeneratorPlugin.ts`). It writes `dsqlbase/schema.ts`, which imports builders from `dsqlbase/schema` and the types of object and list columns from `../schema.types.js`, and re-exports those types. A column type the schema types do not export, such as a `@serverOnly` object, is declared in the file itself.
 
 ## Options
 
@@ -41,7 +41,8 @@ type Post @model {
 
 ```ts
 import { $enum, table, uuid, text, json, hasMany, belongsTo, relations } from "dsqlbase/schema";
-import { type Status, type Address } from "./models.typegen.js";
+import { type Address } from "../schema.types.js";
+export type { Address } from "../schema.types.js";
 
 export const statusEnum = $enum("status_enum", ["OPEN", "CLOSED"]);
 
