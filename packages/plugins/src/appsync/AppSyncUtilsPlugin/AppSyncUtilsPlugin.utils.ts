@@ -11,6 +11,7 @@ export const AppSyncScalar = {
   AWS_URL: "AWSURL",
   AWS_PHONE: "AWSPhone",
   AWS_IP_ADDRESS: "AWSIPAddress",
+  LONG: "Long",
 } as const;
 
 export type AppSyncScalarName = (typeof AppSyncScalar)[keyof typeof AppSyncScalar];
@@ -42,6 +43,7 @@ export const BaseScalarMappings: Record<BaseScalarName, AppSyncScalarName | Buil
   DateTime: AppSyncScalar.AWS_DATE_TIME,
   Time: AppSyncScalar.AWS_TIME,
   Timestamp: AppSyncScalar.AWS_TIMESTAMP,
+  BigInt: AppSyncScalar.LONG,
   UUID: BuildInScalar.ID,
   URL: AppSyncScalar.AWS_URL,
   EmailAddress: AppSyncScalar.AWS_EMAIL,

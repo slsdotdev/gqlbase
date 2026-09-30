@@ -155,6 +155,7 @@ export abstract class TypesGeneratorBase extends TransformerPluginBase {
         case "string":
           return ts.factory.createIdentifier("string");
         case "number":
+        case "bigint":
           return ts.factory.createIdentifier("number");
         case "boolean":
           return ts.factory.createIdentifier("boolean");

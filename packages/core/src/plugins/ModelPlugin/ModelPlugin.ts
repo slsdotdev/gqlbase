@@ -307,6 +307,7 @@ export class ModelPlugin implements ITransformerPlugin {
       case "string":
         return this._createStringLikeFilterInput(inputName, node.name);
       case "number":
+      case "bigint":
         return this._createNumberLikeFilterInput(inputName, node.name);
       case "boolean":
         return this._createBooleanLikeFilterInput(inputName, node.name);

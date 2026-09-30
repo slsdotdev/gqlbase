@@ -199,6 +199,8 @@ export class ZodSchemaGeneratorPlugin extends TransformerPluginBase {
           return this._zCall("string");
         case "number":
           return this._zCall("number");
+        case "bigint":
+          return this._parseZodExpression("z.number().int()");
         case "boolean":
           return this._zCall("boolean");
         case "object":

@@ -12,6 +12,7 @@ _Audience: people using the built-in scalars or adding their own._
 | `Date` | string | `string` | `z.iso.date()` | `date(…, { mode: "iso" })` | `date` | `AWSDate` |
 | `Time` | string | `string` | `z.iso.time()` | `time(…, { mode: "iso" })` | `time` | `AWSTime` |
 | `Timestamp` | number | `number` | `z.number()` | `timestamp` | `integer` | `AWSTimestamp` |
+| `BigInt` | bigint | `number` | `z.number().int()` | `bigintNumber` (local, see below) | `bigint(…, { mode: "number" })` | `Long` |
 | `UUID` | id | `string` | `z.uuid()` | `uuid` | `uuid` | `ID` |
 | `URL` | string | `string` | `z.url()` | `text` | `text` | `AWSURL` |
 | `EmailAddress` | string | `string` | `z.email()` | `text` | `text` | `AWSEmail` |
@@ -29,7 +30,15 @@ GraphQL's own scalars map as follows:
 | `Float` | `number` | `z.number()` | `real` | `doublePrecision` |
 | `Boolean` | `boolean` | `z.boolean()` | `bool` | `boolean` |
 
-There is no 64-bit integer scalar and no decimal scalar built in.
+### `BigInt`
+
+`BigInt` is stored in a 64-bit `bigint` column but typed as a JS `number` everywhere, so values are limited to `Number.MAX_SAFE_INTEGER` (9,007,199,254,740,991). That covers money in minor units. A JS `bigint` is not used because the Lambda runtime serializes resolver results with `JSON.stringify`, which throws on one.
+
+- **Zod** uses `z.number().int()`, which accepts only safe integers.
+- **dsqlbase:** its own `bigint()` column decodes to a JS `bigint`. So the generated `dsqlbase/schema.ts` declares a local `bigintNumber` builder when a column needs it. The builder is a `bigint` column that encodes with `toString()` and decodes with `Number()`. See [dsqlbase](./dsqlbase.md#bigint-columns).
+- **AppSync:** `BigInt` becomes `Long` in the AppSync schema.
+
+There is no decimal scalar built in. Declare one with a hint (see [Adding a custom scalar](#adding-a-custom-scalar)).
 
 ## Type hints
 
@@ -39,13 +48,14 @@ A type hint tells every generator what kind of value a scalar carries. It is dec
 scalar Decimal @gqlbase_typehint(type: string)
 ```
 
-The argument is declared `type: TypeHint!`, so the value is a bare **enum literal** (`string`, not `"string"`). The allowed values are `id`, `string`, `number`, `boolean`, `object` and `unknown` (`TypeHintValue` in `packages/core/src/plugins/InternalUtilsPlugin/InternalUtilsPlugin.utils.ts`). A quoted string or any other value fails the transform with an error naming the scalar. A scalar without a hint is `unknown`.
+The argument is declared `type: TypeHint!`, so the value is a bare **enum literal** (`string`, not `"string"`). The allowed values are `id`, `string`, `number`, `bigint`, `boolean`, `object` and `unknown` (`TypeHintValue` in `packages/core/src/plugins/InternalUtilsPlugin/InternalUtilsPlugin.utils.ts`). A quoted string or any other value fails the transform with an error naming the scalar. A scalar without a hint is `unknown`.
 
 | Hint | TS | Zod | Filter input | dsqlbase column | Drizzle column |
 | --- | --- | --- | --- | --- | --- |
 | `id` | `string` | `z.string()` | ID-like | `uuid` | `uuid` |
 | `string` | `string` | `z.string()` | string-like | `text` | `text` |
 | `number` | `number` | `z.number()` | number-like | `real` | `doublePrecision` |
+| `bigint` | `number` | `z.number().int()` | number-like | `bigintNumber` (local) | `bigint(…, { mode: "number" })` |
 | `boolean` | `boolean` | `z.boolean()` | boolean-like | `bool` | `boolean` |
 | `object` | `Record<string, unknown>` | `z.record(z.string(), z.unknown())` | boolean-like | `json` | `jsonb` |
 | `unknown` | `unknown` (warning) | `z.unknown()` | boolean-like (warning) | `text` | `text` |

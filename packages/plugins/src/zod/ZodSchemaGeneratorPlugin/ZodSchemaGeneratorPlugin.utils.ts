@@ -52,6 +52,7 @@ export const CUSTOM_SCALAR_ZOD_MAP: Record<BaseScalarName, string> = {
   [BaseScalar.DATE]: "z.iso.date()",
   [BaseScalar.TIME]: "z.iso.time()",
   [BaseScalar.TIMESTAMP]: "z.number()",
+  [BaseScalar.BIG_INT]: "z.number().int()",
   [BaseScalar.UUID]: "z.uuid()",
   [BaseScalar.URL]: "z.url()",
   [BaseScalar.EMAIL_ADDRESS]: "z.email()",

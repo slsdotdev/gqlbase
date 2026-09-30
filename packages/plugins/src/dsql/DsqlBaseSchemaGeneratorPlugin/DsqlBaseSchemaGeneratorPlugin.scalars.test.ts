@@ -1,0 +1,65 @@
+import { beforeAll, describe, expect, it } from "vitest";
+import { createTransformer } from "@gqlbase/core";
+import { dsqlbase } from "../index.js";
+
+describe("dsqlbase BigInt columns", () => {
+  let tables: string;
+
+  beforeAll(() => {
+    const output = createTransformer({ plugins: [dsqlbase()] }).transform(/* GraphQL */ `
+      scalar Counter @gqlbase_typehint(type: bigint)
+
+      type Invoice @model {
+        id: ID!
+        amount: BigInt!
+        refunded: BigInt
+        views: Counter
+        history: [BigInt!]
+      }
+    `);
+
+    tables = output.files.find((file) => file.path === "dsqlbase/schema.ts")?.content ?? "";
+  });
+
+  it("declares the bigintNumber builder once, decoding to number", () => {
+    expect(tables.match(/const bigintNumber = /g)).toHaveLength(1);
+    expect(tables).toContain("new ColumnDefinition<TName, ColumnConfig<number, string>>(name, {");
+    expect(tables).toContain('dataType: "bigint"');
+    expect(tables).toContain("decode: value => Number(value)");
+  });
+
+  it("imports the builder's types from @dsqlbase/core", () => {
+    expect(tables).toContain('import { ColumnDefinition, type ColumnConfig } from "@dsqlbase/core";');
+  });
+
+  it("uses the builder for BigInt and bigint-hinted columns", () => {
+    expect(tables).toContain('amount: bigintNumber("amount").notNull()');
+    expect(tables).toContain('refunded: bigintNumber("refunded")');
+    expect(tables).toContain('views: bigintNumber("views")');
+    expect(tables).not.toMatch(/import \{[^}]*\bbigintNumber\b[^}]*\} from "dsqlbase\/schema"/);
+  });
+
+  it("stores a list of BigInt as json typed number[]", () => {
+    expect(tables).toContain('history: json("history").$type<number[]>()');
+  });
+});
+
+describe("dsqlbase without BigInt columns", () => {
+  let tables: string;
+
+  beforeAll(() => {
+    const output = createTransformer({ plugins: [dsqlbase()] }).transform(/* GraphQL */ `
+      type Invoice @model {
+        id: ID!
+        total: Int!
+      }
+    `);
+
+    tables = output.files.find((file) => file.path === "dsqlbase/schema.ts")?.content ?? "";
+  });
+
+  it("emits no local builder and no @dsqlbase/core import", () => {
+    expect(tables).not.toContain("bigintNumber");
+    expect(tables).not.toContain("@dsqlbase/core");
+  });
+});

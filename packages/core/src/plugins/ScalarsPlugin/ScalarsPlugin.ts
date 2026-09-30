@@ -26,6 +26,10 @@ import { TransformerPluginBase } from "../TransformerPluginBase.js";
  *    Specified by: https://en.wikipedia.org/wiki/Unix_time
  *    Example: `1627846261`, `-1234567890`
  *
+ * - `BigInt`: A 64-bit integer, stored as `bigint` and typed as `number`, so values are limited to `Number.MAX_SAFE_INTEGER`.
+ *    Specified by: https://www.postgresql.org/docs/current/datatype-numeric.html
+ *    Example: `9007199254740991`, `-42`
+ *
  * - `URL`: A valid URL string.
  *    Specified by: https://www.ietf.org/rfc/rfc3986.txt
  *    Example: `"https://www.example.com"`, `"ftp://ftp.example.com/resource.txt"`
@@ -96,6 +100,19 @@ export class ScalarsPlugin extends TransformerPluginBase {
           ]),
           DirectiveNode.create("gqlbase_typehint", [
             ArgumentNode.create("type", ValueNode.enum("number")),
+          ]),
+        ])
+      )
+      .addNode(
+        ScalarNode.create("BigInt", undefined, [
+          DirectiveNode.create("specifiedBy", [
+            ArgumentNode.create(
+              "url",
+              ValueNode.string("https://www.postgresql.org/docs/current/datatype-numeric.html")
+            ),
+          ]),
+          DirectiveNode.create("gqlbase_typehint", [
+            ArgumentNode.create("type", ValueNode.enum("bigint")),
           ]),
         ])
       )

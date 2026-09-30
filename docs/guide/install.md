@@ -40,7 +40,7 @@ The generators only write files. The files they write import these packages, whi
 | Generator | Generated file imports |
 | --- | --- |
 | Zod ([zod.md](./zod.md)) | `zod` (v4; the file imports `zod/v4`) |
-| dsqlbase ([dsqlbase.md](./dsqlbase.md)) | `dsqlbase` (`dsqlbase/schema`) |
+| dsqlbase ([dsqlbase.md](./dsqlbase.md)) | `dsqlbase` (`dsqlbase/schema`); also `@dsqlbase/core` when a column is `BigInt` ([why](./dsqlbase.md#bigint-columns)) |
 | Drizzle ([drizzle.md](./drizzle.md)) | `drizzle-orm`, `drizzle-orm/pg-core` |
 | Middy AppSync ([appsync.md](./appsync.md)) | `@middy-appsync/graphql` (module augmentation), `aws-lambda` types |
 

@@ -11,6 +11,7 @@ export const TypeHintValue = Object.freeze({
   ID: "id",
   STRING: "string",
   NUMBER: "number",
+  BIGINT: "bigint",
   BOOLEAN: "boolean",
   OBJECT: "object",
   UNKNOWN: "unknown",

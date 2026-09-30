@@ -25,6 +25,7 @@ import { createPluginFactory, InternalDirective } from "@gqlbase/core/plugins";
  * scalar AWSURL
  * scalar AWSPhone
  * scalar AWSIPAddress
+ * scalar Long
  *
  * directive `@aws_subscribe(mutations: [String!]!)` on FIELD_DEFINITION
  * directive `@aws_auth(cognito_groups: [String!])` on FIELD_DEFINITION | OBJECT
@@ -105,6 +106,13 @@ export class AppSyncUtilsPlugin extends TransformerPluginBase {
         ScalarNode.create("AWSIPAddress", undefined, [
           DirectiveNode.create(InternalDirective.TYPE_HINT, [
             ArgumentNode.create("type", ValueNode.enum("string")),
+          ]),
+        ])
+      )
+      .addNode(
+        ScalarNode.create("Long", undefined, [
+          DirectiveNode.create(InternalDirective.TYPE_HINT, [
+            ArgumentNode.create("type", ValueNode.enum("bigint")),
           ]),
         ])
       )

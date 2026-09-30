@@ -69,7 +69,7 @@ The full comparison with the GraphQL inputs is in [Field visibility](./field-vis
 | `Float` | `z.number()` |
 | `Boolean` | `z.boolean()` |
 | built-in gqlbase scalars | see [Scalars](./scalars.md#built-in-scalars) (`z.iso.datetime()`, `z.uuid()`, `z.email()`, …) |
-| custom scalars | by type hint: `z.string()`, `z.number()`, `z.boolean()`, `z.record(z.string(), z.unknown())`, or `z.unknown()` |
+| custom scalars | by type hint: `z.string()`, `z.number()`, `z.number().int()` (`bigint`), `z.boolean()`, `z.record(z.string(), z.unknown())`, or `z.unknown()` |
 
 A custom scalar cannot be given its own Zod expression. There is no mapping option; only the type hint is used.
 

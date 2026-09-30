@@ -25,7 +25,7 @@ Defined in `packages/plugins/src/appsync/appSyncPreset.ts`.
 
 `AppSyncUtilsPlugin` (`packages/plugins/src/appsync/AppSyncUtilsPlugin/AppSyncUtilsPlugin.ts`) declares:
 
-- **AWS scalars**, each with a type hint, so they can be used directly in your SDL: `AWSDate`, `AWSDateTime`, `AWSTime`, `AWSTimestamp`, `AWSEmail`, `AWSJSON`, `AWSURL`, `AWSPhone`, `AWSIPAddress`.
+- **AWS scalars**, each with a type hint, so they can be used directly in your SDL: `AWSDate`, `AWSDateTime`, `AWSTime`, `AWSTimestamp`, `AWSEmail`, `AWSJSON`, `AWSURL`, `AWSPhone`, `AWSIPAddress`, and `Long` (a 64-bit integer, hint `bigint`), which [`BigInt`](./scalars.md#bigint) maps to.
 - **Auth and subscription directives:**
   - `@aws_subscribe(mutations: [String!]!)`
   - `@aws_auth(cognito_groups:)`
@@ -45,7 +45,7 @@ Defined in `packages/plugins/src/appsync/appSyncPreset.ts`.
 - every field and argument type is mapped:
   1. `scalarMappings`;
   2. GraphQL built-ins as is;
-  3. [built-in gqlbase scalars](./scalars.md#built-in-scalars) via their AppSync mapping (`UUID` → `ID`, `DateTime` → `AWSDateTime`, …).
+  3. [built-in gqlbase scalars](./scalars.md#built-in-scalars) via their AppSync mapping (`UUID` → `ID`, `DateTime` → `AWSDateTime`, `BigInt` → `Long`, …).
 
 **Every other custom scalar must be in `scalarMappings`, or the transform throws.**
 

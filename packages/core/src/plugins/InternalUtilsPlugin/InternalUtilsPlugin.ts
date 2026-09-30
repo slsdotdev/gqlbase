@@ -34,6 +34,7 @@ import { InternalDirective, TypeHintValue } from "./InternalUtilsPlugin.utils.js
  *   id
  *   string
  *   number
+ *   bigint
  *   boolean
  *   object
  *   unknown
