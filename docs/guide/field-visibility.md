@@ -33,7 +33,7 @@ The entries were checked by running the transformer.
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | *(nothing)* | ✓ | ✓ | ✓ (nullable) | ✓ | ✓ | ✓ | ✓ / ✓ | ✓ |
 | `@readOnly` | ✓ | — | — | — | ✓ | ✓ | ✓ / ✓ | ✓ |
-| `@writeOnly` | — | ✓ | ✓ | ✓ ¹ | — | — | ✓ / ✓ | ✓ |
+| `@writeOnly` | — | ✓ | ✓ | — ¹ | — | — | ✓ / ✓ | ✓ |
 | `@serverOnly` | — | — | — | — | — | ✓ | ✓ / ✓ | ✓ |
 | `@clientOnly` | ✓ | — | — | — | ✓ | ✓ | — / — | — |
 | `@createOnly` | ✓ | ✓ | — | — ² | ✓ | ✓ | ✓ / — | ✓ |
@@ -42,7 +42,7 @@ The entries were checked by running the transformer.
 | relation field (`@hasOne`…) | ✓ | — | — | — | ✓ (optional) | — | — / — | relation, not a column |
 | relation key (added, `@serverOnly @writeOnly`) | — | — | — | — | — | — | ✓ / ✓ | ✓ |
 
-1. `@writeOnly` is not excluded from filter inputs, so clients can filter on a value they cannot read. See [Known gaps](../internals/known-gaps.md).
+1. Clients cannot filter on a value they cannot read. Add `@filterOnly` to a `@writeOnly` field to filter on it anyway.
 2. The `…Only` directives combine. `@createOnly @filterOnly` puts a field in both the create input and the filter; the same applies to the Zod create/update schemas.
 
 Notes:

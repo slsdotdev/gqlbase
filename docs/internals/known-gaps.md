@@ -30,10 +30,6 @@ The class docstring shows `author: User @hasOne` on `Post` adding `authorId` to 
 
 A relation field on a non-model type that has no `id` field throws "does not have an id field" in `RelationsPlugin`, even when `key:` is given. An example is `posts: [Post] @hasMany` on a `Viewer` root. Only `@clientOnly` relation fields avoid it. The error message suggests "a key directive with an explicit type", which does not exist.
 
-### 9. `@writeOnly` fields appear in filter inputs
-
-`shouldSkipFieldFromFilterInput` (`packages/core/src/plugins/ModelPlugin/ModelPlugin.utils.ts`) does not skip `@writeOnly`, so clients can filter on a value they cannot read.
-
 ### 11. Nested `<Type>Input` is shared across operations
 
 A non-model object field gets a nested `<Type>Input` built with the rules of whichever operation reaches it first (`ModelPlugin.ts`). Every operation then reuses that input. For example, the update input inherits non-null fields from the create input.
