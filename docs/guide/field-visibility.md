@@ -17,9 +17,9 @@ The utility directives are declared by `UtilitiesPlugin` (`packages/core/src/plu
 
 ## What each generator does
 
-There is no central rule. Each generator applies its own, and they differ, which is why this page exists. The table was derived from the code:
+One core rule decides what reaches the client schema: `isPublicSchemaField(field, parent)` (`packages/core/src/plugins/SchemaGeneratorPlugin/SchemaGeneratorPlugin.utils.ts`). A field is public unless it is `@serverOnly`, `@writeOnly` or internal. The public SDL, the TS schema types and the AppSync resolver types all use it. The inputs, Zod and the database describe what is *stored* and apply their own rules. The table was derived from the code:
 
-- **SDL**: `UtilitiesPlugin.cleanup`.
+- **SDL**: `UtilitiesPlugin.cleanup` and `SchemaGeneratorPlugin`.
 - **GraphQL inputs**: `ModelPlugin.utils.ts`.
 - **TS**: `ModelTypesGeneratorPlugin`.
 - **Zod**: `ZodSchemaGeneratorPlugin` and `ZodSchemaGeneratorPlugin.utils.ts`.
@@ -33,25 +33,25 @@ The entries were checked by running the transformer.
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | *(nothing)* | ✓ | ✓ | ✓ (nullable) | ✓ | ✓ | ✓ | ✓ / ✓ | ✓ |
 | `@readOnly` | ✓ | — | — | — | ✓ | ✓ | ✓ / ✓ | ✓ |
-| `@writeOnly` | — | ✓ | ✓ | ✓ ¹ | — ² | — | ✓ / ✓ | ✓ |
-| `@serverOnly` | — | — | — | — | ✓ | ✓ | ✓ / ✓ | ✓ |
+| `@writeOnly` | — | ✓ | ✓ | ✓ ¹ | — | — | ✓ / ✓ | ✓ |
+| `@serverOnly` | — | — | — | — | — | ✓ | ✓ / ✓ | ✓ |
 | `@clientOnly` | ✓ | — | — | — | ✓ | ✓ | — / — | — |
-| `@createOnly` | ✓ | ✓ | — | — ³ | ✓ | ✓ | ✓ / — | ✓ |
-| `@updateOnly` | ✓ | — | ✓ | — ³ | ✓ | ✓ | — / ✓ | ✓ |
-| `@filterOnly` | ✓ | — ³ | — ³ | ✓ | ✓ | ✓ | — / — ³ | ✓ |
+| `@createOnly` | ✓ | ✓ | — | — ² | ✓ | ✓ | ✓ / — | ✓ |
+| `@updateOnly` | ✓ | — | ✓ | — ² | ✓ | ✓ | — / ✓ | ✓ |
+| `@filterOnly` | ✓ | — ² | — ² | ✓ | ✓ | ✓ | — / — ² | ✓ |
 | relation field (`@hasOne`…) | ✓ | — | — | — | ✓ (optional) | — | — / — | relation, not a column |
-| relation key (added, `@serverOnly @writeOnly`) | — | — | — | — | ✓ | — | ✓ / ✓ | ✓ |
+| relation key (added, `@serverOnly @writeOnly`) | — | — | — | — | — | — | ✓ / ✓ | ✓ |
 
 1. `@writeOnly` is not excluded from filter inputs, so clients can filter on a value they cannot read. See [Known gaps](../internals/known-gaps.md).
-2. Unless the field is also `@serverOnly`.
-3. The `…Only` directives combine. `@createOnly @filterOnly` puts a field in both the create input and the filter; the same applies to the Zod create/update schemas.
+2. The `…Only` directives combine. `@createOnly @filterOnly` puts a field in both the create input and the filter; the same applies to the Zod create/update schemas.
 
 Notes:
 
 - **"Public SDL type"** is the object type in `schema.graphql` and `appsync/schema.graphql`. `@writeOnly` and `@serverOnly` fields are removed during `cleanup`. The other utility directives are stripped and their fields kept.
-- **Generators see the schema before cleanup.** Code generators run in the `generate` phase, which comes *before* `cleanup`, so they still see `@serverOnly` and `@writeOnly` fields and relation keys. That is why the TS types, Zod schemas and tables contain them. See [Architecture](../internals/architecture.md).
+- **Generators see the schema before cleanup.** Code generators run in the `generate` phase, which comes *before* `cleanup`, so they still see `@serverOnly` and `@writeOnly` fields and relation keys. The TS schema types and the AppSync resolver types leave them out with `isPublicSchemaField`; Zod and the tables keep them because they describe the stored row. See [Architecture](../internals/architecture.md).
 - **Zod create/update schemas describe the stored row, not the GraphQL input.** They include `@readOnly` and `@serverOnly` fields and relation keys, which `Create<Model>Input` does not.
-- **The Middy AppSync resolver types** are also built in `generate`. Root-type fields therefore appear there even when marked `@serverOnly`.
+- **The Middy AppSync resolver types** list only public fields, so `@serverOnly` operations get no entry. A resolver's `source` is typed `<Type>Source` when the parent type has hidden stored fields, so resolvers can read relation keys and `@serverOnly` values from the parent row (see [AppSync](./appsync.md)).
+- **Unused definitions are removed.** A type, input, enum, union or scalar that nothing public reaches is removed from `schema.graphql` and the AppSync schema, and left out of the TS schema types. Zod skips definitions that no stored field or input reaches.
 - **Directives stay on the type that declares them.** Visibility directives on a non-model object type apply to that type's own `<Type>Input` (see [Models](./models.md#mutation-inputs)); they are not inherited from the field that embeds it.
 
 ## `@constraint`

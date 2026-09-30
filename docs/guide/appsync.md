@@ -69,14 +69,21 @@ declare module "@middy-appsync/graphql" {
 }
 ```
 
-- `source` is `null` for root types, and otherwise the parent model type (imported from `../models.typegen`).
+- `source` is `null` for root types. Otherwise it is the parent type (imported from `../models.typegen`), or `<Type>Source` when the parent has hidden stored fields: `@serverOnly` and `@writeOnly` fields and relation keys. `<Type>Source` is the schema type plus those fields, since a parent resolver usually returns the stored row. A hidden field whose type is not in the output schema is typed `unknown`.
+
+  ```ts
+  export type PostSource = Post & {
+    authorId?: Maybe<string>;
+    deletedAt?: Maybe<string>;
+  };
+  ```
 - **Which fields get an entry:**
   - with `relationsOnly: true` (the default), every field of `Query`, `Mutation` and `Subscription`, and every relation field (`@hasOne`, `@hasMany`, `@belongsTo`) on other types;
   - with `relationsOnly: false`, every field.
 
   **A `@clientOnly` scalar or object field gets no entry under the default**, so its value has to be set on the parent object by the parent's resolver.
 - `Authorization` is emitted only when `authorizationModes` is set. It imports the identity types from `aws-lambda`; `apiKey` contributes `null`.
-- **Entries are generated before `cleanup`.** `@serverOnly` fields on root types are still listed, and keys and edge fields appear exactly as they are at that point. See [Architecture](../internals/architecture.md).
+- **Only public fields get an entry** (`isPublicSchemaField`, see [Field visibility](./field-visibility.md)), so `@serverOnly` operations are not listed. Types that are not in the output schema get no entry.
 
 The file only provides types. Resolver implementations and data access are up to the application.
 

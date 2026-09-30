@@ -23,14 +23,15 @@ import { isRelationField } from "../RelationsPlugin/RelationsPlugin.utils.js";
 import { isInternal } from "../InternalUtilsPlugin/index.js";
 import { isSemanticNullable } from "../RfcFeaturesPlugin/RfcFeaturesPlugin.utils.js";
 import { TypesGeneratorBase } from "../TypesGeneratorBase/TypesGeneratorBase.js";
-import { isServerOnly, isWriteOnly } from "../UtilitiesPlugin/UtilitiesPlugin.utils.js";
+import { collectPublicDefinitions, isPublicSchemaField } from "../SchemaGeneratorPlugin/index.js";
 
 /**
- * This plugin generates TypeScript types for all objects defined in the schema.
+ * Generates TypeScript types that match the output schema: the definitions and fields that reach the client schema (see `isPublicSchemaField` and `collectPublicDefinitions`). It runs in `generate`, before `cleanup`, so it leaves out what cleanup will remove itself.
  */
 
 export class ModelTypesGeneratorPlugin extends TypesGeneratorBase {
   private nodes: ts.Node[] = [];
+  private publicDefinitions: Set<string> | null = null;
   private options: Required<ModelTypesGeneratorPluginOptions>;
 
   constructor(context: ITransformerContext, options: ModelTypesGeneratorPluginOptions = {}) {
@@ -60,7 +61,7 @@ export class ModelTypesGeneratorPlugin extends TypesGeneratorBase {
     const members: ts.TypeElement[] = [];
 
     for (const field of definition.fields ?? []) {
-      if (isInternal(field) || (isWriteOnly(field) && !isServerOnly(field))) {
+      if (!isPublicSchemaField(field, definition)) {
         continue;
       }
 
@@ -105,6 +106,8 @@ export class ModelTypesGeneratorPlugin extends TypesGeneratorBase {
 
   public before() {
     const headers = createFileHeaders();
+
+    this.publicDefinitions = null;
 
     this.nodes = [...headers];
 
@@ -161,6 +164,13 @@ export class ModelTypesGeneratorPlugin extends TypesGeneratorBase {
   }
 
   public generate(definition: DefinitionNode) {
+    // Collected on the first call: execute has finished, and nothing changes the document during generate.
+    this.publicDefinitions ??= collectPublicDefinitions(this.context);
+
+    if (!this.publicDefinitions.has(definition.name)) {
+      return;
+    }
+
     if (isInterfaceNode(definition)) {
       return this.nodes.push(this._createInterfaceType(definition));
     }

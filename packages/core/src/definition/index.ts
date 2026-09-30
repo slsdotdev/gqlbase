@@ -29,6 +29,7 @@ export {
   isUnionNode,
   isObjectLike,
   isOperationNode,
+  OPERATION_NODE_NAME,
   isListTypeNode,
   isNullableTypeNode,
 } from "./utils.js";

@@ -151,4 +151,29 @@ describe("field visibility", () => {
       );
     });
   });
+
+  describe("unused definitions", () => {
+    it("are not in the schema", async () => {
+      const result = await execute(/* GraphQL */ `
+        query Types {
+          sortDirection: __type(name: "SortDirection") {
+            name
+          }
+          searchResult: __type(name: "SearchResult") {
+            name
+          }
+          category: __type(name: "Category") {
+            name
+          }
+        }
+      `);
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data).toEqual({
+        sortDirection: null,
+        searchResult: null,
+        category: { name: "Category" },
+      });
+    });
+  });
 });

@@ -27,6 +27,7 @@ The plugin is `ZodSchemaGeneratorPlugin` (`packages/plugins/src/zod/ZodSchemaGen
 | input type `I` | `ISchema`, only with `generateArgumentSchemas` |
 
 - Root types, scalars, directive definitions and `@gqlbase_internal` definitions produce nothing.
+- Definitions that no field reaches from the root types, including `@serverOnly` and `@writeOnly` fields, produce nothing (`collectReachableDefinitions`).
 - Schemas are emitted in dependency order, and cycles are wrapped in `z.lazy(...)`.
 - Self-referencing inputs (for example `and: [XFilterInput]`) are built as a base object plus `.extend(...)`.
 

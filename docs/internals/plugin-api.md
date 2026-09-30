@@ -71,7 +71,7 @@ public init() {
 
 It then removes the directive's usages in `cleanup` and its definition in `after`, so the public schema carries neither. Examples include `packages/core/src/plugins/UtilitiesPlugin/UtilitiesPlugin.ts` and `packages/core/src/plugins/ModelPlugin/ModelPlugin.ts`. `RfcFeaturesPlugin` keeps `@semanticNonNull` in the output on purpose, and is registered only when `context.options.semanticNullability` is on.
 
-Internal-only definitions carry `@gqlbase_internal`. Scalars carry `@gqlbase_typehint(type: …)` to tell generators how to type them. Both come from `InternalUtilsPlugin` (`packages/core/src/plugins/InternalUtilsPlugin/`), which removes them in `cleanup` and `after`.
+Internal-only definitions carry `@gqlbase_internal`. Scalars carry `@gqlbase_typehint(type: …)` to tell generators how to type them. Both come from `InternalUtilsPlugin` (`packages/core/src/plugins/InternalUtilsPlugin/`), which removes them in `cleanup` and `after`. Internal definitions never reach the client schema, so `SchemaGeneratorPlugin` removes any that are left before printing.
 
 ## Producing files
 
@@ -83,6 +83,7 @@ Generators accumulate state during `generate` (and sometimes `before`/`after`). 
 2. Declare the plugin's directives, enums and scalars on `context.base` in `init()`.
 3. Keep `match()` narrow. It gates every per-definition hook. Read `context.options` for feature switches.
 4. Add schema in `normalize`, transform in `execute`, and collect generated output in `generate`. Anything that depends on another plugin's work must run in a later phase than that work.
+   A generator that describes the client schema must leave out what will not reach it: use `isPublicSchemaField(field, parent)` for fields and `collectPublicDefinitions(context)` for definitions (collect once, on the first `generate` call). A generator that describes stored data uses `collectReachableDefinitions` with its own field rule.
 5. Remove the plugin's directives and temporary fields in `cleanup`, and its definitions in `after`.
 6. Co-locate `<Plugin>.test.ts` (see [Testing](./testing.md)). If the plugin adds or changes documented behaviour, update the guide page in the same PR ([Conventions → Documentation](./conventions.md#documentation)).
 

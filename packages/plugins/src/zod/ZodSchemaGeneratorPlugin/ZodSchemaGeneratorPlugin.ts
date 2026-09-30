@@ -14,6 +14,7 @@ import {
   isRelationField,
   isModel,
   isPrimaryKeyField,
+  collectReachableDefinitions,
 } from "@gqlbase/core/plugins";
 import {
   DefinitionNode,
@@ -103,6 +104,7 @@ interface PendingSchema {
 }
 
 export class ZodSchemaGeneratorPlugin extends TransformerPluginBase {
+  private reachable: Set<string> | null = null;
   private nodes: ts.Node[] = [];
   private pending: PendingSchema[] = [];
   private pendingByName = new Map<string, PendingSchema>();
@@ -687,6 +689,7 @@ export class ZodSchemaGeneratorPlugin extends TransformerPluginBase {
   }
 
   public before() {
+    this.reachable = null;
     this.nodes = [];
     this.pending = [];
     this.pendingByName = new Map();
@@ -718,6 +721,14 @@ export class ZodSchemaGeneratorPlugin extends TransformerPluginBase {
   }
 
   public generate(definition: DefinitionNode) {
+    // Stored rows and inputs: every non-internal field counts, including @serverOnly and @writeOnly ones.
+    // Collected on the first call: execute has finished, and nothing changes the document during generate.
+    this.reachable ??= collectReachableDefinitions(this.context, (field) => !isInternal(field));
+
+    if (!isOperationNode(definition) && !this.reachable.has(definition.name)) {
+      return;
+    }
+
     if (isOperationNode(definition)) {
       if (this.options.generateArgumentSchemas) {
         this._registerArgumentInputs(definition as ObjectNode);

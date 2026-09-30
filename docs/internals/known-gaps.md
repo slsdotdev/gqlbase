@@ -34,7 +34,7 @@ In `packages/core/src/plugins/InternalUtilsPlugin/`:
 
 ### 6. `SortDirection` is generated but never used
 
-`ModelPlugin.before` adds `enum SortDirection { ASC DESC }` to every document. No generated field or input references it, and list queries have no sort argument (a `TODO: Handle sort input` sits beside `_createListQueryField`).
+`ModelPlugin.before` adds `enum SortDirection { ASC DESC }` to every document. No generated field or input references it, and list queries have no sort argument (a `TODO: Handle sort input` sits beside `_createListQueryField`). Because nothing reaches it, `SchemaGeneratorPlugin` drops it from the output and the generators skip it, but it is still created on every run.
 
 ### 7. Type extensions of undeclared types are dropped silently
 
@@ -60,10 +60,6 @@ A non-model object field gets a nested `<Type>Input` built with the rules of whi
 
 `[String]` fields get `StringFilterInput` rather than a list filter. `<Type>ListFilterInput` is created only when no `<Type>FilterInput` exists yet.
 
-### 13. `@gqlbase_internal` definitions are not removed automatically
-
-`InternalUtilsPlugin` does not strip definitions marked `@gqlbase_internal`. The plugin that adds one must remove it itself.
-
 ## Code generation
 
 ### 14. Drizzle emits `json`, not `jsonb`
@@ -71,14 +67,6 @@ A non-model object field gets a nested `<Type>Input` built with the rules of whi
 `DrizzleSchemaGeneratorPlugin` (`packages/plugins/src/drizzle/DrizzleSchemaGeneratorPlugin/DrizzleSchemaGeneratorPlugin.ts`) emits `json("<col>").$type<T>()` for non-model object fields. Its test is titled "generates jsonb()…" but asserts `json(`. The typehint map in `DrizzleSchemaGeneratorPlugin.utils.ts` maps `object` to `"jsonb"`, so the two paths disagree.
 
 The same plugin also ignores its `dialect` option, and it uses a union's name as a table variable when a relation targets a union.
-
-### 15. Unused enums leak into generated code
-
-The dsqlbase and Zod generators emit every enum in the document, so the unused `SortDirection` (see [`SortDirection` is generated but never used](#6-sortdirection-is-generated-but-never-used)) becomes a `$enum` and a Zod schema.
-
-### 16. Middy resolver types include `@serverOnly` root fields
-
-`MiddyAppSyncGraphQLPlugin` generates types during `generate`, which runs before `cleanup`. Its resolver types therefore still list `@serverOnly` operations. `@clientOnly` non-relation fields get no resolver entry unless `relationsOnly` is disabled.
 
 ### 17. `dsqlbase()` factory takes no options
 

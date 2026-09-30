@@ -2,6 +2,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { TransformerContext } from "../../context/index.js";
 import { DocumentNode, ObjectNode } from "../../definition/index.js";
 import { ModelTypesGeneratorPlugin } from "./ModelTypesGeneratorPlugin.js";
+import { createTransformer } from "../../transformer/index.js";
 
 const generateTypes = (
   plugin: ModelTypesGeneratorPlugin,
@@ -239,5 +240,58 @@ describe("ModelTypesGeneratorPlugin", () => {
       expect(output).toContain("tags: string[]");
       expect(output).not.toMatch(/tags\?/);
     });
+  });
+});
+
+describe("ModelTypesGeneratorPlugin output schema", () => {
+  let content: string;
+
+  beforeAll(() => {
+    const output = createTransformer().transform(/* GraphQL */ `
+      enum Visibility {
+        PUBLIC
+        HIDDEN
+      }
+
+      enum Unused {
+        A
+      }
+
+      type Author @model {
+        id: ID!
+        name: String!
+      }
+
+      type Post @model {
+        id: ID!
+        title: String!
+        author: Author @belongsTo
+        importRef: String @writeOnly
+        deletedAt: String @serverOnly
+        visibility: Visibility @serverOnly
+      }
+    `);
+
+    content = output.files.find((file) => file.path === "models.typegen.ts")?.content ?? "";
+  });
+
+  it("keeps public fields", () => {
+    expect(content).toMatch(/export type Post = \{[^}]*title: string;/);
+    expect(content).toMatch(/export type Post = \{[^}]*author\?: Maybe<Author>;/);
+  });
+
+  it("omits @serverOnly and @writeOnly fields and relation keys", () => {
+    const post = content.match(/export type Post = \{[^}]*\}/)?.[0] ?? "";
+
+    expect(post).not.toContain("authorId");
+    expect(post).not.toContain("importRef");
+    expect(post).not.toContain("deletedAt");
+    expect(post).not.toContain("visibility");
+  });
+
+  it("omits definitions that are not in the output schema", () => {
+    expect(content).not.toContain("export type Visibility");
+    expect(content).not.toContain("export type Unused");
+    expect(content).toContain("export type CreatePostInput");
   });
 });

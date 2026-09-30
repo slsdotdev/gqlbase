@@ -96,7 +96,7 @@ A new *hint* value touches even more places:
 `@gqlbase_internal` marks a definition (type, field, enum, …) as internal to gqlbase. Plugins use it for helper definitions, such as the `ModelOperation` and `TypeHint` enums.
 
 - **What reads the marker:** the code generators skip internal definitions (TS types, Zod, dsqlbase, Drizzle, the AppSync schema and resolver types).
-- **What removes internal definitions:** nothing does automatically. The plugin that adds one also removes it in `after()`. `InternalUtilsPlugin` only removes the directive's own definition.
+- **What removes internal definitions:** the plugin that adds one should remove it in `after()`. Internal definitions never reach the client schema, so `SchemaGeneratorPlugin` removes any that are left before it prints the schema.
 
 This is a plugin-author tool, not something to put in application schemas.
 
