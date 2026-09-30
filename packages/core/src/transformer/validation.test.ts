@@ -135,4 +135,24 @@ describe("validation stages", () => {
       ).toThrow(/Int is not a valid relationship target for Post.owner/);
     });
   });
+
+  describe("an extension of an undeclared root type", () => {
+    let schema: string;
+
+    beforeAll(() => {
+      ({ schema } = createTransformer().transform(/* GraphQL */ `
+        type Post @model {
+          id: ID!
+        }
+
+        extend type Mutation {
+          publishPost(id: ID!): Post
+        }
+      `));
+    });
+
+    it("merges with the operations plugins generate", () => {
+      expect(schema).toMatch(/type Mutation \{[^}]*publishPost\(id: ID!\): Post[^}]*createPost\(/);
+    });
+  });
 });

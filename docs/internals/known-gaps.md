@@ -36,10 +36,6 @@ In `packages/core/src/plugins/InternalUtilsPlugin/`:
 
 `ModelPlugin.before` adds `enum SortDirection { ASC DESC }` to every document. No generated field or input references it, and list queries have no sort argument (a `TODO: Handle sort input` sits beside `_createListQueryField`). Because nothing reaches it, `SchemaGeneratorPlugin` drops it from the output and the generators skip it, but it is still created on every run.
 
-### 7. Type extensions of undeclared types are dropped silently
-
-`DocumentNode.fromDefinition` (`packages/core/src/definition/DocumentNode.ts`) applies `extend type X` only when `X` exists in the **same** parsed document. An extension of a type declared nowhere in the source is dropped without an error. This includes a root type that a plugin would create later, such as `extend type Mutation` with no `type Mutation`.
-
 ### 8. Relations on types without an `id` throw
 
 A relation field on a non-model type that has no `id` field throws "does not have an id field" in `RelationsPlugin`, even when `key:` is given. An example is `posts: [Post] @hasMany` on a `Viewer` root. Only `@clientOnly` relation fields avoid it. The error message suggests "a key directive with an explicit type", which does not exist.
