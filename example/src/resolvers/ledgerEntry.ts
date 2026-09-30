@@ -1,0 +1,48 @@
+import {
+  createMutationResolver,
+  createQueryResolver,
+  defineResolvers,
+} from "@middy-appsync/graphql";
+import { dsql } from "../lib/dsql";
+import { allOf, toWhere } from "../lib/filter";
+import { DEFAULT_PAGE_SIZE, toConnection } from "../lib/connection";
+import { validate } from "../lib/validation";
+import { CreateLedgerEntryInputSchema } from "../../generated/zod/schema.validators";
+
+type LedgerEntryWhere = NonNullable<Parameters<typeof dsql.ledgerEntries.findMany>[0]["where"]>;
+
+const getLedgerEntry = createQueryResolver({
+  fieldName: "getLedgerEntry",
+  resolve: async ({ args }) => {
+    return await dsql.ledgerEntries.findOne({ where: { id: args.id } });
+  },
+});
+
+const listLedgerEntries = createQueryResolver({
+  fieldName: "listLedgerEntries",
+  resolve: async ({ args }) => {
+    const first = args.first ?? DEFAULT_PAGE_SIZE;
+    const rows = await dsql.ledgerEntries.findMany({
+      where: allOf<LedgerEntryWhere>(
+        toWhere(args.filter),
+        args.after ? { id: { gt: args.after } } : null
+      ),
+      orderBy: { id: "asc" },
+      limit: first + 1,
+    });
+
+    return toConnection(rows, first);
+  },
+});
+
+// Currency is checked by the Zod override in gqlbase.config.js; amountMinor by z.number().int().
+const createLedgerEntry = createMutationResolver({
+  fieldName: "createLedgerEntry",
+  resolve: async ({ args }) => {
+    const data = validate(CreateLedgerEntryInputSchema, args.input);
+
+    return await dsql.ledgerEntries.create({ data, return: true as const });
+  },
+});
+
+export default defineResolvers(getLedgerEntry, listLedgerEntries, createLedgerEntry);

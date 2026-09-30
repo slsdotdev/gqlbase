@@ -1,0 +1,14 @@
+# ------------------------------------------------------------------------------
+# Ledger: custom and 64-bit scalars
+# ------------------------------------------------------------------------------
+
+"""
+A money movement. Amounts are in minor units (cents) as `BigInt`, so they are not capped at
+the int4 range (21,474,836.47 in major units).
+"""
+type LedgerEntry @model {
+  id: UUID!
+  amountMinor: BigInt!
+  currency: Currency!
+  memo: String
+}

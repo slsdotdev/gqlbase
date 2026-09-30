@@ -14,6 +14,7 @@
     "test": "npm run typecheck && vitest run"
   },
   "dependencies": {
+    "@dsqlbase/core": "latest",
     "@dsqlbase/migration": "latest",
     "@electric-sql/pglite": "^0.4.6",
     "@middy-appsync/graphql": "^0.1.4",

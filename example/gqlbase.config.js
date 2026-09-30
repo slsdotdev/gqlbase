@@ -17,7 +17,12 @@ export default defineConfig({
         authorizationModes: ["cognito", "iam"],
       },
     }),
-    zodSchemaGeneratorPlugin(),
+    zodSchemaGeneratorPlugin({
+      scalars: {
+        // ISO 4217 format: three upper-case letters.
+        Currency: 'z.string().regex(/^[A-Z]{3}$/, "Expected an ISO 4217 currency code")',
+      },
+    }),
     dsqlbase(),
   ],
 });

@@ -6,7 +6,6 @@ _Audience: people deploying the generated schema to AWS AppSync and writing reso
 import { appsyncPreset } from "@gqlbase/plugins";
 
 appsyncPreset({
-  scalarMappings: { Decimal: "String" },
   middyAppSync: { authorizationModes: ["cognito", "iam"] },
 });
 ```
@@ -16,7 +15,7 @@ Defined in `packages/plugins/src/appsync/appSyncPreset.ts`.
 | Option | Default | Description |
 | --- | --- | --- |
 | `emitOutput` | `false` | Also return the AppSync SDL from `transform()` as `output.appsync.schema`. |
-| `scalarMappings` | `{}` | Custom scalar name → AppSync scalar (`AWSDate`, `AWSDateTime`, `AWSTime`, `AWSTimestamp`, `AWSEmail`, `AWSJSON`, `AWSURL`, `AWSPhone`, `AWSIPAddress`) or GraphQL built-in (`ID`, `String`, `Int`, `Float`, `Boolean`). |
+| `scalarMappings` | `{}` | Scalar name → AppSync scalar (`AWSDate`, `AWSDateTime`, `AWSTime`, `AWSTimestamp`, `AWSEmail`, `AWSJSON`, `AWSURL`, `AWSPhone`, `AWSIPAddress`, `Long`) or GraphQL built-in (`ID`, `String`, `Int`, `Float`, `Boolean`). Overrides the type hint; needed only for a scalar without one. See [`appsync/schema.graphql`](#appsyncschemagraphql). |
 | `middyAppSync.enable` | `true` | Register `MiddyAppSyncGraphQLPlugin`. |
 | `middyAppSync.authorizationModes` | none | Any of `cognito`, `iam`, `oidc`, `apiKey`, `lambda`. |
 | `middyAppSync.relationsOnly` | `true` | See [Resolver types](#resolver-types). |
