@@ -1,8 +1,14 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { TransformerContext } from "@gqlbase/core";
-import { DocumentNode, InterfaceNode, NonNullTypeNode, ObjectNode } from "@gqlbase/core/definition";
+import { print } from "graphql";
+import { TransformerContext } from "../../context/index.js";
+import {
+  DocumentNode,
+  InterfaceNode,
+  NonNullTypeNode,
+  ObjectNode,
+} from "../../definition/index.js";
 import { ConnectionPlugin } from "./ConnectionPlugin.js";
-import { RelationsPlugin } from "@gqlbase/core/plugins";
+import { RelationsPlugin } from "../RelationsPlugin/index.js";
 
 describe("ConnectionPlugin", () => {
   let context: TransformerContext;
@@ -464,6 +470,77 @@ describe("ConnectionPlugin", () => {
       const edgeType = context.document.getNode("PostEdge") as ObjectNode;
       expect(edgeType.getField("cursor")?.hasDirective("clientOnly")).toBe(true);
       expect(edgeType.getField("node")?.hasDirective("clientOnly")).toBe(true);
+    });
+  });
+});
+
+describe("ConnectionPlugin nullability", () => {
+  const source = /* GraphQL */ `
+    type User {
+      id: ID!
+      posts: Post @hasMany
+    }
+
+    type Post {
+      id: ID!
+    }
+  `;
+
+  describe("with semanticNullability on", () => {
+    let context: TransformerContext;
+    let plugin: ConnectionPlugin;
+
+    beforeAll(() => {
+      context = new TransformerContext({ semanticNullability: true });
+      plugin = new ConnectionPlugin(context);
+      context.registerPlugin(new RelationsPlugin(context));
+      context.registerPlugin(plugin);
+      context.startWork(DocumentNode.fromSource(source));
+      plugin.execute(context.document.getNode("User") as ObjectNode);
+    });
+
+    it("marks edges and their items @semanticNonNull", () => {
+      const connection = context.document.getNode("PostConnection") as ObjectNode;
+      const edges = connection.getField("edges");
+
+      expect(edges && print(edges.serialize())).toBe(
+        "edges: [PostEdge] @semanticNonNull(levels: [0, 1])"
+      );
+    });
+
+    it("marks the edge node @semanticNonNull", () => {
+      const edge = context.document.getNode("PostEdge") as ObjectNode;
+      const node = edge.getField("node");
+
+      expect(node && print(node.serialize())).toBe("node: Post @clientOnly @semanticNonNull");
+    });
+  });
+
+  describe("with semanticNullability off", () => {
+    let context: TransformerContext;
+    let plugin: ConnectionPlugin;
+
+    beforeAll(() => {
+      context = new TransformerContext();
+      plugin = new ConnectionPlugin(context);
+      context.registerPlugin(new RelationsPlugin(context));
+      context.registerPlugin(plugin);
+      context.startWork(DocumentNode.fromSource(source));
+      plugin.execute(context.document.getNode("User") as ObjectNode);
+    });
+
+    it("makes edges and their items non-null", () => {
+      const connection = context.document.getNode("PostConnection") as ObjectNode;
+      const edges = connection.getField("edges");
+
+      expect(edges && print(edges.serialize())).toBe("edges: [PostEdge!]!");
+    });
+
+    it("makes the edge node non-null", () => {
+      const edge = context.document.getNode("PostEdge") as ObjectNode;
+      const node = edge.getField("node");
+
+      expect(node && print(node.serialize())).toBe("node: Post! @clientOnly");
     });
   });
 });

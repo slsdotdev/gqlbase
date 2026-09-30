@@ -30,7 +30,7 @@ export function createTransformer(options: GraphQLTransformerOptions = {}) {
 
   const context = new TransformerContext({ logger, ...transformerOptions });
 
-  for (const pluginEntry of [...corePlugins(), ...plugins.flat()]) {
+  for (const pluginEntry of [...corePlugins(context.options), ...plugins.flat()]) {
     const plugin = pluginEntry.create(context);
     context.registerPlugin(plugin);
   }

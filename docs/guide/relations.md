@@ -84,7 +84,7 @@ A relation field marked `@clientOnly` gets no key field. It is still reshaped (l
 | Setup | `posts: Post @hasMany` becomes |
 | --- | --- |
 | Default | `posts(filter: PostFilterInput): [Post]`. A type already written as a list is left as written. |
-| `relayPreset()` | `posts(filter: PostFilterInput, first: Int, after: String): PostConnection!` (see [Relay](./relay.md)) |
+| `relay: true` | `posts(filter: PostFilterInput, first: Int, after: String): PostConnection!` (see [Relay](./relay.md)) |
 
 The `filter` argument is only added on `@model` types (see [Models](./models.md#where-the-filter-is-accepted)).
 

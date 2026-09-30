@@ -125,25 +125,19 @@ The core plugins are always registered, before any plugin in your config:
 - `RfcFeaturesPlugin` — `@semanticNonNull`, when `transform.semanticNullability` is on
 - `ModelPlugin` — generates CRUD operations from `@model` types
 - `RelationsPlugin` — resolves `@hasOne`, `@hasMany` and `@belongsTo` relations
+- `NodeInterfacePlugin` and `ConnectionPlugin` — the Relay `Node` interface and connections, when `transform.relay` is on
 - `SchemaGeneratorPlugin` — outputs the transformed `schema.graphql`
 - `ModelTypesGeneratorPlugin` — outputs TypeScript type definitions
 
-Presets are collections of plugins that add capabilities:
+Transformer options switch core features on:
 
 ```js
-import { relayPreset } from "gqlbase/plugins/relay";
-
 export default defineConfig({
-  plugins: [
-    relayPreset(), // adds Relay-style connections and Node interface
-  ],
+  transform: {
+    relay: true, // Relay-style connections and the Node interface
+  },
 });
 ```
-
-**Relay preset** adds:
-
-- `NodeInterfacePlugin` — adds the Relay `Node` interface
-- `ConnectionPlugin` — generates connection and edge types for pagination
 
 Additional presets for specific use cases (AppSync, Zod, etc.) are planned.
 

@@ -1,5 +1,7 @@
-import { createPluginFactory, TransformerPluginBase, isModel } from "@gqlbase/core/plugins";
-import type { ITransformerContext } from "@gqlbase/core/context";
+import { createPluginFactory } from "../createPluginFactory.js";
+import { TransformerPluginBase } from "../TransformerPluginBase.js";
+import { isModel } from "../ModelPlugin/index.js";
+import type { ITransformerContext } from "../../context/index.js";
 import {
   DefinitionNode,
   DirectiveNode,
@@ -9,7 +11,7 @@ import {
   NamedTypeNode,
   NonNullTypeNode,
   ObjectNode,
-} from "@gqlbase/core/definition";
+} from "../../definition/index.js";
 import { InvalidDefinitionError, TransformerPluginExecutionError } from "@gqlbase/shared/errors";
 
 /**

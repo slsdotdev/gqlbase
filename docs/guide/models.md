@@ -62,7 +62,7 @@ input UpdatePostInput {
 }
 ```
 
-With `relayPreset()`, `listPosts` returns `PostConnection!` and gains `first`/`after` (see [Relay](./relay.md)).
+With the `relay` option on, `listPosts` returns `PostConnection!` and gains `first`/`after` (see [Relay](./relay.md)).
 
 ## Operations
 

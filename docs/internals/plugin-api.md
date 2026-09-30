@@ -35,7 +35,7 @@ Every behaviour in gqlbase is a plugin. This page is the contract. The code is i
 Conventions:
 - **Naming.** The class is PascalCase (`ModelPlugin`); the factory export is camelCase (`modelPlugin`).
 - **Option defaults.** Plugins with options keep a `DEFAULT_OPTIONS` constant and a `mergeOptions` in their `*.utils.ts`. Examples are `ZodSchemaGeneratorPlugin` and `DsqlBaseSchemaGeneratorPlugin`.
-- **Presets.** A preset is a function that returns `IPluginFactory[]`, e.g. `packages/plugins/src/relay/relayPreset.ts`. `createTransformer` flattens nested arrays, so presets and single factories mix freely in a config.
+- **Presets.** A preset is a function that returns `IPluginFactory[]`, e.g. `packages/plugins/src/appsync/appSyncPreset.ts`. `createTransformer` flattens nested arrays, so presets and single factories mix freely in a config.
 
 ## The context
 

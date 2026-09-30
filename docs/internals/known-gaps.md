@@ -6,12 +6,6 @@ These are verified defects and inconsistencies in the current code. **Fix them; 
 
 ## Schema transformation
 
-### 1. `XEdge.node` gets `@semanticNonNull` without a guard
-
-In `packages/plugins/src/relay/ConnectionPlugin/ConnectionPlugin.ts`, the generated connection's `edges` field checks `hasSemanticNonNull` before adding `@semanticNonNull`. The edge type's `node` field adds the directive unconditionally. If `RfcFeaturesPlugin` is not registered, the output SDL uses a directive it never declares, and generators read `node` as non-null regardless.
-
-**Fix:** use the same guard as `edges`.
-
 ### 2. Union relation targets always get an `ID!` key
 
 When a relation target is a union, `RelationsPlugin._setRelationKey` (`packages/core/src/plugins/RelationsPlugin/RelationsPlugin.ts`) recurses into each member. The recursive call passes only `key`, dropping `typeName` and `isNullable`. Every member therefore gets a non-null `ID` key field, whatever the relation's nullability or the id type `_getKeyTypeName` resolved.

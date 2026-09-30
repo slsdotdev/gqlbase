@@ -26,13 +26,12 @@ Each package exposes subpaths through `"./*": "./dist/*/index.js"`, for example 
 
 | Directory | Contents | How it is imported |
 |---|---|---|
-| `relay/` | `NodeInterfacePlugin`, `ConnectionPlugin` | `relayPreset()` |
 | `appsync/` | `AppSyncUtilsPlugin`, `AppSyncSchemaGeneratorPlugin`, `MiddyAppSyncGraphQLPlugin` | `appsyncPreset()` |
 | `zod/` | `ZodSchemaGeneratorPlugin` | `@gqlbase/plugins/zod` |
 | `dsql/` | `DsqlBaseSchemaGeneratorPlugin` | `@gqlbase/plugins/dsql` |
 | `drizzle/` | `DrizzleSchemaGeneratorPlugin` | `@gqlbase/plugins/drizzle` |
 
-The root `packages/plugins/src/index.ts` exports only the relay and appsync presets. Each plugin's options, directives and output are covered in the [guide](../guide/README.md).
+The root `packages/plugins/src/index.ts` exports only the appsync preset. Each plugin's options, directives and output are covered in the [guide](../guide/README.md).
 
 ## Entry points
 
@@ -48,7 +47,7 @@ The root `packages/plugins/src/index.ts` exports only the relay and appsync pres
 
 `createTransformer` (`packages/core/src/transformer/createTransformer.ts`) creates a `TransformerContext`. It then registers plugins in this order:
 
-1. the core plugins, from `corePlugins()` (`packages/core/src/plugins/corePlugins.ts`), in a fixed order: `InternalUtilsPlugin`, `UtilitiesPlugin`, `InterfaceUtilsPlugin`, `ScalarsPlugin`, `RfcFeaturesPlugin`, `ModelPlugin`, `RelationsPlugin`, `SchemaGeneratorPlugin`, `ModelTypesGeneratorPlugin`;
+1. the core plugins, from `corePlugins()` (`packages/core/src/plugins/corePlugins.ts`), in a fixed order: `InternalUtilsPlugin`, `UtilitiesPlugin`, `InterfaceUtilsPlugin`, `ScalarsPlugin`, `RfcFeaturesPlugin`, `ModelPlugin`, `RelationsPlugin`, then `NodeInterfacePlugin` and `ConnectionPlugin` when `options.relay` is on, then `SchemaGeneratorPlugin`, `ModelTypesGeneratorPlugin`;
 2. every factory from `options.plugins`, flattened in config order.
 
 The transformer options (`relay`, `semanticNullability`, `operations`) are resolved with their defaults and frozen onto `context.options` before any plugin is created.

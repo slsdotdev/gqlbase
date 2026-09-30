@@ -1,17 +1,16 @@
-import { ITransformerContext } from "@gqlbase/core/context";
+import { type ITransformerContext } from "../../context/index.js";
+import { createPluginFactory } from "../createPluginFactory.js";
+import { TransformerPluginBase } from "../TransformerPluginBase.js";
+import { RfcDirective } from "../RfcFeaturesPlugin/index.js";
+import { UtilityDirective } from "../UtilitiesPlugin/index.js";
 import {
-  createPluginFactory,
-  TransformerPluginBase,
-  RfcDirective,
-  UtilityDirective,
-  FieldRelationship,
+  type FieldRelationship,
   isPaginationConnection,
   isRelationField,
   isValidRelationTarget,
   parseFieldRelation,
-  isRelayConnection,
-  isRelayEdge,
-} from "@gqlbase/core/plugins";
+} from "../RelationsPlugin/index.js";
+import { isRelayConnection, isRelayEdge } from "./ConnectionPlugin.utils.js";
 import {
   DefinitionNode,
   InputValueNode,
@@ -24,7 +23,7 @@ import {
   DirectiveNode,
   ArgumentNode,
   ValueNode,
-} from "@gqlbase/core/definition";
+} from "../../definition/index.js";
 import { TransformerPluginExecutionError } from "@gqlbase/shared/errors";
 import { pascalCase } from "@gqlbase/shared/format";
 
@@ -132,7 +131,7 @@ export class ConnectionPlugin extends TransformerPluginBase {
   private _createConnection(field: FieldNode, connection: FieldRelationship) {
     const { target } = connection;
 
-    const hasSemanticNonNull = this.context.document.hasNode(RfcDirective.SEMANTIC_NON_NULL);
+    const { semanticNullability } = this.context.options;
 
     if (!isRelayConnection(target)) {
       const connectionTypeName = pascalCase(target.name, "connection");
@@ -143,22 +142,28 @@ export class ConnectionPlugin extends TransformerPluginBase {
 
       if (!connectionType) {
         connectionType = ObjectNode.create(connectionTypeName, undefined, undefined, [
-          FieldNode.create(
-            "edges",
-            undefined,
-            hasSemanticNonNull
-              ? [
+          semanticNullability
+            ? FieldNode.create(
+                "edges",
+                undefined,
+                [
                   DirectiveNode.create(RfcDirective.SEMANTIC_NON_NULL, [
                     ArgumentNode.create(
                       "levels",
                       ValueNode.list([ValueNode.int(0), ValueNode.int(1)])
                     ),
                   ]),
-                ]
-              : undefined,
-            ListTypeNode.create(NamedTypeNode.create(edgeTypeName)),
-            null
-          ),
+                ],
+                ListTypeNode.create(NamedTypeNode.create(edgeTypeName)),
+                null
+              )
+            : FieldNode.create(
+                "edges",
+                undefined,
+                undefined,
+                NonNullTypeNode.create(ListTypeNode.create(NonNullTypeNode.create(edgeTypeName))),
+                null
+              ),
           FieldNode.create("pageInfo", undefined, undefined, NonNullTypeNode.create("PageInfo")),
         ]);
 
@@ -174,13 +179,24 @@ export class ConnectionPlugin extends TransformerPluginBase {
             NamedTypeNode.create("String"),
             null
           ),
-          FieldNode.create(
-            "node",
-            undefined,
-            [DirectiveNode.create(UtilityDirective.CLIENT_ONLY)],
-            NamedTypeNode.create(target.name),
-            null
-          ),
+          semanticNullability
+            ? FieldNode.create(
+                "node",
+                undefined,
+                [
+                  DirectiveNode.create(UtilityDirective.CLIENT_ONLY),
+                  DirectiveNode.create(RfcDirective.SEMANTIC_NON_NULL),
+                ],
+                NamedTypeNode.create(target.name),
+                null
+              )
+            : FieldNode.create(
+                "node",
+                undefined,
+                [DirectiveNode.create(UtilityDirective.CLIENT_ONLY)],
+                NonNullTypeNode.create(target.name),
+                null
+              ),
         ]);
 
         this.context.document.addNode(edgeType);

@@ -1,12 +1,12 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { TransformerContext } from "@gqlbase/core";
+import { TransformerContext } from "../../context/index.js";
 import {
   DocumentNode,
   FieldNode,
   InterfaceNode,
   NonNullTypeNode,
   ObjectNode,
-} from "@gqlbase/core/definition";
+} from "../../definition/index.js";
 import { NodeInterfacePlugin } from "./NodeInterfacePlugin.js";
 
 describe("NodeInterfacePlugin", () => {

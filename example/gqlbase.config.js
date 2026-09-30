@@ -1,5 +1,5 @@
 import { defineConfig } from "@gqlbase/cli/config";
-import { relayPreset, appsyncPreset } from "@gqlbase/plugins";
+import { appsyncPreset } from "@gqlbase/plugins";
 import { zodSchemaGeneratorPlugin } from "@gqlbase/plugins/zod";
 import { dsqlbase } from "@gqlbase/plugins/dsql";
 
@@ -12,7 +12,6 @@ export default defineConfig({
     semanticNullability: true,
   },
   plugins: [
-    relayPreset(),
     appsyncPreset({
       scalarMappings: {
         Decimal: "String",

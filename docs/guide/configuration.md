@@ -15,7 +15,6 @@ TypeScript config files (`gqlbase.config.ts`) are **not** supported; the entry i
 ```js
 // gqlbase.config.js
 import { defineConfig } from "@gqlbase/cli/config";
-import { relayPreset } from "@gqlbase/plugins";
 import { zodSchemaGeneratorPlugin } from "@gqlbase/plugins/zod";
 import { dsqlbase } from "@gqlbase/plugins/dsql";
 
@@ -26,7 +25,7 @@ export default defineConfig({
     relay: true,
     semanticNullability: true,
   },
-  plugins: [relayPreset(), zodSchemaGeneratorPlugin(), dsqlbase()],
+  plugins: [zodSchemaGeneratorPlugin(), dsqlbase()],
 });
 ```
 
@@ -51,7 +50,7 @@ Defined in `packages/cli/src/config/config.ts`.
 
 | Option | Type | Default | Description |
 | --- | --- | --- | --- |
-| `relay` | `boolean` | `false` | Relay output: the `Node` interface on models and Relay connections for list relations. Still needs `relayPreset()` for now. |
+| `relay` | `boolean` | `false` | Relay output: the `Node` interface on models and Relay connections for list relations. Registers `NodeInterfacePlugin` and `ConnectionPlugin`. See [Relay](./relay.md). |
 | `semanticNullability` | `boolean` | `false` | Declares `@semanticNonNull`. When off, a schema that uses the directive fails validation. See [Models](./models.md#nullability-and-semanticnonnull). |
 | `operations` | `OperationType[]` | `["read", "write"]` | Operations generated for every `@model` that does not list its own. See [Models](./models.md#operations). |
 
@@ -77,13 +76,12 @@ Resolution order is defaults → config file → CLI flags (`packages/cli/src/co
 
 A plugin factory is a function returning `{ create(context) }`; presets are plain functions returning an array of factories. Nested arrays are flattened one level, so presets and single plugins can be mixed freely.
 
-**Core plugins.** The transformer always registers these first, in this order (`packages/core/src/plugins/corePlugins.ts`): `InternalUtilsPlugin` (which provides `@gqlbase_internal` and `@gqlbase_typehint`), `UtilitiesPlugin`, `InterfaceUtilsPlugin`, `ScalarsPlugin`, `RfcFeaturesPlugin`, `ModelPlugin`, `RelationsPlugin`, `SchemaGeneratorPlugin`, `ModelTypesGeneratorPlugin`. They cannot be removed or reordered, and are configured only through the [transformer options](#transformer-options).
+**Core plugins.** The transformer always registers these first, in this order (`packages/core/src/plugins/corePlugins.ts`): `InternalUtilsPlugin` (which provides `@gqlbase_internal` and `@gqlbase_typehint`), `UtilitiesPlugin`, `InterfaceUtilsPlugin`, `ScalarsPlugin`, `RfcFeaturesPlugin`, `ModelPlugin`, `RelationsPlugin`, then `NodeInterfacePlugin` and `ConnectionPlugin` when `relay` is on, then `SchemaGeneratorPlugin`, `ModelTypesGeneratorPlugin`. They cannot be removed or reordered, and are configured only through the [transformer options](#transformer-options).
 
 **Order matters.** Your plugins are registered after the core plugins, in the order listed. Within every phase, plugins run in registration order. Plugin names must be unique, so the same plugin cannot be registered twice.
 
 | Preset / factory | Import | Plugins |
 | --- | --- | --- |
-| `relayPreset()` | `@gqlbase/plugins` | `NodeInterfacePlugin`, `ConnectionPlugin` |
 | `appsyncPreset({ … })` | `@gqlbase/plugins` | `AppSyncUtilsPlugin`, `AppSyncSchemaGeneratorPlugin`, `MiddyAppSyncGraphQLPlugin` (optional) |
 | `zodSchemaGeneratorPlugin({ … })` | `@gqlbase/plugins/zod` | `ZodSchemaGeneratorPlugin` |
 | `dsqlbase()` | `@gqlbase/plugins/dsql` | `DsqlBaseSchemaGeneratorPlugin` |

@@ -5,7 +5,7 @@ _Audience: people generating a [dsqlbase](https://github.com/slsdotdev/dsqlbase)
 ```js
 import { dsqlbase } from "@gqlbase/plugins/dsql";
 
-plugins: [relayPreset(), dsqlbase()];
+plugins: [dsqlbase()];
 ```
 
 `dsqlbase()` returns `[dsqlbaseSchemaGeneratorPlugin()]`. The plugin is `DsqlBaseSchemaGeneratorPlugin` (`packages/plugins/src/dsql/DsqlBaseSchemaGeneratorPlugin/DsqlBaseSchemaGeneratorPlugin.ts`). It writes `dsqlbase.schema.ts`, which imports builders from `dsqlbase/schema` and model types from `./models.typegen.js`.

@@ -73,4 +73,47 @@ describe("createTransformer", () => {
       "models.typegen.ts",
     ]);
   });
+
+  it("registers the Relay plugins after RelationsPlugin when relay is on", () => {
+    let context: ITransformerContext | undefined;
+
+    createTransformer({
+      relay: true,
+      plugins: [
+        {
+          create: (ctx) => {
+            context = ctx;
+            return { name: "ProbePlugin", context: ctx, init: () => undefined, match: () => false };
+          },
+        },
+      ],
+    });
+
+    const names = context?.plugins.map((plugin) => plugin.name) ?? [];
+
+    expect(
+      names.slice(names.indexOf("RelationsPlugin"), names.indexOf("RelationsPlugin") + 3)
+    ).toEqual(["RelationsPlugin", "NodeInterfacePlugin", "ConnectionPlugin"]);
+  });
+
+  it("generates Relay connections only when relay is on", () => {
+    const source = /* GraphQL */ `
+      type User @model {
+        id: ID!
+        posts: Post @hasMany
+      }
+
+      type Post @model {
+        id: ID!
+      }
+    `;
+
+    const withRelay = createTransformer({ relay: true }).transform(source);
+    const withoutRelay = createTransformer().transform(source);
+
+    expect(withRelay.schema).toContain("interface Node");
+    expect(withRelay.schema).toContain("type PostConnection");
+    expect(withoutRelay.schema).not.toContain("interface Node");
+    expect(withoutRelay.schema).not.toContain("PostEdge");
+  });
 });
