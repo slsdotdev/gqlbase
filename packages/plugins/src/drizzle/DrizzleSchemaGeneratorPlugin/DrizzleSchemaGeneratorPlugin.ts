@@ -2,7 +2,22 @@ import ts from "typescript";
 import { createPluginFactory, ITransformerContext, TransformerPluginBase } from "@gqlbase/core";
 import { isBuildInScalar } from "@gqlbase/shared/definition";
 import { createFileHeaders, jsonToObjectAst } from "@gqlbase/shared/codegen";
-import { getTypeHint, isInternal } from "@gqlbase/core/plugins";
+import {
+  getTypeHint,
+  isInternal,
+  isClientOnly,
+  isSemanticNullable,
+  isRelationField,
+  isModel,
+  isBelongsToRelationship,
+  isManyRelationship,
+  isOneRelationship,
+  isPaginationConnection,
+  parseFieldRelation,
+  RelationTarget,
+  isRelayConnection,
+  isRelayEdge,
+} from "@gqlbase/core/plugins";
 import {
   DefinitionNode,
   EnumNode,
@@ -17,10 +32,6 @@ import {
   ObjectNode,
 } from "@gqlbase/core/definition";
 import { TransformerPluginExecutionError } from "@gqlbase/shared/errors";
-import { isClientOnly } from "../../base/UtilitiesPlugin/index.js";
-import { isSemanticNullable } from "../../base/RfcFeaturesPlugin/index.js";
-import { isRelationField } from "../../base/RelationsPlugin/index.js";
-import { isModel } from "../../base/ModelPlugin/ModelPlugin.utils.js";
 import {
   type DrizzleSchemaGeneratorPluginOptions,
   mergeOptions,
@@ -30,15 +41,6 @@ import {
   resolveTypeHintType,
 } from "./DrizzleSchemaGeneratorPlugin.utils.js";
 import { camelCase, snakeCase } from "@gqlbase/shared/format";
-import {
-  isBelongsToRelationship,
-  isManyRelationship,
-  isOneRelationship,
-  isPaginationConnection,
-  parseFieldRelation,
-  RelationTarget,
-} from "../../base/RelationsPlugin/RelationsPlugin.utils.js";
-import { isRelayConnection, isRelayEdge } from "../../relay/index.js";
 
 /**
  * Generates Drizzle schema definitions based on the GraphQL schema. Supports PostgreSQL, MySQL, and SQLite via configurable scalar mappings.

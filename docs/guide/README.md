@@ -22,7 +22,7 @@ These pages describe what the library does **today**. Planned behaviour is not d
 
 | Page | Import | Output |
 | --- | --- | --- |
-| [Models](./models.md), [Relations](./relations.md) (base preset) | `@gqlbase/plugins` → `basePreset` | `schema.graphql`, `models.typegen.ts` |
+| [Models](./models.md), [Relations](./relations.md) | core plugins, always registered | `schema.graphql`, `models.typegen.ts` |
 | [Relay](./relay.md) | `@gqlbase/plugins` → `relayPreset` | connections, `Node` |
 | [AppSync](./appsync.md) | `@gqlbase/plugins` → `appsyncPreset` | `appsync/schema.graphql`, `appsync/middy-appsync.typegen.ts` |
 | [Zod](./zod.md) | `@gqlbase/plugins/zod` | `zod/schema.validators.ts` |

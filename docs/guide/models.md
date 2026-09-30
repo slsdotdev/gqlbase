@@ -2,7 +2,7 @@
 
 _Audience: people defining `@model` types and using the generated operations, inputs and filters._
 
-`@model` is handled by `ModelPlugin` (`packages/plugins/src/base/ModelPlugin/ModelPlugin.ts`), part of `basePreset()`.
+`@model` is handled by `ModelPlugin` (`packages/core/src/plugins/ModelPlugin/ModelPlugin.ts`), a core plugin.
 
 ```graphql
 directive @model(operations: [ModelOperation!]) on OBJECT
@@ -20,7 +20,7 @@ type Post @model {
 }
 ```
 
-becomes (with `basePreset()` defaults):
+becomes (with the default operations):
 
 ```graphql
 type Post {
@@ -77,10 +77,10 @@ With `relayPreset()`, `listPosts` returns `PostConnection!` and gains `first`/`a
 
 Shorthands: `read` = `get` + `list`; `write` = `create` + `update` + `delete`.
 
-**Defaults.** The plugin-level default is `["read", "write"]`, set through `basePreset({ operations })`. Plugin options use the lowercase names:
+**Defaults.** The default is `["read", "write"]`, set through the `operations` [transformer option](./configuration.md#transformer-options). The option uses the lowercase names:
 
 ```js
-basePreset({ operations: ["write"] }); // models get create/update/delete only
+defineConfig({ transform: { operations: ["write"] } }); // models get create/update/delete only
 ```
 
 **Per model.** The directive argument uses the enum values, which are the uppercase keys: `READ`, `WRITE`, `GET`, `LIST`, `CREATE`, `UPDATE`, `UPSERT`, `DELETE`. When the argument is present it replaces the default. An empty list generates no operations.
@@ -94,7 +94,7 @@ If a field with the generated name already exists on `Query` or `Mutation`, it i
 
 ## Mutation inputs
 
-Which fields appear in which input is decided by `packages/plugins/src/base/ModelPlugin/ModelPlugin.utils.ts` (`shouldSkipFieldFrom*`). Summary; the full matrix is in [Field visibility](./field-visibility.md):
+Which fields appear in which input is decided by `packages/core/src/plugins/ModelPlugin/ModelPlugin.utils.ts` (`shouldSkipFieldFrom*`). Summary; the full matrix is in [Field visibility](./field-visibility.md):
 
 - **Always skipped:** `@readOnly`, `@serverOnly`, `@clientOnly` and relation fields (`@hasOne`, `@hasMany`, `@belongsTo`).
 - `@createOnly` fields appear only in the create input, `@updateOnly` only in update/upsert, `@filterOnly` only in the filter input.

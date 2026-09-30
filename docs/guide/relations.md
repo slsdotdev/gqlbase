@@ -2,7 +2,7 @@
 
 _Audience: people linking types with `@hasOne`, `@hasMany` and `@belongsTo`._
 
-Relations are handled by `RelationsPlugin` (`packages/plugins/src/base/RelationsPlugin/RelationsPlugin.ts`, key rules in `RelationsPlugin.utils.ts` → `parseFieldRelation`), part of `basePreset()`.
+Relations are handled by `RelationsPlugin` (`packages/core/src/plugins/RelationsPlugin/RelationsPlugin.ts`, key rules in `RelationsPlugin.utils.ts` → `parseFieldRelation`), a core plugin.
 
 ```graphql
 directive @hasOne(key: String) on FIELD_DEFINITION
@@ -83,11 +83,10 @@ A relation field marked `@clientOnly` gets no key field. It is still reshaped (l
 
 | Setup | `posts: Post @hasMany` becomes |
 | --- | --- |
-| `basePreset()` | `posts(filter: PostFilterInput): [Post]`. A type already written as a list is left as written. |
-| `basePreset()` + `relayPreset()` | `posts(filter: PostFilterInput, first: Int, after: String): PostConnection!` (see [Relay](./relay.md)) |
-| `relationPlugin({ usePaginationTypes: true })` | `posts(limit: Int, nextToken: String, …): PostConnection`, where `type PostConnection { items: [Post] nextToken: String }` |
+| Default | `posts(filter: PostFilterInput): [Post]`. A type already written as a list is left as written. |
+| `relayPreset()` | `posts(filter: PostFilterInput, first: Int, after: String): PostConnection!` (see [Relay](./relay.md)) |
 
-The `filter` argument is only added on `@model` types (see [Models](./models.md#where-the-filter-is-accepted)). `usePaginationTypes` cannot be combined with `relayPreset()`; `ConnectionPlugin` throws if it meets a `{ items, nextToken }` connection. `basePreset()` does not expose the option; compose the base plugins yourself to use it.
+The `filter` argument is only added on `@model` types (see [Models](./models.md#where-the-filter-is-accepted)).
 
 `@hasOne` and `@belongsTo` fields keep their declared type.
 

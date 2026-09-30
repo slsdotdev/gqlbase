@@ -15,12 +15,10 @@ Create a config file and run the CLI:
 ```js
 // gqlbase.config.js
 import { defineConfig } from "gqlbase/config";
-import { basePreset } from "gqlbase/plugins/base";
 
 export default defineConfig({
   source: "src/schema/**/*.graphql",
   output: "generated",
-  plugins: [basePreset()],
 });
 ```
 

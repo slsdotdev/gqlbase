@@ -1,4 +1,1 @@
-export {
-  ZodSchemaGeneratorPlugin,
-  zodSchemaGeneratorPlugin,
-} from "./ZodSchemaGeneratorPlugin.js";
+export { ZodSchemaGeneratorPlugin, zodSchemaGeneratorPlugin } from "./ZodSchemaGeneratorPlugin.js";

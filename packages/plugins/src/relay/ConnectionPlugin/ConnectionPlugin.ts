@@ -1,5 +1,17 @@
 import { ITransformerContext } from "@gqlbase/core/context";
-import { createPluginFactory, TransformerPluginBase } from "@gqlbase/core/plugins";
+import {
+  createPluginFactory,
+  TransformerPluginBase,
+  RfcDirective,
+  UtilityDirective,
+  FieldRelationship,
+  isPaginationConnection,
+  isRelationField,
+  isValidRelationTarget,
+  parseFieldRelation,
+  isRelayConnection,
+  isRelayEdge,
+} from "@gqlbase/core/plugins";
 import {
   DefinitionNode,
   InputValueNode,
@@ -15,15 +27,6 @@ import {
 } from "@gqlbase/core/definition";
 import { TransformerPluginExecutionError } from "@gqlbase/shared/errors";
 import { pascalCase } from "@gqlbase/shared/format";
-import { RfcDirective, UtilityDirective } from "../../base/index.js";
-import {
-  FieldRelationship,
-  isPaginationConnection,
-  isRelationField,
-  isValidRelationTarget,
-  parseFieldRelation,
-} from "../../base/RelationsPlugin/index.js";
-import { isRelayConnection, isRelayEdge } from "./ConnectionPlugin.utils.js";
 
 /**
  * Transforms many relationships into Relay compaticale connections, and adds the necessary fields and arguments to support cursor based pagination.

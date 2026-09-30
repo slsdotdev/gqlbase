@@ -1,8 +1,7 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { TransformerContext } from "@gqlbase/core";
 import { DocumentNode } from "@gqlbase/core/definition";
-import { ScalarsPlugin } from "../../base/ScalarsPlugin/ScalarsPlugin.js";
-import { UtilitiesPlugin } from "../../base/UtilitiesPlugin/UtilitiesPlugin.js";
+import { ScalarsPlugin, UtilitiesPlugin } from "@gqlbase/core/plugins";
 import { ZodSchemaGeneratorPlugin } from "./ZodSchemaGeneratorPlugin.js";
 
 const generateSchemas = (

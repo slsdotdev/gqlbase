@@ -2,12 +2,15 @@ export type { IPluginFactory } from "./IPluginFactory.js";
 export type { ITransformerPlugin } from "./ITransformerPlugin.js";
 export { TransformerPluginBase } from "./TransformerPluginBase.js";
 export { createPluginFactory } from "./createPluginFactory.js";
-export {
-  InternalUtilsPlugin,
-  InternalDirective,
-  TypeHintValue,
-  internalPlugin,
-  isInternal,
-  getTypeHint,
-  type TypeHintValueType,
-} from "./InternalUtilsPlugin/index.js";
+export { corePlugins } from "./corePlugins.js";
+export * from "./InternalUtilsPlugin/index.js";
+export * from "./UtilitiesPlugin/index.js";
+export * from "./InterfaceUtilsPlugin/index.js";
+export * from "./ScalarsPlugin/index.js";
+export * from "./RfcFeaturesPlugin/index.js";
+export * from "./ModelPlugin/index.js";
+export * from "./RelationsPlugin/index.js";
+export * from "./SchemaGeneratorPlugin/index.js";
+export * from "./ModelTypesGeneratorPlugin/index.js";
+export * from "./TypesGeneratorBase/index.js";
+export * from "./ConnectionPlugin/index.js";

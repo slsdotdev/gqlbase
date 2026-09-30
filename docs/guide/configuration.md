@@ -15,7 +15,7 @@ TypeScript config files (`gqlbase.config.ts`) are **not** supported; the entry i
 ```js
 // gqlbase.config.js
 import { defineConfig } from "@gqlbase/cli/config";
-import { basePreset, relayPreset } from "@gqlbase/plugins";
+import { relayPreset } from "@gqlbase/plugins";
 import { zodSchemaGeneratorPlugin } from "@gqlbase/plugins/zod";
 import { dsqlbase } from "@gqlbase/plugins/dsql";
 
@@ -26,7 +26,7 @@ export default defineConfig({
     relay: true,
     semanticNullability: true,
   },
-  plugins: [basePreset(), relayPreset(), zodSchemaGeneratorPlugin(), dsqlbase()],
+  plugins: [relayPreset(), zodSchemaGeneratorPlugin(), dsqlbase()],
 });
 ```
 
@@ -77,20 +77,19 @@ Resolution order is defaults → config file → CLI flags (`packages/cli/src/co
 
 A plugin factory is a function returning `{ create(context) }`; presets are plain functions returning an array of factories. Nested arrays are flattened one level, so presets and single plugins can be mixed freely.
 
-**Order matters.** The transformer registers an internal plugin first (`InternalUtilsPlugin`, which provides `@gqlbase_internal` and `@gqlbase_typehint`), then your plugins in the order listed. Within every phase, plugins run in that order. Put `basePreset()` first; the other presets and generators build on the types and directives it adds. Plugin names must be unique, so the same plugin cannot be registered twice.
+**Core plugins.** The transformer always registers these first, in this order (`packages/core/src/plugins/corePlugins.ts`): `InternalUtilsPlugin` (which provides `@gqlbase_internal` and `@gqlbase_typehint`), `UtilitiesPlugin`, `InterfaceUtilsPlugin`, `ScalarsPlugin`, `RfcFeaturesPlugin`, `ModelPlugin`, `RelationsPlugin`, `SchemaGeneratorPlugin`, `ModelTypesGeneratorPlugin`. They cannot be removed or reordered, and are configured only through the [transformer options](#transformer-options).
+
+**Order matters.** Your plugins are registered after the core plugins, in the order listed. Within every phase, plugins run in registration order. Plugin names must be unique, so the same plugin cannot be registered twice.
 
 | Preset / factory | Import | Plugins |
 | --- | --- | --- |
-| `basePreset({ operations? })` | `@gqlbase/plugins` | `UtilitiesPlugin`, `InterfaceUtilsPlugin`, `ScalarsPlugin`, `RfcFeaturesPlugin`, `ModelPlugin`, `RelationsPlugin`, `SchemaGeneratorPlugin`, `ModelTypesGeneratorPlugin` |
 | `relayPreset()` | `@gqlbase/plugins` | `NodeInterfacePlugin`, `ConnectionPlugin` |
 | `appsyncPreset({ … })` | `@gqlbase/plugins` | `AppSyncUtilsPlugin`, `AppSyncSchemaGeneratorPlugin`, `MiddyAppSyncGraphQLPlugin` (optional) |
 | `zodSchemaGeneratorPlugin({ … })` | `@gqlbase/plugins/zod` | `ZodSchemaGeneratorPlugin` |
 | `dsqlbase()` | `@gqlbase/plugins/dsql` | `DsqlBaseSchemaGeneratorPlugin` |
 | `drizzleSchemaGeneratorPlugin({ … })` | `@gqlbase/plugins/drizzle` | `DrizzleSchemaGeneratorPlugin` |
 
-`basePreset` takes one option, `operations`, which overrides the `operations` config option for `ModelPlugin`.
-
-The individual base plugins are also exported from `@gqlbase/plugins/base` (`modelPlugin`, `relationPlugin`, `utilsPlugin`, `scalarsPlugin`, `rfcFeaturesPlugin`, `schemaGeneratorPlugin`, `modelTypesGeneratorPlugin`) if you need to compose your own preset. `relationPlugin({ usePaginationTypes: true })` is only reachable this way (see [Relations](./relations.md#list-shape)).
+The core plugins and their helpers (`isModel`, `isRelationField`, `isSemanticNullable`, …) are exported from `@gqlbase/core/plugins` for plugin authors.
 
 ## Output files
 
@@ -110,9 +109,8 @@ Existing files are overwritten; files a plugin no longer produces are not delete
 
 ```js
 import { createTransformer } from "@gqlbase/core";
-import { basePreset } from "@gqlbase/plugins";
 
-const transformer = createTransformer({ semanticNullability: true, plugins: [basePreset()] });
+const transformer = createTransformer({ semanticNullability: true });
 const output = transformer.transform(sdlString);
 
 output.schema; // printed schema.graphql

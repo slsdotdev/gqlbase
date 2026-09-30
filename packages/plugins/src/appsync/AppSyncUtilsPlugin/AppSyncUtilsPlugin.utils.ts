@@ -1,5 +1,5 @@
 import { BuildInScalar, isBuildInScalar } from "@gqlbase/shared/definition";
-import { BaseScalarName, isBaseScalar } from "../../base/ScalarsPlugin/index.js";
+import { BaseScalarName, isBaseScalar } from "@gqlbase/core/plugins";
 
 export const AppSyncScalar = {
   AWS_DATE: "AWSDate",

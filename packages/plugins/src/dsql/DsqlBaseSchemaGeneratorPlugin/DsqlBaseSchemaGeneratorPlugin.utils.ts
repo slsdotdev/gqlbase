@@ -1,6 +1,5 @@
 import { BuildInScalar, isBuildInScalar } from "@gqlbase/shared/definition";
-import { BaseScalarName, isBaseScalar } from "../../base/index.js";
-import { TypeHintValueType } from "@gqlbase/core/plugins";
+import { BaseScalarName, isBaseScalar, TypeHintValueType } from "@gqlbase/core/plugins";
 
 export interface ScalarConfig {
   type: string;

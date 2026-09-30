@@ -1,4 +1,4 @@
-import { createPluginFactory, TransformerPluginBase } from "@gqlbase/core/plugins";
+import { createPluginFactory, TransformerPluginBase, isModel } from "@gqlbase/core/plugins";
 import type { ITransformerContext } from "@gqlbase/core/context";
 import {
   DefinitionNode,
@@ -11,7 +11,6 @@ import {
   ObjectNode,
 } from "@gqlbase/core/definition";
 import { InvalidDefinitionError, TransformerPluginExecutionError } from "@gqlbase/shared/errors";
-import { isModel } from "../../base/index.js";
 
 /**
  * Adds a `Node` interface with an `id: ID!` field to the schema and ensures that all types that implement the `Node` interface also have the `id: ID!` field.

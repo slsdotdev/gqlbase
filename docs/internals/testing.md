@@ -33,7 +33,7 @@ Run from the repo root:
 
 ## How plugin tests are written
 
-Plugin tests drive the hooks by hand instead of going through `createTransformer`. Use `packages/plugins/src/base/ModelPlugin/ModelPlugin.test.ts` as the reference for which hooks to call. Existing tests create the context at module scope; new tests should use the `let` + `beforeAll` form below.
+Plugin tests drive the hooks by hand instead of going through `createTransformer`. Use `packages/core/src/plugins/ModelPlugin/ModelPlugin.test.ts` as the reference for which hooks to call. Existing tests create the context at module scope; new tests should use the `let` + `beforeAll` form below.
 
 ```ts
 const document = DocumentNode.fromSource(/* GraphQL */ `...`);

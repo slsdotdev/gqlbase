@@ -5,7 +5,7 @@ _Audience: people generating a Drizzle ORM (PostgreSQL) schema from their `@mode
 ```js
 import { drizzleSchemaGeneratorPlugin } from "@gqlbase/plugins/drizzle";
 
-plugins: [basePreset(), drizzleSchemaGeneratorPlugin({ scalarMap: { Decimal: "numeric" } })];
+plugins: [drizzleSchemaGeneratorPlugin({ scalarMap: { Decimal: "numeric" } })];
 ```
 
 The plugin is `DrizzleSchemaGeneratorPlugin` (`packages/plugins/src/drizzle/DrizzleSchemaGeneratorPlugin/DrizzleSchemaGeneratorPlugin.ts`). It writes `drizzle/<fileName>`, which imports:

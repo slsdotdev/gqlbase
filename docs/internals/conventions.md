@@ -60,7 +60,7 @@ _Audience: contributors and agents._
 Page rules:
 
 - Every page opens with an `_Audience_` line and ends with `## Related`.
-- Cite code by path (`packages/plugins/src/base/ModelPlugin/ModelPlugin.ts`), never by line number.
+- Cite code by path (`packages/core/src/plugins/ModelPlugin/ModelPlugin.ts`), never by line number.
 - The guide describes shipped behaviour only. Planned behaviour belongs in proposals.
 - Stubs carry `> **Status: stub**` and list their intended contents.
 - Nothing consumer-specific: describe needs in general terms, never by application name.

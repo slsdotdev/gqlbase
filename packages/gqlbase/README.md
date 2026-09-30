@@ -39,12 +39,10 @@ Create a configuration file:
 ```js
 // gqlbase.config.js
 import { defineConfig } from "gqlbase/config";
-import { basePreset } from "gqlbase/plugins/base";
 
 export default defineConfig({
   source: "src/schema/**/*.graphql",
   output: "generated",
-  plugins: [basePreset()],
 });
 ```
 
@@ -113,34 +111,34 @@ export default defineConfig({
 
 ## Built-in Scalars
 
-The base preset registers the following scalar types:
+The core plugins register the following scalar types:
 
 `DateTime` · `Date` · `Time` · `Timestamp` · `UUID` · `URL` · `EmailAddress` · `PhoneNumber` · `IPAddress` · `JSON`
 
 ## Presets and Plugins
 
-Presets are collections of plugins. The `basePreset` provides the core transformation capabilities and should always be included.
+The core plugins are always registered, before any plugin in your config:
+
+- `ScalarsPlugin` — registers built-in scalar types
+- `UtilitiesPlugin` — processes visibility and scope directives
+- `InterfaceUtilsPlugin` — copies interface fields into implementing types
+- `RfcFeaturesPlugin` — `@semanticNonNull`, when `transform.semanticNullability` is on
+- `ModelPlugin` — generates CRUD operations from `@model` types
+- `RelationsPlugin` — resolves `@hasOne`, `@hasMany` and `@belongsTo` relations
+- `SchemaGeneratorPlugin` — outputs the transformed `schema.graphql`
+- `ModelTypesGeneratorPlugin` — outputs TypeScript type definitions
+
+Presets are collections of plugins that add capabilities:
 
 ```js
-import { basePreset } from "gqlbase/plugins/base";
 import { relayPreset } from "gqlbase/plugins/relay";
 
 export default defineConfig({
   plugins: [
-    basePreset(),
     relayPreset(), // adds Relay-style connections and Node interface
   ],
 });
 ```
-
-**Base preset** includes:
-
-- `ScalarsPlugin` — registers built-in scalar types
-- `UtilitiesPlugin` — processes visibility and scope directives
-- `ModelPlugin` — generates CRUD operations from `@model` types
-- `RelationsPlugin` — resolves `@hasOne` and `@hasMany` relations
-- `SchemaGeneratorPlugin` — outputs the transformed `schema.graphql`
-- `ModelTypesGeneratorPlugin` — outputs TypeScript type definitions
 
 **Relay preset** adds:
 

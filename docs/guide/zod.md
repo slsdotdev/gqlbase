@@ -5,7 +5,7 @@ _Audience: people validating data with Zod schemas generated from the GraphQL sc
 ```js
 import { zodSchemaGeneratorPlugin } from "@gqlbase/plugins/zod";
 
-plugins: [basePreset(), zodSchemaGeneratorPlugin({ generateArgumentSchemas: true })];
+plugins: [zodSchemaGeneratorPlugin({ generateArgumentSchemas: true })];
 ```
 
 The plugin is `ZodSchemaGeneratorPlugin` (`packages/plugins/src/zod/ZodSchemaGeneratorPlugin/ZodSchemaGeneratorPlugin.ts`). It is not part of any preset. It writes `zod/schema.validators.ts`, which imports `* as z from "zod/v4"`.

@@ -3,16 +3,14 @@
 _Audience: people exposing Relay-style connections and the `Node` interface._
 
 ```js
-import { basePreset, relayPreset } from "@gqlbase/plugins";
+import { relayPreset } from "@gqlbase/plugins";
 
-plugins: [basePreset(), relayPreset()];
+plugins: [relayPreset()];
 ```
 
 `relayPreset()` takes no options and registers two plugins:
 - `NodeInterfacePlugin` (`packages/plugins/src/relay/NodeInterfacePlugin/NodeInterfacePlugin.ts`);
 - `ConnectionPlugin` (`packages/plugins/src/relay/ConnectionPlugin/ConnectionPlugin.ts`).
-
-Register it after `basePreset()`.
 
 ## `Node` interface
 
@@ -66,7 +64,7 @@ type PageInfo {
 - Backward pagination (`last`/`before`), `totalCount` and ordering arguments are not generated.
 - Union and interface targets produce `<Union>Connection` / `<Union>Edge` the same way.
 
-`ConnectionPlugin` throws if it finds a `{ items, nextToken }` connection, the shape produced by `relationPlugin({ usePaginationTypes: true })`. The two list shapes cannot be mixed.
+`ConnectionPlugin` throws if it finds a `{ items, nextToken }` connection.
 
 ## Related
 

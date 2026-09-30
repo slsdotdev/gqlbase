@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { TransformerContext } from "@gqlbase/core";
 import { DocumentNode, InterfaceNode, NonNullTypeNode, ObjectNode } from "@gqlbase/core/definition";
 import { ConnectionPlugin } from "./ConnectionPlugin.js";
-import { RelationsPlugin } from "../../base/RelationsPlugin/RelationsPlugin.js";
+import { RelationsPlugin } from "@gqlbase/core/plugins";
 
 describe("ConnectionPlugin", () => {
   let context: TransformerContext;

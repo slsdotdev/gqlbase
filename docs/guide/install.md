@@ -7,8 +7,8 @@ gqlbase is published as a set of `@gqlbase/*` packages that are versioned togeth
 | Package | Contents |
 | --- | --- |
 | `@gqlbase/cli` | The `gqlbase` binary, `defineConfig` (`@gqlbase/cli/config`), file watching |
-| `@gqlbase/plugins` | Built-in plugins and presets (`basePreset`, `relayPreset`, `appsyncPreset`; subpaths `/zod`, `/dsql`, `/drizzle`) |
-| `@gqlbase/core` | Transformer engine, plugin API, definition node classes |
+| `@gqlbase/plugins` | Optional plugins and presets (`relayPreset`, `appsyncPreset`; subpaths `/zod`, `/dsql`, `/drizzle`) |
+| `@gqlbase/core` | Transformer engine, plugin API, definition node classes, and the core plugins every transformer registers (`@gqlbase/core/plugins`) |
 | `@gqlbase/shared` | Logger, file I/O, error classes, formatting helpers |
 | `gqlbase` | Meta-package: the `gqlbase` binary plus re-exports of the packages above (see below) |
 
@@ -29,7 +29,7 @@ The meta-package re-exports the scoped packages under shorter paths. They are in
 | `gqlbase` | `createTransformer`, `GraphQLTransformer` from `@gqlbase/core` |
 | `gqlbase/config` | `@gqlbase/cli/config` |
 | `gqlbase/plugins` | `@gqlbase/plugins` |
-| `gqlbase/plugins/<name>` (`base`, `relay`, `appsync`, `zod`, `dsql`, `drizzle`) | `@gqlbase/plugins/<name>` |
+| `gqlbase/plugins/<name>` (`relay`, `appsync`, `zod`, `dsql`, `drizzle`) | `@gqlbase/plugins/<name>` |
 
 Installing `@gqlbase/cli` and `@gqlbase/plugins` directly also works; the repository's `example/` project does that (`example/gqlbase.config.js`).
 

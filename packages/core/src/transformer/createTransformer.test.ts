@@ -30,4 +30,47 @@ describe("createTransformer", () => {
       operations: ["read", "write"],
     });
   });
+
+  it("registers the core plugins first, in order, then the configured ones", () => {
+    let context: ITransformerContext | undefined;
+
+    createTransformer({
+      plugins: [
+        {
+          create: (ctx) => {
+            context = ctx;
+            return { name: "ProbePlugin", context: ctx, init: () => undefined, match: () => false };
+          },
+        },
+      ],
+    });
+
+    expect(context?.plugins.map((plugin) => plugin.name)).toEqual([
+      "InternalUtilsPlugin",
+      "UtilitiesPlugin",
+      "InterfaceUtilsPlugin",
+      "ScalarsPlugin",
+      "RfcFeaturesPlugin",
+      "ModelPlugin",
+      "RelationsPlugin",
+      "SchemaGeneratorPlugin",
+      "ModelTypesGeneratorPlugin",
+      "ProbePlugin",
+    ]);
+  });
+
+  it("transforms a schema with no configured plugins", () => {
+    const output = createTransformer().transform(/* GraphQL */ `
+      type Post @model {
+        id: ID!
+        title: String!
+      }
+    `);
+
+    expect(output.schema).toContain("getPost(id: ID!): Post");
+    expect(output.files.map((file) => file.filename)).toEqual([
+      "schema.graphql",
+      "models.typegen.ts",
+    ]);
+  });
 });

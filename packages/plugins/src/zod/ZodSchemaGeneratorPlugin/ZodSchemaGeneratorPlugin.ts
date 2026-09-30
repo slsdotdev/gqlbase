@@ -2,7 +2,19 @@ import ts from "typescript";
 import { createPluginFactory, ITransformerContext, TransformerPluginBase } from "@gqlbase/core";
 import { isBuildInScalar } from "@gqlbase/shared/definition";
 import { pascalCase } from "@gqlbase/shared/format";
-import { getTypeHint, isInternal } from "@gqlbase/core/plugins";
+import {
+  getTypeHint,
+  isInternal,
+  isBaseScalar,
+  type BaseScalarName,
+  hasConstraints,
+  parseConstraints,
+  isWriteOnly,
+  isSemanticNullable,
+  isRelationField,
+  isModel,
+  isPrimaryKeyField,
+} from "@gqlbase/core/plugins";
 import {
   DefinitionNode,
   EnumNode,
@@ -27,11 +39,6 @@ import {
 } from "@gqlbase/core/definition";
 import { TransformerPluginExecutionError } from "@gqlbase/shared/errors";
 import { stronglyConnectedComponents } from "@gqlbase/shared/utils";
-import { isBaseScalar, type BaseScalarName } from "../../base/ScalarsPlugin/ScalarsPlugin.utils.js";
-import { hasConstraints, parseConstraints, isWriteOnly } from "../../base/UtilitiesPlugin/index.js";
-import { isSemanticNullable } from "../../base/RfcFeaturesPlugin/index.js";
-import { isRelationField } from "../../base/RelationsPlugin/index.js";
-import { isModel, isPrimaryKeyField } from "../../base/ModelPlugin/ModelPlugin.utils.js";
 import {
   CUSTOM_SCALAR_ZOD_MAP,
   mergeOptions,

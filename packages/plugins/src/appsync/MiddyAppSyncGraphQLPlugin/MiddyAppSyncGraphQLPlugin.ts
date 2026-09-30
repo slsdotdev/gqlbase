@@ -10,9 +10,8 @@ import {
   isScalarNode,
   ObjectNode,
 } from "@gqlbase/core/definition";
-import { isInternal } from "@gqlbase/core/plugins";
+import { isInternal, isRelationField, TypesGeneratorBase } from "@gqlbase/core/plugins";
 import { createFileHeaders } from "@gqlbase/shared/codegen";
-import { isRelationField, TypesGeneratorBase } from "../../base/index.js";
 import {
   getAuthModeIdentityType,
   type MiddyAppSyncGraphQLPluginOptions,

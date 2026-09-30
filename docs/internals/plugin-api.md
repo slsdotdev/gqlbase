@@ -35,7 +35,7 @@ Every behaviour in gqlbase is a plugin. This page is the contract. The code is i
 Conventions:
 - **Naming.** The class is PascalCase (`ModelPlugin`); the factory export is camelCase (`modelPlugin`).
 - **Option defaults.** Plugins with options keep a `DEFAULT_OPTIONS` constant and a `mergeOptions` in their `*.utils.ts`. Examples are `ZodSchemaGeneratorPlugin` and `DsqlBaseSchemaGeneratorPlugin`.
-- **Presets.** A preset is a function that returns `IPluginFactory[]`, e.g. `packages/plugins/src/base/basePreset.ts`. `createTransformer` flattens nested arrays, so presets and single factories mix freely in a config.
+- **Presets.** A preset is a function that returns `IPluginFactory[]`, e.g. `packages/plugins/src/relay/relayPreset.ts`. `createTransformer` flattens nested arrays, so presets and single factories mix freely in a config.
 
 ## The context
 
@@ -51,6 +51,12 @@ The interface is `packages/core/src/context/ITransformerContext.ts` and the impl
 | `logger` | A scoped logger from `@gqlbase/shared/logger`. Use `logger.createChild(scope)`. |
 | `registerPlugin`, `startWork`, `finishWork` | Used by `createTransformer` and `GraphQLTransformer`. Registering after work has started throws. Tests call `startWork`/`finishWork` directly (see [Testing](./testing.md)). |
 
+## Depending on other plugins
+
+The core plugins (`packages/core/src/plugins/`, listed in `corePlugins.ts`) are always registered before any configured plugin. A plugin may rely on what they add and import their helpers (`isModel`, `isRelationField`, `isSemanticNullable`, `isRelayConnection`, …) from `@gqlbase/core/plugins`.
+
+A plugin must not depend on an optional plugin, because a config can leave it out: capability plugins in `@gqlbase/plugins` never import each other. If two of them need the same helper, move it into core.
+
 ## Declaring directives
 
 A plugin that owns a directive declares it in `init()`:
@@ -63,13 +69,13 @@ public init() {
 }
 ```
 
-It then removes the directive's usages in `cleanup` and its definition in `after`, so the public schema carries neither. Examples include `packages/plugins/src/base/UtilitiesPlugin/UtilitiesPlugin.ts` and `packages/plugins/src/base/ModelPlugin/ModelPlugin.ts`. `RfcFeaturesPlugin` keeps `@semanticNonNull` in the output on purpose, and declares it only when `context.options.semanticNullability` is on.
+It then removes the directive's usages in `cleanup` and its definition in `after`, so the public schema carries neither. Examples include `packages/core/src/plugins/UtilitiesPlugin/UtilitiesPlugin.ts` and `packages/core/src/plugins/ModelPlugin/ModelPlugin.ts`. `RfcFeaturesPlugin` keeps `@semanticNonNull` in the output on purpose, and declares it only when `context.options.semanticNullability` is on.
 
 Internal-only definitions carry `@gqlbase_internal`. Scalars carry `@gqlbase_typehint(type: …)` to tell generators how to type them. Both come from `InternalUtilsPlugin` (`packages/core/src/plugins/InternalUtilsPlugin/`), which removes them in `cleanup` and `after`.
 
 ## Producing files
 
-Generators accumulate state during `generate` (and sometimes `before`/`after`). In `output()` they push to `context.files` and may return extra keys. `SchemaGeneratorPlugin` (`packages/plugins/src/base/SchemaGeneratorPlugin.ts`) is the smallest example: it pushes `schema.graphql` and returns `{ schema }`. TypeScript generators print through the `typescript` factory API; the shared base is `packages/plugins/src/base/TypesGeneratorBase/TypesGeneratorBase.ts`.
+Generators accumulate state during `generate` (and sometimes `before`/`after`). In `output()` they push to `context.files` and may return extra keys. `SchemaGeneratorPlugin` (`packages/core/src/plugins/SchemaGeneratorPlugin/SchemaGeneratorPlugin.ts`) is the smallest example: it pushes `schema.graphql` and returns `{ schema }`. TypeScript generators print through the `typescript` factory API; the shared base is `packages/core/src/plugins/TypesGeneratorBase/TypesGeneratorBase.ts`.
 
 ## Writing a plugin: checklist
 

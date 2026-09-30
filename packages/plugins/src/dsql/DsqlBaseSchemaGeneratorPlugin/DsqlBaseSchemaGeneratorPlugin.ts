@@ -13,8 +13,23 @@ import {
   isScalarNode,
   ObjectNode,
 } from "@gqlbase/core/definition";
-import { createPluginFactory, getTypeHint, isInternal } from "@gqlbase/core/plugins";
-import { isClientOnly, isModel, isRelationField, isSemanticNullable } from "../../base/index.js";
+import {
+  createPluginFactory,
+  getTypeHint,
+  isInternal,
+  isClientOnly,
+  isModel,
+  isRelationField,
+  isSemanticNullable,
+  isPrimaryKeyField,
+  parseFieldRelation,
+  isBelongsToRelationship,
+  isManyRelationship,
+  isOneRelationship,
+  isPaginationConnection,
+  isRelayConnection,
+  isRelayEdge,
+} from "@gqlbase/core/plugins";
 import { TransformerPluginExecutionError } from "@gqlbase/shared/errors";
 import { camelCase, pluralize, snakeCase } from "@gqlbase/shared/format";
 import {
@@ -31,15 +46,6 @@ import {
   ScalarConfig,
 } from "./DsqlBaseSchemaGeneratorPlugin.utils.js";
 import { isBuildInScalar } from "@gqlbase/shared/definition";
-import { isPrimaryKeyField } from "../../base/ModelPlugin/index.js";
-import { parseFieldRelation } from "../../base/RelationsPlugin/index.js";
-import {
-  isBelongsToRelationship,
-  isManyRelationship,
-  isOneRelationship,
-  isPaginationConnection,
-} from "../../base/RelationsPlugin/RelationsPlugin.utils.js";
-import { isRelayConnection, isRelayEdge } from "../../relay/index.js";
 
 /**
  * Generates dsqlbase schema definitions from GraphQL type definitions.

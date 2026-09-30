@@ -2,7 +2,7 @@
 
 _Audience: people controlling where a field appears — public schema, inputs, filters, generated code, database._
 
-The utility directives are declared by `UtilitiesPlugin` (`packages/plugins/src/base/UtilitiesPlugin/UtilitiesPlugin.ts`; predicates such as `isReadOnly` in `UtilitiesPlugin.utils.ts`), part of `basePreset()`. All of them go on `FIELD_DEFINITION`. `@constraint` also goes on `INPUT_FIELD_DEFINITION` and `ARGUMENT_DEFINITION`.
+The utility directives are declared by `UtilitiesPlugin` (`packages/core/src/plugins/UtilitiesPlugin/UtilitiesPlugin.ts`; predicates such as `isReadOnly` in `UtilitiesPlugin.utils.ts`), a core plugin. All of them go on `FIELD_DEFINITION`. `@constraint` also goes on `INPUT_FIELD_DEFINITION` and `ARGUMENT_DEFINITION`.
 
 | Directive | Intent |
 | --- | --- |

@@ -2,7 +2,7 @@ import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import { TransformerContext } from "@gqlbase/core";
 import { DocumentNode } from "@gqlbase/core/definition";
 import { AppSyncSchemaGeneratorPlugin } from "./AppSyncSchemaGeneratorPlugin.js";
-import { ScalarsPlugin } from "../../base/index.js";
+import { ScalarsPlugin } from "@gqlbase/core/plugins";
 import { AppSyncUtilsPlugin } from "../AppSyncUtilsPlugin/AppSyncUtilsPlugin.js";
 
 const generateSchema = (plugin: AppSyncSchemaGeneratorPlugin) => {
