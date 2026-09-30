@@ -36,16 +36,19 @@ import { isClientOnly, UtilityDirective } from "../UtilitiesPlugin/index.js";
 import { isSemanticNullable } from "../RfcFeaturesPlugin/RfcFeaturesPlugin.utils.js";
 
 /**
- * This plugin is responsible for adding the `@hasOne` and `@hasMany` directives to the schema, which can be used to define relationships between types.
+ * Adds the `@hasOne`, `@hasMany` and `@belongsTo` relation directives, the key fields they need, and the list shape of `@hasMany` fields.
  *
- * It also adds the necessary fields and arguments to the schema to support these directives.
+ * Key placement (see `parseFieldRelation`):
+ * - `@belongsTo` stores the key on the **source** type: `camelCase(<field>, "id")`, or `key:`.
+ * - `@hasOne` and `@hasMany` store the key on the **target** type: `camelCase(<source type>, "id")`, or `key:`.
+ *
+ * Keys are added as `@serverOnly @writeOnly` fields, so they are stored but not in the output schema.
  *
  * @definition
  * ```graphql
  * directive `@hasOne(key: String)` on FIELD_DEFINITION
- *
  * directive `@hasMany(key: String)` on FIELD_DEFINITION
- *
+ * directive `@belongsTo(key: String)` on FIELD_DEFINITION
  * ```
  *
  * @example
@@ -53,28 +56,35 @@ import { isSemanticNullable } from "../RfcFeaturesPlugin/RfcFeaturesPlugin.utils
  * # Before
  * type User {
  *   id: ID!
- *   name: String!
  *   posts: Post `@hasMany(key: "authorId")`
+ *   profile: Profile `@hasOne`
  * }
  *
  * type Post {
  *   id: ID!
- *   title: String!
- *   author: User `@hasOne`
+ *   author: User `@belongsTo`
+ * }
+ *
+ * type Profile {
+ *   id: ID!
  * }
  *
  * # After (with the `relay` option off; with it on, `ConnectionPlugin` makes `posts` a connection)
  * type User {
  *   id: ID!
- *   name: String!
- *   posts: [Post!] # formatted by the plugin; `Post!` becomes `[Post!]!`
+ *   posts: [Post!]    # `Post!` would become `[Post!]!`
+ *   profile: Profile
  * }
  *
  * type Post {
  *   id: ID!
- *   title: String!
- *   authorId: ID # added by the plugin
+ *   authorId: ID      # from @hasMany(key: "authorId") and @belongsTo on author
  *   author: User
+ * }
+ *
+ * type Profile {
+ *   id: ID!
+ *   userId: ID        # from @hasOne: the key goes on the target
  * }
  * ```
  */

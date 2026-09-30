@@ -55,7 +55,7 @@ type Post {
 
 `Post.userId`, `Post.authorId` and `Post.editorUserId` are present in the Zod `Create/UpdatePostInputSchema`, the `posts` table and the AppSync resolver `PostSource` type. They are absent from `schema.graphql` and `schema.types.ts`.
 
-> **Choosing between `@hasOne` and `@belongsTo`.** Use `@belongsTo` when the current type stores the foreign key (`Post.author`). Use `@hasOne` when the *other* type stores a key pointing back (`User.profile: Profile @hasOne` puts `userId` on `Profile`). The docstring example on `RelationsPlugin` shows `@hasOne` placing the key on the source; that is not what the code does. See [Known gaps](../internals/known-gaps.md).
+> **Choosing between `@hasOne` and `@belongsTo`.** Use `@belongsTo` when the current type stores the foreign key (`Post.author`). Use `@hasOne` when the *other* type stores a key pointing back (`User.profile: Profile @hasOne` puts `userId` on `Profile`).
 
 ### Fields on root types
 

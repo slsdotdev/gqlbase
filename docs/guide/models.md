@@ -105,6 +105,7 @@ Which fields appear in which input is decided by `packages/core/src/plugins/Mode
 - **Scalars and enums** are copied with their list shape.
 - **Fields whose type is another `@model`** are skipped. Use a relation and its key instead.
 - **Fields whose type is a non-model object** get a generated `<Type>Input`, built recursively from the object's fields, and are referenced from the model input. An existing type with that name is reused as is.
+- **One `<Type>Input` for every operation.** The nested input is built once, with the rules of the first operation that reaches it (the create rules, in practice), and every operation reuses it, so the update input carries the create input's non-null fields. This is by design: a non-model object is stored as one JSON value, so a write replaces it whole (a put, not a patch), and the whole value has to be valid.
 - **Union and interface fields** are skipped silently.
 
 ### Partial updates and `null`
@@ -115,8 +116,6 @@ Update inputs are partial: an omitted field is left unchanged, and `null` sets a
 - Do not drop `null` values in the resolver. The resolver cannot tell "clear this" from "ignore this", and silently skipping a write hides a client bug.
 
 `Create<Model>InputSchema` describes the stored row, so validate the row the resolver is about to write: the client input plus server-set fields such as timestamps. This also enforces `@constraint`. `example/src/resolvers/category.ts` shows both.
-
-> **Nested object inputs are shared.** `<Type>Input` is created once, using the rules of whichever operation reaches it first, and then reused by every model and operation. In practice this means the create rules, with non-null fields staying non-null in the update input too. See [Known gaps](../internals/known-gaps.md).
 
 ## Filter inputs
 

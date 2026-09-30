@@ -12,12 +12,6 @@ When a relation target is a union, `RelationsPlugin._setRelationKey` (`packages/
 
 **Fix:** forward both arguments.
 
-### 3. `RelationsPlugin` docstring contradicts the key placement
-
-The class docstring shows `author: User @hasOne` on `Post` adding `authorId` to `Post`. The code (`parseFieldRelation` in `packages/core/src/plugins/RelationsPlugin/RelationsPlugin.utils.ts`, plus `normalize`) does something else. Without an explicit key, `@hasOne` derives `camelCase(<parent>, "id")` and places it on the **target**, so the example actually adds `postId` to `User`. Only `@belongsTo` puts the key on the source, as `camelCase(<field>, "id")`.
-
-**Fix:** correct the docstring. The documented behaviour is in [Relations](../guide/relations.md).
-
 ### 5. Object-like fields cannot be filtered
 
 `ModelPlugin._createFilterInput` (`packages/core/src/plugins/ModelPlugin/ModelPlugin.ts`) skips every field whose type is object-like: object, interface or union. Non-model object fields, union relations and interface fields never appear in `<Model>FilterInput`.
@@ -29,10 +23,6 @@ The class docstring shows `author: User @hasOne` on `Post` adding `authorId` to 
 ### 8. Relations on types without an `id` throw
 
 A relation field on a non-model type that has no `id` field throws "does not have an id field" in `RelationsPlugin`, even when `key:` is given. An example is `posts: [Post] @hasMany` on a `Viewer` root. Only `@clientOnly` relation fields avoid it. The error message suggests "a key directive with an explicit type", which does not exist.
-
-### 11. Nested `<Type>Input` is shared across operations
-
-A non-model object field gets a nested `<Type>Input` built with the rules of whichever operation reaches it first (`ModelPlugin.ts`). Every operation then reuses that input. For example, the update input inherits non-null fields from the create input.
 
 ### 12. List filter inputs are inconsistent
 
@@ -53,8 +43,6 @@ The same plugin also ignores its `dialect` option, and it uses a union's name as
 ### 19. Drizzle imports column types the schema types do not export
 
 `DrizzleSchemaGeneratorPlugin` imports the type of every object column from `../schema.types.js`. A column typed with an object that is not in the output schema (a `@serverOnly` object, or one only `@serverOnly` fields use) produces an import of a name that does not exist. The dsqlbase generator declares such types locally instead (`TypesGeneratorBase._referenceType`). Drizzle is frozen, so this stays until it is revived or removed.
-
-## Tooling
 
 ## Related
 
