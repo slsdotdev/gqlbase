@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { createTransformer } from "@gqlbase/core";
 import { dsqlbase } from "../index.js";
 
-describe("dsqlbase BigInt columns", () => {
+describe("dsqlbase SafeInt columns", () => {
   let tables: string;
 
   beforeAll(() => {
@@ -11,10 +11,10 @@ describe("dsqlbase BigInt columns", () => {
 
       type Invoice @model {
         id: ID!
-        amount: BigInt!
-        refunded: BigInt
+        amount: SafeInt!
+        refunded: SafeInt
         views: Counter
-        history: [BigInt!]
+        history: [SafeInt!]
       }
     `);
 
@@ -34,19 +34,19 @@ describe("dsqlbase BigInt columns", () => {
     );
   });
 
-  it("uses the builder for BigInt and bigint-hinted columns", () => {
+  it("uses the builder for SafeInt and bigint-hinted columns", () => {
     expect(tables).toContain('amount: bigintNumber("amount").notNull()');
     expect(tables).toContain('refunded: bigintNumber("refunded")');
     expect(tables).toContain('views: bigintNumber("views")');
     expect(tables).not.toMatch(/import \{[^}]*\bbigintNumber\b[^}]*\} from "dsqlbase\/schema"/);
   });
 
-  it("stores a list of BigInt as json typed number[]", () => {
+  it("stores a list of SafeInt as json typed number[]", () => {
     expect(tables).toContain('history: json("history").$type<number[]>()');
   });
 });
 
-describe("dsqlbase without BigInt columns", () => {
+describe("dsqlbase without SafeInt columns", () => {
   let tables: string;
 
   beforeAll(() => {

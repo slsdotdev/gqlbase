@@ -87,7 +87,7 @@ export const postRelations = relations(posts, {
 - **Columns.** Every field except `@gqlbase_internal`, `@clientOnly` and relation fields. `@serverOnly`, `@writeOnly` and `@readOnly` fields, and relation keys, are all columns. Column names are `snake_case` of the field name.
 - **`id`.** Always `.primaryKey().defaultRandom()`, whatever its type.
 - **Not null.** `.notNull()` when the field is non-null or `@semanticNonNull`.
-- **Scalars.** Mapped as in [Scalars](./scalars.md): `ID` → `uuid`, `String` → `text`, `Int` → `int`, `Float` → `real`, `Boolean` → `bool`, `DateTime` → `timestamp(…, { mode: "iso" })`, `BigInt` → `bigintNumber` (see below), … Custom scalars use `scalarMap`, then their type hint.
+- **Scalars.** Mapped as in [Scalars](./scalars.md): `ID` → `uuid`, `String` → `text`, `Int` → `int`, `Float` → `real`, `Boolean` → `bool`, `DateTime` → `timestamp(…, { mode: "iso" })`, `SafeInt` → `bigintNumber` (see below), … Custom scalars use `scalarMap`, then their type hint.
 - **Enums.** An enum becomes `$enum("<snake>_enum", [...])` only when a non-list column of a stored model uses it; the column is `<camel>Enum.column("<col>")`. A list of enums is a `json` column typed with the enum's TS type.
 - **Lists.** Every list field, scalar or not, becomes a single `json(...)` column typed `.$type<T[]>()`.
 - **Non-model object, interface or union fields.** A single `json(...)` column typed `.$type<Type>()`. There is no nesting, no per-field filtering and no validation.
@@ -98,9 +98,9 @@ export const postRelations = relations(posts, {
   - Relay connections and `{ items }` connections are resolved back to the node type.
   - The target must be a `@model`: union, interface and plain-object targets throw.
 
-### `BigInt` columns
+### `SafeInt` columns
 
-dsqlbase's `bigint()` decodes to a JS `bigint`, but [`BigInt`](./scalars.md#bigint) is typed `number`. So when a column is `BigInt` (or a custom scalar with the `bigint` hint), the file declares a local builder and uses it for that column:
+dsqlbase's `bigint()` decodes to a JS `bigint`, but [`SafeInt`](./scalars.md#safeint) is typed `number`. So when a column is `SafeInt` (or a custom scalar with the `bigint` hint), the file declares a local builder and uses it for that column:
 
 ```ts
 import { ColumnDefinition, type ColumnConfig } from "@dsqlbase/core";
@@ -115,7 +115,7 @@ export const invoices = table("invoices", {
 });
 ```
 
-The builder and the `@dsqlbase/core` import are emitted only when a column uses them, so a schema without `BigInt` needs only `dsqlbase`. `ColumnDefinition` is not re-exported from `dsqlbase/schema`, which is why the file imports `@dsqlbase/core` (see [Install](./install.md#what-the-generated-code-needs-at-runtime)).
+The builder and the `@dsqlbase/core` import are emitted only when a column uses them, so a schema without `SafeInt` needs only `dsqlbase`. `ColumnDefinition` is not re-exported from `dsqlbase/schema`, which is why the file imports `@dsqlbase/core` (see [Install](./install.md#what-the-generated-code-needs-at-runtime)).
 
 ### Not generated
 

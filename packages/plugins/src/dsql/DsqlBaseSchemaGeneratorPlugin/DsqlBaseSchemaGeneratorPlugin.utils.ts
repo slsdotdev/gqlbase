@@ -36,7 +36,7 @@ export const SCALAR_TYPE_MAP: Record<BuildInScalar | BaseScalarName, ScalarConfi
   Date: { type: "string", dataType: "date", options: { mode: "iso" } },
   Time: { type: "string", dataType: "time", options: { mode: "iso" } },
   Timestamp: { type: "string", dataType: "timestamp" },
-  BigInt: { type: "number", dataType: "bigintNumber" },
+  SafeInt: { type: "number", dataType: "bigintNumber" },
   URL: { type: "string", dataType: "text" },
   EmailAddress: { type: "string", dataType: "text" },
   PhoneNumber: { type: "string", dataType: "text" },

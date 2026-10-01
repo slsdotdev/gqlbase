@@ -44,7 +44,7 @@ export const BaseScalarMappings: Record<BaseScalarName, AppSyncScalarName | Buil
   DateTime: AppSyncScalar.AWS_DATE_TIME,
   Time: AppSyncScalar.AWS_TIME,
   Timestamp: AppSyncScalar.AWS_TIMESTAMP,
-  BigInt: AppSyncScalar.LONG,
+  SafeInt: AppSyncScalar.LONG,
   UUID: BuildInScalar.ID,
   URL: AppSyncScalar.AWS_URL,
   EmailAddress: AppSyncScalar.AWS_EMAIL,

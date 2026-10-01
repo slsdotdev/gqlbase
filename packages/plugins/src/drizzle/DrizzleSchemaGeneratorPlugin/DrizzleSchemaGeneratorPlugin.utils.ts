@@ -50,7 +50,7 @@ export const PG_BASE_SCALAR_MAP: Record<BaseScalarName, string | ScalarConfig> =
   Date: "date",
   Time: "time",
   Timestamp: "integer",
-  BigInt: { type: "bigint", config: { mode: "number" } },
+  SafeInt: { type: "bigint", config: { mode: "number" } },
   URL: "text",
   EmailAddress: "text",
   PhoneNumber: "text",

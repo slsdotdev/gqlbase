@@ -12,7 +12,7 @@ describe("Zod scalar schemas", () => {
 
         type Invoice @model {
           id: ID!
-          amount: BigInt!
+          amount: SafeInt!
           views: Counter!
         }
       `
@@ -22,7 +22,7 @@ describe("Zod scalar schemas", () => {
       output.files.find((file) => file.path === "zod/schema.validators.ts")?.content ?? "";
   });
 
-  it("validates BigInt as an integer number", () => {
+  it("validates SafeInt as an integer number", () => {
     expect(validators).toMatch(/amount: z\.number\(\)\.int\(\)/);
   });
 

@@ -15,14 +15,14 @@ const CREATE_LEDGER_ENTRY = /* GraphQL */ `
   }
 `;
 
-describe("BigInt and custom scalars", () => {
+describe("SafeInt and custom scalars", () => {
   let id: string;
 
   beforeAll(async () => {
     await migrate();
   });
 
-  it("round-trips a BigInt above the int4 range as a number", async () => {
+  it("round-trips a SafeInt above the int4 range as a number", async () => {
     const result = await execute<{
       createLedgerEntry: { id: string; amountMinor: number; currency: string };
     }>(CREATE_LEDGER_ENTRY, {
@@ -45,7 +45,7 @@ describe("BigInt and custom scalars", () => {
     expect(typeof row?.amountMinor).toBe("number");
   });
 
-  it("filters BigInt values with number operators", async () => {
+  it("filters SafeInt values with number operators", async () => {
     await execute(CREATE_LEDGER_ENTRY, {
       variables: { input: { amountMinor: 1_00, currency: "EUR" } },
     });
@@ -73,7 +73,29 @@ describe("BigInt and custom scalars", () => {
     ]);
   });
 
-  it("rejects a BigInt that is not an integer", async () => {
+  it("round-trips Number.MAX_SAFE_INTEGER", async () => {
+    const result = await execute<{ createLedgerEntry: { amountMinor: number } }>(
+      CREATE_LEDGER_ENTRY,
+      { variables: { input: { amountMinor: Number.MAX_SAFE_INTEGER, currency: "EUR" } } }
+    );
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data?.createLedgerEntry.amountMinor).toBe(Number.MAX_SAFE_INTEGER);
+  });
+
+  it("rejects a value above the safe range instead of storing it rounded", async () => {
+    // As over the wire: JSON numbers are doubles, so 2^53 + 1 arrives as 2^53.
+    const variables = JSON.parse(
+      '{ "input": { "amountMinor": 9007199254740993, "currency": "EUR" } }'
+    ) as Record<string, unknown>;
+
+    const result = await execute(CREATE_LEDGER_ENTRY, { variables });
+
+    expect(result.errors?.[0]?.extensions?.errorType).toBe("ValidationError");
+    expect(result.errors?.[0]?.message).toMatch(/amountMinor/);
+  });
+
+  it("rejects a SafeInt that is not an integer", async () => {
     const result = await execute(CREATE_LEDGER_ENTRY, {
       variables: { input: { amountMinor: 1.5, currency: "EUR" } },
     });

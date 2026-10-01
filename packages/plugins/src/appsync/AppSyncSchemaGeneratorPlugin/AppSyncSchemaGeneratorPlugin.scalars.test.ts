@@ -18,7 +18,7 @@ describe("AppSync scalar mapping", () => {
 
       type Invoice @model {
         id: ID!
-        amount: BigInt!
+        amount: SafeInt!
         slug: Slug!
         currency: Currency!
         ratio: Ratio
@@ -31,9 +31,9 @@ describe("AppSync scalar mapping", () => {
     schema = output.files.find((file) => file.path === "appsync/schema.graphql")?.content ?? "";
   });
 
-  it("maps BigInt to Long", () => {
+  it("maps SafeInt to Long", () => {
     expect(schema).toMatch(/amount: Long!/);
-    expect(schema).not.toMatch(/[:[]\s*BigInt\b/);
+    expect(schema).not.toMatch(/[:[]\s*SafeInt\b/);
   });
 
   it("maps custom scalars by their type hint", () => {

@@ -3,7 +3,7 @@ export const BaseScalar = {
   DATE_TIME: "DateTime",
   TIME: "Time",
   TIMESTAMP: "Timestamp",
-  BIG_INT: "BigInt",
+  SAFE_INT: "SafeInt",
   UUID: "UUID",
   URL: "URL",
   EMAIL_ADDRESS: "EmailAddress",

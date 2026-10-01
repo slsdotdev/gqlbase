@@ -12,7 +12,7 @@ _Audience: people using the built-in scalars or adding their own._
 | `Date` | string | `string` | `z.iso.date()` | `date(…, { mode: "iso" })` | `date` | `AWSDate` |
 | `Time` | string | `string` | `z.iso.time()` | `time(…, { mode: "iso" })` | `time` | `AWSTime` |
 | `Timestamp` | number | `number` | `z.number()` | `timestamp` | `integer` | `AWSTimestamp` |
-| `BigInt` | bigint | `number` | `z.number().int()` | `bigintNumber` (local, see below) | `bigint(…, { mode: "number" })` | `Long` |
+| `SafeInt` | bigint | `number` | `z.number().int()` | `bigintNumber` (local, see below) | `bigint(…, { mode: "number" })` | `Long` |
 | `UUID` | id | `string` | `z.uuid()` | `uuid` | `uuid` | `ID` |
 | `URL` | string | `string` | `z.url()` | `text` | `text` | `AWSURL` |
 | `EmailAddress` | string | `string` | `z.email()` | `text` | `text` | `AWSEmail` |
@@ -30,13 +30,15 @@ GraphQL's own scalars map as follows:
 | `Float` | `number` | `z.number()` | `real` | `doublePrecision` |
 | `Boolean` | `boolean` | `z.boolean()` | `bool` | `boolean` |
 
-### `BigInt`
+### `SafeInt`
 
-`BigInt` is stored in a 64-bit `bigint` column but typed as a JS `number` everywhere, so values are limited to `Number.MAX_SAFE_INTEGER` (9,007,199,254,740,991). That covers money in minor units. A JS `bigint` is not used because the Lambda runtime serializes resolver results with `JSON.stringify`, which throws on one.
+`SafeInt` is an integer a JS `number` holds exactly: between `Number.MIN_SAFE_INTEGER` and `Number.MAX_SAFE_INTEGER` (±9,007,199,254,740,991), as defined by [`Number.isSafeInteger`](https://tc39.es/ecma262/#sec-number.issafeinteger). It is typed `number` everywhere and stored in a 64-bit column, so it is not capped at the `Int` (int4) range. That covers money in minor units.
 
-- **Zod** uses `z.number().int()`, which accepts only safe integers.
-- **dsqlbase:** its own `bigint()` column decodes to a JS `bigint`. So the generated `dsqlbase/schema.ts` declares a local `bigintNumber` builder when a column needs it. The builder is a `bigint` column that encodes with `toString()` and decodes with `Number()`. See [dsqlbase](./dsqlbase.md#bigint-columns).
-- **AppSync:** `BigInt` becomes `Long` in the AppSync schema.
+The name states the limit. A larger value does not fail on the way in: JSON numbers are doubles, so AppSync and the Lambda runtime round it to the nearest double before the resolver sees it (sent `9007199254740993`, received `9007199254740992`). The rounded value is outside the safe range, so the generated Zod schema rejects it; a resolver that skips validation would store the rounded value. There is no 64-bit scalar typed as a JS `bigint`: the Lambda runtime serializes results with `JSON.stringify`, which throws on one.
+
+- **Zod** uses `z.number().int()`, which in Zod 4 accepts only safe integers.
+- **dsqlbase:** its own `bigint()` column decodes to a JS `bigint`. So the generated `dsqlbase/schema.ts` declares a local `bigintNumber` builder when a column needs it. The builder is a `bigint` column that encodes with `toString()` and decodes with `Number()`. See [dsqlbase](./dsqlbase.md#safeint-columns).
+- **AppSync:** `SafeInt` becomes `Long` in the AppSync schema.
 
 There is no decimal scalar built in. Declare one with a hint (see [Adding a custom scalar](#adding-a-custom-scalar)).
 

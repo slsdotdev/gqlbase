@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { createTransformer } from "@gqlbase/core";
 import { drizzleSchemaGeneratorPlugin } from "../index.js";
 
-describe("Drizzle BigInt columns", () => {
+describe("Drizzle SafeInt columns", () => {
   let tables: string;
 
   beforeAll(() => {
@@ -11,7 +11,7 @@ describe("Drizzle BigInt columns", () => {
     }).transform(/* GraphQL */ `
       type Invoice @model {
         id: ID!
-        amount: BigInt!
+        amount: SafeInt!
       }
     `);
 

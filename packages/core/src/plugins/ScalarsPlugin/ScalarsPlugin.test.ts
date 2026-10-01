@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { createTransformer } from "../../transformer/index.js";
 
-describe("ScalarsPlugin BigInt", () => {
+describe("ScalarsPlugin SafeInt", () => {
   let schema: string;
   let types: string;
 
@@ -9,7 +9,7 @@ describe("ScalarsPlugin BigInt", () => {
     const output = createTransformer().transform(/* GraphQL */ `
       type Invoice @model {
         id: ID!
-        amount: BigInt!
+        amount: SafeInt!
       }
     `);
 
@@ -17,18 +17,18 @@ describe("ScalarsPlugin BigInt", () => {
     types = output.files.find((file) => file.path === "schema.types.ts")?.content ?? "";
   });
 
-  it("declares BigInt in the schema", () => {
-    expect(schema).toContain("scalar BigInt");
+  it("declares SafeInt in the schema", () => {
+    expect(schema).toContain("scalar SafeInt");
   });
 
-  it("types BigInt as number", () => {
+  it("types SafeInt as number", () => {
     expect(types).toMatch(/amount: number;/);
   });
 
-  it("filters BigInt like a number", () => {
-    const filterInput = schema.match(/input BigIntFilterInput \{[^}]*\}/)?.[0] ?? "";
+  it("filters SafeInt like a number", () => {
+    const filterInput = schema.match(/input SafeIntFilterInput \{[^}]*\}/)?.[0] ?? "";
 
-    expect(filterInput).toContain("gt: BigInt");
-    expect(filterInput).toContain("between: [BigInt!]");
+    expect(filterInput).toContain("gt: SafeInt");
+    expect(filterInput).toContain("between: [SafeInt!]");
   });
 });
