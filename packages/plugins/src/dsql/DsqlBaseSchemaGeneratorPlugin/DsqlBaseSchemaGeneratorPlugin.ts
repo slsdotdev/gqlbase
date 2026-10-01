@@ -43,6 +43,10 @@ import {
 } from "@gqlbase/shared/codegen";
 import {
   DsqlBaseSchemaGeneratorPluginOptions,
+  createLocalColumnBuilder,
+  createLocalColumnBuilderImport,
+  isLocalColumnBuilder,
+  type LocalColumnBuilderName,
   mergeOptions,
   resolveScalarDataType,
   resolveTypeHintDataType,
@@ -59,6 +63,7 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
   private _options: DsqlBaseSchemaGeneratorPluginOptions;
 
   private _imports = new Set<string>();
+  private _localBuilders = new Set<LocalColumnBuilderName>();
   private _typeRefs: TypeReferences = createTypeReferences();
   private _publicDefinitions: Set<string> | null = null;
 
@@ -172,7 +177,12 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
   private _resolveScalarDataType(typeName: string, columnName: string): ts.Expression {
     const columnType = this._resolveScalarColumnType(typeName);
 
-    this._imports.add(columnType.dataType);
+    if (isLocalColumnBuilder(columnType.dataType)) {
+      this._localBuilders.add(columnType.dataType);
+    } else {
+      this._imports.add(columnType.dataType);
+    }
+
     const args: ts.Expression[] = [ts.factory.createStringLiteral(columnName)];
 
     if (columnType.options) {
@@ -495,6 +505,7 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
     this._tables = [];
     this._relations = [];
     this._imports.clear();
+    this._localBuilders.clear();
     this._typeRefs = createTypeReferences();
     this._publicDefinitions = null;
   }
@@ -533,6 +544,10 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
       importNodes.push(namedImportStatement("dsqlbase/schema", imports));
     }
 
+    if (this._localBuilders.size > 0) {
+      importNodes.push(createLocalColumnBuilderImport());
+    }
+
     // Locally declared types (for stored shapes the schema types do not export) use Maybe.
     const schemaTypeImports = declarations.size > 0 ? [...reExports, "Maybe"] : reExports;
 
@@ -559,6 +574,7 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
       ts.factory.createNodeArray([
         ...importNodes,
         ts.factory.createIdentifier("\n"),
+        ...Array.from(this._localBuilders, createLocalColumnBuilder),
         ...declarations.values(),
         ...this._enums,
         ...this._tables,

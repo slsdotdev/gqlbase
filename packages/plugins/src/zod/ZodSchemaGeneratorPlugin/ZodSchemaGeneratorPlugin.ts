@@ -157,6 +157,11 @@ export class ZodSchemaGeneratorPlugin extends TransformerPluginBase {
     );
   }
 
+  private _isScalar(typeName: string): boolean {
+    const node = this.context.document.getNode(typeName);
+    return node !== undefined && isScalarNode(node);
+  }
+
   private _parseZodExpression(zodCode: string): ts.Expression {
     const sourceFile = ts.createSourceFile("temp.ts", zodCode, ts.ScriptTarget.Latest, false);
     const statement = sourceFile.statements[0];
@@ -170,6 +175,12 @@ export class ZodSchemaGeneratorPlugin extends TransformerPluginBase {
   }
 
   private _createScalarZodExpression(typeName: string, suffix = "Schema"): ts.Expression {
+    const override = this.options.scalars[typeName];
+
+    if (override && (isBuildInScalar(typeName) || this._isScalar(typeName))) {
+      return this._parseZodExpression(override);
+    }
+
     if (isBuildInScalar(typeName)) {
       switch (typeName) {
         case "ID":

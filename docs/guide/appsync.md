@@ -6,7 +6,6 @@ _Audience: people deploying the generated schema to AWS AppSync and writing reso
 import { appsyncPreset } from "@gqlbase/plugins";
 
 appsyncPreset({
-  scalarMappings: { Decimal: "String" },
   middyAppSync: { authorizationModes: ["cognito", "iam"] },
 });
 ```
@@ -16,7 +15,7 @@ Defined in `packages/plugins/src/appsync/appSyncPreset.ts`.
 | Option | Default | Description |
 | --- | --- | --- |
 | `emitOutput` | `false` | Also return the AppSync SDL from `transform()` as `output.appsync.schema`. |
-| `scalarMappings` | `{}` | Custom scalar name → AppSync scalar (`AWSDate`, `AWSDateTime`, `AWSTime`, `AWSTimestamp`, `AWSEmail`, `AWSJSON`, `AWSURL`, `AWSPhone`, `AWSIPAddress`) or GraphQL built-in (`ID`, `String`, `Int`, `Float`, `Boolean`). |
+| `scalarMappings` | `{}` | Scalar name → AppSync scalar (`AWSDate`, `AWSDateTime`, `AWSTime`, `AWSTimestamp`, `AWSEmail`, `AWSJSON`, `AWSURL`, `AWSPhone`, `AWSIPAddress`, `Long`) or GraphQL built-in (`ID`, `String`, `Int`, `Float`, `Boolean`). Overrides the type hint; needed only for a scalar without one. See [`appsync/schema.graphql`](#appsyncschemagraphql). |
 | `middyAppSync.enable` | `true` | Register `MiddyAppSyncGraphQLPlugin`. |
 | `middyAppSync.authorizationModes` | none | Any of `cognito`, `iam`, `oidc`, `apiKey`, `lambda`. |
 | `middyAppSync.relationsOnly` | `true` | See [Resolver types](#resolver-types). |
@@ -25,7 +24,7 @@ Defined in `packages/plugins/src/appsync/appSyncPreset.ts`.
 
 `AppSyncUtilsPlugin` (`packages/plugins/src/appsync/AppSyncUtilsPlugin/AppSyncUtilsPlugin.ts`) declares:
 
-- **AWS scalars**, each with a type hint, so they can be used directly in your SDL: `AWSDate`, `AWSDateTime`, `AWSTime`, `AWSTimestamp`, `AWSEmail`, `AWSJSON`, `AWSURL`, `AWSPhone`, `AWSIPAddress`.
+- **AWS scalars**, each with a type hint, so they can be used directly in your SDL: `AWSDate`, `AWSDateTime`, `AWSTime`, `AWSTimestamp`, `AWSEmail`, `AWSJSON`, `AWSURL`, `AWSPhone`, `AWSIPAddress`, and `Long` (a 64-bit integer, hint `number`), which [`SafeInt`](./scalars.md#safeint) maps to.
 - **Auth and subscription directives:**
   - `@aws_subscribe(mutations: [String!]!)`
   - `@aws_auth(cognito_groups:)`
@@ -45,9 +44,12 @@ Defined in `packages/plugins/src/appsync/appSyncPreset.ts`.
 - every field and argument type is mapped:
   1. `scalarMappings`;
   2. GraphQL built-ins as is;
-  3. [built-in gqlbase scalars](./scalars.md#built-in-scalars) via their AppSync mapping (`UUID` → `ID`, `DateTime` → `AWSDateTime`, …).
+  3. [built-in gqlbase scalars](./scalars.md#built-in-scalars) via their AppSync mapping (`UUID` → `ID`, `DateTime` → `AWSDateTime`, `SafeInt` → `Long`, …);
+  4. any other scalar by its [type hint](./scalars.md#type-hints): `id` → `ID`, `string` → `String`, `number` → `Float`, `boolean` → `Boolean`, `object` → `AWSJSON`.
 
-**Every other custom scalar must be in `scalarMappings`, or the transform throws.**
+A custom scalar with a hint needs no configuration. `scalarMappings` overrides the hint, for example `scalarMappings: { Currency: "String" }`. **A scalar whose hint is `unknown` (or missing) must be in `scalarMappings`, or the transform throws** with an error naming the scalar.
+
+The hints are read during `generate`, because cleanup removes `@gqlbase_typehint` before `output()` rebuilds the schema.
 
 ## Resolver types
 

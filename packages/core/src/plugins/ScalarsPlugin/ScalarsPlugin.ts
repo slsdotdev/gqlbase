@@ -26,6 +26,10 @@ import { TransformerPluginBase } from "../TransformerPluginBase.js";
  *    Specified by: https://en.wikipedia.org/wiki/Unix_time
  *    Example: `1627846261`, `-1234567890`
  *
+ * - `SafeInt`: An integer between `Number.MIN_SAFE_INTEGER` and `Number.MAX_SAFE_INTEGER` (±(2^53 - 1)), the range a JS `number` holds exactly. Typed as `number`; stored in a 64-bit column.
+ *    Specified by: https://tc39.es/ecma262/#sec-number.issafeinteger
+ *    Example: `9007199254740991`, `-42`
+ *
  * - `URL`: A valid URL string.
  *    Specified by: https://www.ietf.org/rfc/rfc3986.txt
  *    Example: `"https://www.example.com"`, `"ftp://ftp.example.com/resource.txt"`
@@ -93,6 +97,19 @@ export class ScalarsPlugin extends TransformerPluginBase {
         ScalarNode.create("Timestamp", undefined, [
           DirectiveNode.create("specifiedBy", [
             ArgumentNode.create("url", ValueNode.string("https://en.wikipedia.org/wiki/Unix_time")),
+          ]),
+          DirectiveNode.create("gqlbase_typehint", [
+            ArgumentNode.create("type", ValueNode.enum("number")),
+          ]),
+        ])
+      )
+      .addNode(
+        ScalarNode.create("SafeInt", undefined, [
+          DirectiveNode.create("specifiedBy", [
+            ArgumentNode.create(
+              "url",
+              ValueNode.string("https://tc39.es/ecma262/#sec-number.issafeinteger")
+            ),
           ]),
           DirectiveNode.create("gqlbase_typehint", [
             ArgumentNode.create("type", ValueNode.enum("number")),

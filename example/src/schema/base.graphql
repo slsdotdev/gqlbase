@@ -117,12 +117,11 @@ enum DayOfWeek {
   SUNDAY
 }
 
-enum Currency {
-  USD
-  EUR
-  GBP
-  CAD
-}
+"""
+ISO 4217 currency code, for example `EUR`. Stored as text; the Zod override in
+`gqlbase.config.js` checks the format.
+"""
+scalar Currency @gqlbase_typehint(type: string)
 
 # ------------------------------------------------------------------------------
 # Shared Value Types (embedded, non-model)

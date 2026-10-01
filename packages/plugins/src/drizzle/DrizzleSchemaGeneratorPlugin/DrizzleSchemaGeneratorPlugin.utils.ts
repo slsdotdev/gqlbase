@@ -44,12 +44,13 @@ export const PG_BUILITIN_SCALAR_MAP: Record<BuildInScalar, string> = {
  * Maps built-in GraphQL scalars and gqlbase base scalars to Drizzle pg-core column functions.
  * Custom scalars (e.g. Decimal) must be provided via `options.scalarMap`.
  */
-export const PG_BASE_SCALAR_MAP: Record<BaseScalarName, string> = {
+export const PG_BASE_SCALAR_MAP: Record<BaseScalarName, string | ScalarConfig> = {
   UUID: "uuid",
   DateTime: "timestamp",
   Date: "date",
   Time: "time",
   Timestamp: "integer",
+  SafeInt: { type: "bigint", config: { mode: "number" } },
   URL: "text",
   EmailAddress: "text",
   PhoneNumber: "text",
@@ -77,18 +78,15 @@ export function toTableVarName(typeName: string): string {
   return camelCase(pluralize(typeName));
 }
 
+const toScalarConfig = (mapping: string | ScalarConfig): ScalarConfig =>
+  typeof mapping === "string" ? { type: mapping } : mapping;
+
 export function resolveScalarType(
   typeName: string,
   options: DrizzleSchemaGeneratorPluginOptions
 ): ScalarConfig | null {
   if (options.scalarMap?.[typeName]) {
-    const mapping = options.scalarMap[typeName];
-
-    if (typeof mapping === "string") {
-      return { type: mapping };
-    } else {
-      return mapping;
-    }
+    return toScalarConfig(options.scalarMap[typeName]);
   }
 
   if (isBuildInScalar(typeName)) {
@@ -96,7 +94,7 @@ export function resolveScalarType(
   }
 
   if (isBaseScalar(typeName)) {
-    return { type: PG_BASE_SCALAR_MAP[typeName] };
+    return toScalarConfig(PG_BASE_SCALAR_MAP[typeName]);
   }
 
   return null;
