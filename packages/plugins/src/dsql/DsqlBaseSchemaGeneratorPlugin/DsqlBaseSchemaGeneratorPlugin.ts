@@ -43,8 +43,9 @@ import {
 } from "@gqlbase/shared/codegen";
 import {
   DsqlBaseSchemaGeneratorPluginOptions,
+  createLocalColumnBuilder,
+  createLocalColumnBuilderImport,
   isLocalColumnBuilder,
-  LocalColumnBuilder,
   type LocalColumnBuilderName,
   mergeOptions,
   resolveScalarDataType,
@@ -52,110 +53,6 @@ import {
   ScalarConfig,
 } from "./DsqlBaseSchemaGeneratorPlugin.utils.js";
 import { isBuildInScalar } from "@gqlbase/shared/definition";
-
-/**
- * `const bigintNumber = <const TName extends string>(name: TName) => new ColumnDefinition<TName, ColumnConfig<number, string>>(name, { dataType: "bigint", codec: { encode: (value) => value.toString(), decode: (value) => Number(value) } });`
- */
-const createBigintNumberBuilder = (): ts.VariableStatement => {
-  const valueParam = () => ts.factory.createParameterDeclaration(undefined, undefined, "value");
-
-  const codec = ts.factory.createObjectLiteralExpression([
-    ts.factory.createPropertyAssignment(
-      "encode",
-      ts.factory.createArrowFunction(
-        undefined,
-        undefined,
-        [valueParam()],
-        undefined,
-        undefined,
-        ts.factory.createCallExpression(
-          ts.factory.createPropertyAccessExpression(
-            ts.factory.createIdentifier("value"),
-            "toString"
-          ),
-          undefined,
-          []
-        )
-      )
-    ),
-    ts.factory.createPropertyAssignment(
-      "decode",
-      ts.factory.createArrowFunction(
-        undefined,
-        undefined,
-        [valueParam()],
-        undefined,
-        undefined,
-        ts.factory.createCallExpression(ts.factory.createIdentifier("Number"), undefined, [
-          ts.factory.createIdentifier("value"),
-        ])
-      )
-    ),
-  ]);
-
-  const definition = ts.factory.createNewExpression(
-    ts.factory.createIdentifier("ColumnDefinition"),
-    [
-      ts.factory.createTypeReferenceNode("TName"),
-      ts.factory.createTypeReferenceNode("ColumnConfig", [
-        ts.factory.createKeywordTypeNode(ts.SyntaxKind.NumberKeyword),
-        ts.factory.createKeywordTypeNode(ts.SyntaxKind.StringKeyword),
-      ]),
-    ],
-    [
-      ts.factory.createIdentifier("name"),
-      ts.factory.createObjectLiteralExpression(
-        [
-          ts.factory.createPropertyAssignment("dataType", ts.factory.createStringLiteral("bigint")),
-          ts.factory.createPropertyAssignment("codec", codec),
-        ],
-        true
-      ),
-    ]
-  );
-
-  const builder = ts.factory.createArrowFunction(
-    undefined,
-    [
-      ts.factory.createTypeParameterDeclaration(
-        [ts.factory.createModifier(ts.SyntaxKind.ConstKeyword)],
-        "TName",
-        ts.factory.createKeywordTypeNode(ts.SyntaxKind.StringKeyword)
-      ),
-    ],
-    [
-      ts.factory.createParameterDeclaration(
-        undefined,
-        undefined,
-        "name",
-        undefined,
-        ts.factory.createTypeReferenceNode("TName")
-      ),
-    ],
-    undefined,
-    undefined,
-    definition
-  );
-
-  return ts.factory.createVariableStatement(
-    undefined,
-    ts.factory.createVariableDeclarationList(
-      [
-        ts.factory.createVariableDeclaration(
-          LocalColumnBuilder.BIGINT_NUMBER,
-          undefined,
-          undefined,
-          builder
-        ),
-      ],
-      ts.NodeFlags.Const
-    )
-  );
-};
-
-const LOCAL_COLUMN_BUILDERS: Record<LocalColumnBuilderName, () => ts.VariableStatement> = {
-  [LocalColumnBuilder.BIGINT_NUMBER]: createBigintNumberBuilder,
-};
 
 /**
  * Generates dsqlbase schema definitions from GraphQL type definitions.
@@ -647,30 +544,8 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
       importNodes.push(namedImportStatement("dsqlbase/schema", imports));
     }
 
-    // Local column builders construct a ColumnDefinition, which only @dsqlbase/core exports.
     if (this._localBuilders.size > 0) {
-      importNodes.push(
-        ts.factory.createImportDeclaration(
-          undefined,
-          ts.factory.createImportClause(
-            undefined,
-            undefined,
-            ts.factory.createNamedImports([
-              ts.factory.createImportSpecifier(
-                false,
-                undefined,
-                ts.factory.createIdentifier("ColumnDefinition")
-              ),
-              ts.factory.createImportSpecifier(
-                true,
-                undefined,
-                ts.factory.createIdentifier("ColumnConfig")
-              ),
-            ])
-          ),
-          ts.factory.createStringLiteral("@dsqlbase/core")
-        )
-      );
+      importNodes.push(createLocalColumnBuilderImport());
     }
 
     // Locally declared types (for stored shapes the schema types do not export) use Maybe.
@@ -699,7 +574,7 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
       ts.factory.createNodeArray([
         ...importNodes,
         ts.factory.createIdentifier("\n"),
-        ...Array.from(this._localBuilders, (name) => LOCAL_COLUMN_BUILDERS[name]()),
+        ...Array.from(this._localBuilders, createLocalColumnBuilder),
         ...declarations.values(),
         ...this._enums,
         ...this._tables,

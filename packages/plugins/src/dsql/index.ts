@@ -9,7 +9,7 @@ export type {
 /**
  * Registers the dsqlbase schema generator.
  *
- * @param options - `scalarMap` maps a scalar to a column (`{ type, dataType, options? }`, where `dataType` is a `dsqlbase/schema` builder or `bigintNumber`); `emitOutput` returns the content as `output.dsqlBaseSchema`.
+ * @param options - `scalarMap` maps a scalar to a column (`{ type, dataType, options? }`, where `dataType` is a `dsqlbase/schema` builder or `safeint`); `emitOutput` returns the content as `output.dsqlBaseSchema`.
  */
 export function dsqlbase(options: DsqlBaseSchemaGeneratorPluginOptions = {}) {
   return [dsqlbaseSchemaGeneratorPlugin(options)];

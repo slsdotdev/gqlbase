@@ -22,7 +22,7 @@ dsqlbase({
 
 | Option | Default | Effect |
 | --- | --- | --- |
-| `scalarMap` | `{}` | `Record<scalarName, { type, dataType, options? }>`. `dataType` is the column builder: a `dsqlbase/schema` export (`numeric`, `varchar`, …) or the local `bigintNumber`. `type` is the TS type used when the scalar is in a list (`json(…).$type<type[]>()`). `options` is passed as the builder's second argument. Takes precedence over the built-in mapping and the type hint. |
+| `scalarMap` | `{}` | `Record<scalarName, { type, dataType, options? }>`. `dataType` is the column builder: a `dsqlbase/schema` export (`numeric`, `varchar`, …) or the local `safeint`. `type` is the TS type used when the scalar is in a list (`json(…).$type<type[]>()`). `options` is passed as the builder's second argument. Takes precedence over the built-in mapping and the type hint. |
 | `emitOutput` | `false` | Also return the file content as `output.dsqlBaseSchema`. |
 
 `@gqlbase/plugins/dsql` exports the option types as `DsqlBaseSchemaGeneratorPluginOptions` and `DsqlBaseScalarConfig`.
@@ -87,7 +87,7 @@ export const postRelations = relations(posts, {
 - **Columns.** Every field except `@gqlbase_internal`, `@clientOnly` and relation fields. `@serverOnly`, `@writeOnly` and `@readOnly` fields, and relation keys, are all columns. Column names are `snake_case` of the field name.
 - **`id`.** Always `.primaryKey().defaultRandom()`, whatever its type.
 - **Not null.** `.notNull()` when the field is non-null or `@semanticNonNull`.
-- **Scalars.** Mapped as in [Scalars](./scalars.md): `ID` → `uuid`, `String` → `text`, `Int` → `int`, `Float` → `real`, `Boolean` → `bool`, `DateTime` → `timestamp(…, { mode: "iso" })`, `SafeInt` → `bigintNumber` (see below), … Custom scalars use `scalarMap`, then their type hint.
+- **Scalars.** Mapped as in [Scalars](./scalars.md): `ID` → `uuid`, `String` → `text`, `Int` → `int`, `Float` → `real`, `Boolean` → `bool`, `DateTime` → `timestamp(…, { mode: "iso" })`, `SafeInt` → `safeint` (see below), … Custom scalars use `scalarMap`, then their type hint.
 - **Enums.** An enum becomes `$enum("<snake>_enum", [...])` only when a non-list column of a stored model uses it; the column is `<camel>Enum.column("<col>")`. A list of enums is a `json` column typed with the enum's TS type.
 - **Lists.** Every list field, scalar or not, becomes a single `json(...)` column typed `.$type<T[]>()`.
 - **Non-model object, interface or union fields.** A single `json(...)` column typed `.$type<Type>()`. There is no nesting, no per-field filtering and no validation.
@@ -105,13 +105,13 @@ dsqlbase's `bigint()` decodes to a JS `bigint`, but [`SafeInt`](./scalars.md#saf
 ```ts
 import { ColumnDefinition, type ColumnConfig } from "@dsqlbase/core";
 
-const bigintNumber = <const TName extends string>(name: TName) => new ColumnDefinition<TName, ColumnConfig<number, string>>(name, {
+const safeint = <const TName extends string>(name: TName) => new ColumnDefinition<TName, ColumnConfig<number, string>>(name, {
     dataType: "bigint",
     codec: { encode: value => value.toString(), decode: value => Number(value) }
 });
 
 export const invoices = table("invoices", {
-  amount: bigintNumber("amount").notNull(),
+  amount: safeint("amount").notNull(),
 });
 ```
 

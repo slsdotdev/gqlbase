@@ -12,7 +12,7 @@ _Audience: people using the built-in scalars or adding their own._
 | `Date` | string | `string` | `z.iso.date()` | `date(…, { mode: "iso" })` | `date` | `AWSDate` |
 | `Time` | string | `string` | `z.iso.time()` | `time(…, { mode: "iso" })` | `time` | `AWSTime` |
 | `Timestamp` | number | `number` | `z.number()` | `timestamp` | `integer` | `AWSTimestamp` |
-| `SafeInt` | bigint | `number` | `z.number().int()` | `bigintNumber` (local, see below) | `bigint(…, { mode: "number" })` | `Long` |
+| `SafeInt` | bigint | `number` | `z.number().int()` | `safeint` (local, see below) | `bigint(…, { mode: "number" })` | `Long` |
 | `UUID` | id | `string` | `z.uuid()` | `uuid` | `uuid` | `ID` |
 | `URL` | string | `string` | `z.url()` | `text` | `text` | `AWSURL` |
 | `EmailAddress` | string | `string` | `z.email()` | `text` | `text` | `AWSEmail` |
@@ -37,7 +37,7 @@ GraphQL's own scalars map as follows:
 The name states the limit. A larger value does not fail on the way in: JSON numbers are doubles, so AppSync and the Lambda runtime round it to the nearest double before the resolver sees it (sent `9007199254740993`, received `9007199254740992`). The rounded value is outside the safe range, so the generated Zod schema rejects it; a resolver that skips validation would store the rounded value. There is no 64-bit scalar typed as a JS `bigint`: the Lambda runtime serializes results with `JSON.stringify`, which throws on one.
 
 - **Zod** uses `z.number().int()`, which in Zod 4 accepts only safe integers.
-- **dsqlbase:** its own `bigint()` column decodes to a JS `bigint`. So the generated `dsqlbase/schema.ts` declares a local `bigintNumber` builder when a column needs it. The builder is a `bigint` column that encodes with `toString()` and decodes with `Number()`. See [dsqlbase](./dsqlbase.md#safeint-columns).
+- **dsqlbase:** its own `bigint()` column decodes to a JS `bigint`. So the generated `dsqlbase/schema.ts` declares a local `safeint` builder when a column needs it. The builder is a `bigint` column that encodes with `toString()` and decodes with `Number()`. See [dsqlbase](./dsqlbase.md#safeint-columns).
 - **AppSync:** `SafeInt` becomes `Long` in the AppSync schema.
 
 There is no decimal scalar built in. Declare one with a hint (see [Adding a custom scalar](#adding-a-custom-scalar)).
@@ -57,7 +57,7 @@ The argument is declared `type: TypeHint!`, so the value is a bare **enum litera
 | `id` | `string` | `z.string()` | ID-like | `uuid` | `uuid` | `ID` |
 | `string` | `string` | `z.string()` | string-like | `text` | `text` | `String` |
 | `number` | `number` | `z.number()` | number-like | `real` | `doublePrecision` | `Float` |
-| `bigint` | `number` | `z.number().int()` | number-like | `bigintNumber` (local) | `bigint(…, { mode: "number" })` | `Long` |
+| `bigint` | `number` | `z.number().int()` | number-like | `safeint` (local) | `bigint(…, { mode: "number" })` | `Long` |
 | `boolean` | `boolean` | `z.boolean()` | boolean-like | `bool` | `boolean` | `Boolean` |
 | `object` | `Record<string, unknown>` | `z.record(z.string(), z.unknown())` | boolean-like | `json` | `jsonb` | `AWSJSON` |
 | `unknown` | `unknown` (warning) | `z.unknown()` | boolean-like (warning) | `text` | `text` | none: the transform throws |

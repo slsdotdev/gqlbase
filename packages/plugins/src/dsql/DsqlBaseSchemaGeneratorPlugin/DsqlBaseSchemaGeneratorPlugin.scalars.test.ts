@@ -21,8 +21,8 @@ describe("dsqlbase SafeInt columns", () => {
     tables = output.files.find((file) => file.path === "dsqlbase/schema.ts")?.content ?? "";
   });
 
-  it("declares the bigintNumber builder once, decoding to number", () => {
-    expect(tables.match(/const bigintNumber = /g)).toHaveLength(1);
+  it("declares the safeint builder once, decoding to number", () => {
+    expect(tables.match(/const safeint = /g)).toHaveLength(1);
     expect(tables).toContain("new ColumnDefinition<TName, ColumnConfig<number, string>>(name, {");
     expect(tables).toContain('dataType: "bigint"');
     expect(tables).toContain("decode: value => Number(value)");
@@ -35,10 +35,10 @@ describe("dsqlbase SafeInt columns", () => {
   });
 
   it("uses the builder for SafeInt and bigint-hinted columns", () => {
-    expect(tables).toContain('amount: bigintNumber("amount").notNull()');
-    expect(tables).toContain('refunded: bigintNumber("refunded")');
-    expect(tables).toContain('views: bigintNumber("views")');
-    expect(tables).not.toMatch(/import \{[^}]*\bbigintNumber\b[^}]*\} from "dsqlbase\/schema"/);
+    expect(tables).toContain('amount: safeint("amount").notNull()');
+    expect(tables).toContain('refunded: safeint("refunded")');
+    expect(tables).toContain('views: safeint("views")');
+    expect(tables).not.toMatch(/import \{[^}]*\bsafeint\b[^}]*\} from "dsqlbase\/schema"/);
   });
 
   it("stores a list of SafeInt as json typed number[]", () => {
@@ -61,7 +61,7 @@ describe("dsqlbase without SafeInt columns", () => {
   });
 
   it("emits no local builder and no @dsqlbase/core import", () => {
-    expect(tables).not.toContain("bigintNumber");
+    expect(tables).not.toContain("safeint");
     expect(tables).not.toContain("@dsqlbase/core");
   });
 });
@@ -76,7 +76,7 @@ describe("dsqlbase() options", () => {
           emitOutput: true,
           scalarMap: {
             Decimal: { type: "string", dataType: "numeric" },
-            Cents: { type: "number", dataType: "bigintNumber" },
+            Cents: { type: "number", dataType: "safeint" },
           },
         }),
       ],
@@ -105,10 +105,10 @@ describe("dsqlbase() options", () => {
     );
   });
 
-  it("can map a scalar to the local bigintNumber builder", () => {
+  it("can map a scalar to the local safeint builder", () => {
     expect(output.dsqlBaseSchema).toEqual(
-      expect.stringContaining('amount: bigintNumber("amount").notNull()')
+      expect.stringContaining('amount: safeint("amount").notNull()')
     );
-    expect(output.dsqlBaseSchema).toEqual(expect.stringContaining("const bigintNumber = "));
+    expect(output.dsqlBaseSchema).toEqual(expect.stringContaining("const safeint = "));
   });
 });
