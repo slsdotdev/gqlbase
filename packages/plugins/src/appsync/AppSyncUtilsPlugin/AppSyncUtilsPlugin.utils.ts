@@ -63,7 +63,6 @@ export const TypeHintMappings: Record<
   id: BuildInScalar.ID,
   string: BuildInScalar.STRING,
   number: BuildInScalar.FLOAT,
-  bigint: AppSyncScalar.LONG,
   boolean: BuildInScalar.BOOLEAN,
   object: AppSyncScalar.AWS_JSON,
 } as const;

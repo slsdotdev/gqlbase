@@ -24,7 +24,7 @@ Defined in `packages/plugins/src/appsync/appSyncPreset.ts`.
 
 `AppSyncUtilsPlugin` (`packages/plugins/src/appsync/AppSyncUtilsPlugin/AppSyncUtilsPlugin.ts`) declares:
 
-- **AWS scalars**, each with a type hint, so they can be used directly in your SDL: `AWSDate`, `AWSDateTime`, `AWSTime`, `AWSTimestamp`, `AWSEmail`, `AWSJSON`, `AWSURL`, `AWSPhone`, `AWSIPAddress`, and `Long` (a 64-bit integer, hint `bigint`), which [`SafeInt`](./scalars.md#safeint) maps to.
+- **AWS scalars**, each with a type hint, so they can be used directly in your SDL: `AWSDate`, `AWSDateTime`, `AWSTime`, `AWSTimestamp`, `AWSEmail`, `AWSJSON`, `AWSURL`, `AWSPhone`, `AWSIPAddress`, and `Long` (a 64-bit integer, hint `number`), which [`SafeInt`](./scalars.md#safeint) maps to.
 - **Auth and subscription directives:**
   - `@aws_subscribe(mutations: [String!]!)`
   - `@aws_auth(cognito_groups:)`
@@ -45,7 +45,7 @@ Defined in `packages/plugins/src/appsync/appSyncPreset.ts`.
   1. `scalarMappings`;
   2. GraphQL built-ins as is;
   3. [built-in gqlbase scalars](./scalars.md#built-in-scalars) via their AppSync mapping (`UUID` → `ID`, `DateTime` → `AWSDateTime`, `SafeInt` → `Long`, …);
-  4. any other scalar by its [type hint](./scalars.md#type-hints): `id` → `ID`, `string` → `String`, `number` → `Float`, `bigint` → `Long`, `boolean` → `Boolean`, `object` → `AWSJSON`.
+  4. any other scalar by its [type hint](./scalars.md#type-hints): `id` → `ID`, `string` → `String`, `number` → `Float`, `boolean` → `Boolean`, `object` → `AWSJSON`.
 
 A custom scalar with a hint needs no configuration. `scalarMappings` overrides the hint, for example `scalarMappings: { Currency: "String" }`. **A scalar whose hint is `unknown` (or missing) must be in `scalarMappings`, or the transform throws** with an error naming the scalar.
 

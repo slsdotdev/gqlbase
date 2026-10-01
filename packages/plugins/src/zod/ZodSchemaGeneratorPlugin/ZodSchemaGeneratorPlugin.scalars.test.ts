@@ -8,12 +8,9 @@ describe("Zod scalar schemas", () => {
   beforeAll(() => {
     const output = createTransformer({ plugins: [zodSchemaGeneratorPlugin()] }).transform(
       /* GraphQL */ `
-        scalar Counter @gqlbase_typehint(type: bigint)
-
         type Invoice @model {
           id: ID!
           amount: SafeInt!
-          views: Counter!
         }
       `
     );
@@ -24,10 +21,6 @@ describe("Zod scalar schemas", () => {
 
   it("validates SafeInt as an integer number", () => {
     expect(validators).toMatch(/amount: z\.number\(\)\.int\(\)/);
-  });
-
-  it("validates a bigint-hinted scalar as an integer number", () => {
-    expect(validators).toMatch(/views: z\.number\(\)\.int\(\)/);
   });
 });
 

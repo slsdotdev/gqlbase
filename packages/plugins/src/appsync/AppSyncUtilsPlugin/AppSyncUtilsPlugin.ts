@@ -112,7 +112,7 @@ export class AppSyncUtilsPlugin extends TransformerPluginBase {
       .addNode(
         ScalarNode.create("Long", undefined, [
           DirectiveNode.create(InternalDirective.TYPE_HINT, [
-            ArgumentNode.create("type", ValueNode.enum("bigint")),
+            ArgumentNode.create("type", ValueNode.enum("number")),
           ]),
         ])
       )

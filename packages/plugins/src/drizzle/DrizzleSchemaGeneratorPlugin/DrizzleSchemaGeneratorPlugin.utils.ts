@@ -61,11 +61,10 @@ export const PG_BASE_SCALAR_MAP: Record<BaseScalarName, string | ScalarConfig> =
 /**
  * Fallback mapping from @gqlbase_typehint values to Drizzle pg-core column functions.
  */
-export const TYPE_HINT_DRIZZLE_MAP: Record<TypeHintValueType, string | ScalarConfig> = {
+export const TYPE_HINT_DRIZZLE_MAP: Record<TypeHintValueType, string> = {
   id: "uuid",
   string: "text",
   number: "doublePrecision",
-  bigint: { type: "bigint", config: { mode: "number" } },
   boolean: "boolean",
   object: "jsonb",
   unknown: "text",
@@ -102,5 +101,5 @@ export function resolveScalarType(
 }
 
 export const resolveTypeHintType = (typeHint: TypeHintValueType): ScalarConfig => {
-  return toScalarConfig(TYPE_HINT_DRIZZLE_MAP[typeHint]);
+  return { type: TYPE_HINT_DRIZZLE_MAP[typeHint] };
 };

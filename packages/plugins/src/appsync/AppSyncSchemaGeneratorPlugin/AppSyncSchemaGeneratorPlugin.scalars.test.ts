@@ -12,7 +12,6 @@ describe("AppSync scalar mapping", () => {
       scalar Slug @gqlbase_typehint(type: id)
       scalar Currency @gqlbase_typehint(type: string)
       scalar Ratio @gqlbase_typehint(type: number)
-      scalar Cents @gqlbase_typehint(type: bigint)
       scalar Flag @gqlbase_typehint(type: boolean)
       scalar Settings @gqlbase_typehint(type: object)
 
@@ -22,7 +21,6 @@ describe("AppSync scalar mapping", () => {
         slug: Slug!
         currency: Currency!
         ratio: Ratio
-        cents: Cents
         paid: Flag
         settings: Settings
       }
@@ -42,7 +40,6 @@ describe("AppSync scalar mapping", () => {
     expect(invoice).toContain("slug: ID!");
     expect(invoice).toContain("currency: String!");
     expect(invoice).toContain("ratio: Float");
-    expect(invoice).toContain("cents: Long");
     expect(invoice).toContain("paid: Boolean");
     expect(invoice).toContain("settings: AWSJSON");
   });

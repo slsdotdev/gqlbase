@@ -70,7 +70,7 @@ The full comparison with the GraphQL inputs is in [Field visibility](./field-vis
 | `Float` | `z.number()` |
 | `Boolean` | `z.boolean()` |
 | built-in gqlbase scalars | see [Scalars](./scalars.md#built-in-scalars) (`z.iso.datetime()`, `z.uuid()`, `z.email()`, …) |
-| custom scalars | by type hint: `z.string()`, `z.number()`, `z.number().int()` (`bigint`), `z.boolean()`, `z.record(z.string(), z.unknown())`, or `z.unknown()` |
+| custom scalars | by type hint: `z.string()`, `z.number()`, `z.boolean()`, `z.record(z.string(), z.unknown())`, or `z.unknown()` |
 
 The `scalars` option replaces the expression for a named scalar, whether it is custom, built into gqlbase or a GraphQL scalar. The value is Zod code on `z`, inserted as written, and is used wherever the scalar appears: fields, list items and arguments. `@constraint` checks are still appended to it. Names that are not scalars are ignored.
 

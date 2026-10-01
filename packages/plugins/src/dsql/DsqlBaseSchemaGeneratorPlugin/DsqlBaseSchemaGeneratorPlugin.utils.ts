@@ -49,7 +49,6 @@ export const TYPE_HINT_TYPE_MAP: Record<TypeHintValueType, ScalarConfig> = {
   id: { type: "string", dataType: "uuid" },
   string: { type: "string", dataType: "text" },
   number: { type: "number", dataType: "real" },
-  bigint: { type: "number", dataType: "safeint" },
   boolean: { type: "boolean", dataType: "bool" },
   object: { type: "string", dataType: "json" },
   unknown: { type: "string", dataType: "text" },

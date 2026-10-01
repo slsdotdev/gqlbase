@@ -112,7 +112,7 @@ export class ScalarsPlugin extends TransformerPluginBase {
             ),
           ]),
           DirectiveNode.create("gqlbase_typehint", [
-            ArgumentNode.create("type", ValueNode.enum("bigint")),
+            ArgumentNode.create("type", ValueNode.enum("number")),
           ]),
         ])
       )

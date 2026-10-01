@@ -100,7 +100,7 @@ export const postRelations = relations(posts, {
 
 ### `SafeInt` columns
 
-dsqlbase's `bigint()` decodes to a JS `bigint`, but [`SafeInt`](./scalars.md#safeint) is typed `number`. So when a column is `SafeInt` (or a custom scalar with the `bigint` hint), the file declares a local builder and uses it for that column:
+dsqlbase's `bigint()` decodes to a JS `bigint`, but [`SafeInt`](./scalars.md#safeint) is typed `number`. So when a column is `SafeInt`, or a scalar mapped to `safeint` through `scalarMap`, the file declares a local builder and uses it for that column:
 
 ```ts
 import { ColumnDefinition, type ColumnConfig } from "@dsqlbase/core";

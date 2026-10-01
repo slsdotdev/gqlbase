@@ -12,7 +12,7 @@ _Audience: people using the built-in scalars or adding their own._
 | `Date` | string | `string` | `z.iso.date()` | `date(…, { mode: "iso" })` | `date` | `AWSDate` |
 | `Time` | string | `string` | `z.iso.time()` | `time(…, { mode: "iso" })` | `time` | `AWSTime` |
 | `Timestamp` | number | `number` | `z.number()` | `timestamp` | `integer` | `AWSTimestamp` |
-| `SafeInt` | bigint | `number` | `z.number().int()` | `safeint` (local, see below) | `bigint(…, { mode: "number" })` | `Long` |
+| `SafeInt` | number | `number` | `z.number().int()` | `safeint` (local, see below) | `bigint(…, { mode: "number" })` | `Long` |
 | `UUID` | id | `string` | `z.uuid()` | `uuid` | `uuid` | `ID` |
 | `URL` | string | `string` | `z.url()` | `text` | `text` | `AWSURL` |
 | `EmailAddress` | string | `string` | `z.email()` | `text` | `text` | `AWSEmail` |
@@ -40,6 +40,8 @@ The name states the limit. A larger value does not fail on the way in: JSON numb
 - **dsqlbase:** its own `bigint()` column decodes to a JS `bigint`. So the generated `dsqlbase/schema.ts` declares a local `safeint` builder when a column needs it. The builder is a `bigint` column that encodes with `toString()` and decodes with `Number()`. See [dsqlbase](./dsqlbase.md#safeint-columns).
 - **AppSync:** `SafeInt` becomes `Long` in the AppSync schema.
 
+There is no type hint for this: `SafeInt` carries the `number` hint, and each generator maps it by name. To give a custom scalar the same treatment, use `SafeInt` instead, or set each generator's override (`scalarMappings: { Cents: "Long" }`, `scalarMap: { Cents: { type: "number", dataType: "safeint" } }`, `scalars: { Cents: "z.number().int()" }`).
+
 There is no decimal scalar built in. Declare one with a hint (see [Adding a custom scalar](#adding-a-custom-scalar)).
 
 ## Type hints
@@ -50,14 +52,13 @@ A type hint tells every generator what kind of value a scalar carries. It is dec
 scalar Decimal @gqlbase_typehint(type: string)
 ```
 
-The argument is declared `type: TypeHint!`, so the value is a bare **enum literal** (`string`, not `"string"`). The allowed values are `id`, `string`, `number`, `bigint`, `boolean`, `object` and `unknown` (`TypeHintValue` in `packages/core/src/plugins/InternalUtilsPlugin/InternalUtilsPlugin.utils.ts`). A quoted string or any other value fails the transform with an error naming the scalar. A scalar without a hint is `unknown`.
+The argument is declared `type: TypeHint!`, so the value is a bare **enum literal** (`string`, not `"string"`). The allowed values are `id`, `string`, `number`, `boolean`, `object` and `unknown` (`TypeHintValue` in `packages/core/src/plugins/InternalUtilsPlugin/InternalUtilsPlugin.utils.ts`). A quoted string or any other value fails the transform with an error naming the scalar. A scalar without a hint is `unknown`.
 
 | Hint | TS | Zod | Filter input | dsqlbase column | Drizzle column | AppSync |
 | --- | --- | --- | --- | --- | --- | --- |
 | `id` | `string` | `z.string()` | ID-like | `uuid` | `uuid` | `ID` |
 | `string` | `string` | `z.string()` | string-like | `text` | `text` | `String` |
 | `number` | `number` | `z.number()` | number-like | `real` | `doublePrecision` | `Float` |
-| `bigint` | `number` | `z.number().int()` | number-like | `safeint` (local) | `bigint(…, { mode: "number" })` | `Long` |
 | `boolean` | `boolean` | `z.boolean()` | boolean-like | `bool` | `boolean` | `Boolean` |
 | `object` | `Record<string, unknown>` | `z.record(z.string(), z.unknown())` | boolean-like | `json` | `jsonb` | `AWSJSON` |
 | `unknown` | `unknown` (warning) | `z.unknown()` | boolean-like (warning) | `text` | `text` | none: the transform throws |

@@ -7,13 +7,10 @@ describe("dsqlbase SafeInt columns", () => {
 
   beforeAll(() => {
     const output = createTransformer({ plugins: [dsqlbase()] }).transform(/* GraphQL */ `
-      scalar Counter @gqlbase_typehint(type: bigint)
-
       type Invoice @model {
         id: ID!
         amount: SafeInt!
         refunded: SafeInt
-        views: Counter
         history: [SafeInt!]
       }
     `);
@@ -34,10 +31,9 @@ describe("dsqlbase SafeInt columns", () => {
     );
   });
 
-  it("uses the builder for SafeInt and bigint-hinted columns", () => {
+  it("uses the builder for SafeInt columns", () => {
     expect(tables).toContain('amount: safeint("amount").notNull()');
     expect(tables).toContain('refunded: safeint("refunded")');
-    expect(tables).toContain('views: safeint("views")');
     expect(tables).not.toMatch(/import \{[^}]*\bsafeint\b[^}]*\} from "dsqlbase\/schema"/);
   });
 
