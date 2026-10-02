@@ -68,4 +68,34 @@ describe("MiddyAppSyncGraphQLPlugin", () => {
     expect(content).toMatch(/import type \{[^}]*\bCategory\b[^}]*\} from "\.\.\/schema\.types";/);
     expect(content).toMatch(/export type \{[^}]*\bCategory\b[^}]*\} from "\.\.\/schema\.types";/);
   });
+
+  describe("tenancy claims", () => {
+    let resolverTypes: string;
+
+    beforeAll(() => {
+      const output = createTransformer({
+        tenancy: { vendor: { claims: { vendorId: "ID" } } },
+        plugins: [appsyncPreset()],
+      }).transform(/* GraphQL */ `
+        type Product @model @scope(name: vendor) {
+          id: ID!
+          name: String!
+          category: Category @belongsTo
+        }
+
+        type Category @model {
+          id: ID!
+        }
+      `);
+
+      resolverTypes =
+        output.files.find((file) => file.path === "appsync/middy-appsync.types.ts")?.content ?? "";
+    });
+
+    it("puts a claim on the resolver's <Type>Source", () => {
+      expect(resolverTypes).toMatch(
+        /export type ProductSource = Product & \{[^}]*vendorId: string/
+      );
+    });
+  });
 });

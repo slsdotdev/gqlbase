@@ -86,3 +86,30 @@ describe("type-level visibility in stored outputs", () => {
     expect(tables).not.toMatch(/import \{[^}]*ImportMeta[^}]*\} from/);
   });
 });
+
+describe("tenancy claims in the tables", () => {
+  let tables: string;
+
+  beforeAll(() => {
+    const output = createTransformer({
+      tenancy: { vendor: { claims: { vendorId: "ID" } } },
+      plugins: [dsqlbase()],
+    }).transform(/* GraphQL */ `
+      type Product @model @scope(name: vendor) {
+        id: ID!
+        name: String!
+        category: Category @belongsTo
+      }
+
+      type Category @model {
+        id: ID!
+      }
+    `);
+
+    tables = output.files.find((file) => file.path === "dsqlbase/schema.ts")?.content ?? "";
+  });
+
+  it("emits a claim as a not-null column", () => {
+    expect(tables).toMatch(/vendorId: \w+\("vendor_id"\)\.notNull\(\)/);
+  });
+});

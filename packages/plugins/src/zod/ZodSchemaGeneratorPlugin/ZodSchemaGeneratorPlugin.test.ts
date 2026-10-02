@@ -1367,4 +1367,33 @@ describe("ZodSchemaGeneratorPlugin", () => {
       expect(output).toContain("export const UserSchema");
     });
   });
+
+  describe("tenancy claims", () => {
+    let validators: string;
+
+    beforeAll(() => {
+      const output = createTransformer({
+        tenancy: { vendor: { claims: { vendorId: "ID" } } },
+        plugins: [zodSchemaGeneratorPlugin({ generateArgumentSchemas: true })],
+      }).transform(/* GraphQL */ `
+        type Product @model @scope(name: vendor) {
+          id: ID!
+          name: String!
+          category: Category @belongsTo
+        }
+
+        type Category @model {
+          id: ID!
+        }
+      `);
+
+      validators =
+        output.files.find((file) => file.path === "zod/schema.validators.ts")?.content ?? "";
+    });
+
+    it("leaves a claim out of every schema", () => {
+      expect(validators).toContain("export const CreateProductInputSchema");
+      expect(validators).not.toContain("vendorId");
+    });
+  });
 });
