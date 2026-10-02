@@ -194,8 +194,6 @@ describe("relations", () => {
     `);
 
     expect(result.errors).toBeUndefined();
-    expect(result.data?.viewer.categories.edges.map((edge) => edge.node.name)).toEqual([
-      "Produce",
-    ]);
+    expect(result.data?.viewer.categories.edges.map((edge) => edge.node.name)).toEqual(["Produce"]);
   });
 });

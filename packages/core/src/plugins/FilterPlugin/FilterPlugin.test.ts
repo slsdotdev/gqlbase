@@ -206,3 +206,29 @@ describe("FilterPlugin on object fields", () => {
     expect(schema).not.toMatch(/input ProductFilterInput \{[^}]*tiers/);
   });
 });
+
+describe("FilterPlugin on dates", () => {
+  let schema: string;
+
+  beforeAll(() => {
+    ({ schema } = createTransformer().transform(/* GraphQL */ `
+      type Entry @model {
+        id: ID!
+        day: Date
+        at: DateTime
+        opensAt: Time
+        seenAt: Timestamp
+      }
+    `));
+  });
+
+  it("gives date scalars ranges and no substring operators", () => {
+    for (const scalar of ["Date", "DateTime", "Time", "Timestamp"]) {
+      expect(schema).toMatch(
+        new RegExp(
+          `input ${scalar}FilterInput \\{\\s+eq: ${scalar}\\s+neq: ${scalar}\\s+lt: ${scalar}\\s+lte: ${scalar}\\s+gt: ${scalar}\\s+gte: ${scalar}\\s+in: \\[${scalar}!\\]\\s+between: \\[${scalar}!\\]\\s+exists: Boolean\\s+\\}`
+        )
+      );
+    }
+  });
+});

@@ -9,6 +9,17 @@ import {
   isWriteOnly,
 } from "../UtilitiesPlugin/index.js";
 import { isRelationField } from "../RelationsPlugin/RelationsPlugin.utils.js";
+import { BaseScalar } from "../ScalarsPlugin/ScalarsPlugin.utils.js";
+
+/**
+ * Built-in scalars filtered as dates: ranges, no substring operators.
+ */
+export const DATE_SCALARS: readonly string[] = [
+  BaseScalar.DATE,
+  BaseScalar.DATE_TIME,
+  BaseScalar.TIME,
+  BaseScalar.TIMESTAMP,
+];
 
 /**
  * Clients cannot filter on a value they cannot read, so `@writeOnly` fields are left out unless `@filterOnly` asks for them.
@@ -43,7 +54,7 @@ export const FilterOperator = {
 
 export type FilterOperatorName = (typeof FilterOperator)[keyof typeof FilterOperator];
 
-export type FilterKind = "id" | "string" | "number" | "boolean" | "enum" | "list";
+export type FilterKind = "id" | "string" | "number" | "date" | "boolean" | "enum" | "list";
 
 const { EQ, NEQ, LT, LTE, GT, GTE, IN, BETWEEN, BEGINS_WITH, ENDS_WITH, CONTAINS, EXISTS } =
   FilterOperator;
@@ -55,6 +66,7 @@ export const FilterOperators: Record<FilterKind, readonly FilterOperatorName[]> 
   id: [EQ, NEQ, IN, EXISTS],
   string: [EQ, NEQ, LT, LTE, GT, GTE, IN, BETWEEN, BEGINS_WITH, ENDS_WITH, CONTAINS, EXISTS],
   number: [EQ, NEQ, LT, LTE, GT, GTE, IN, BETWEEN, EXISTS],
+  date: [EQ, NEQ, LT, LTE, GT, GTE, IN, BETWEEN, EXISTS],
   boolean: [EQ, NEQ, EXISTS],
   enum: [EQ, NEQ, IN, EXISTS],
   list: [CONTAINS, EXISTS],

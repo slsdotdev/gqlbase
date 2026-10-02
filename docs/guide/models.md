@@ -135,13 +135,14 @@ The built-in inputs are added in `before()`: `IDFilterInput`, `StringFilterInput
 | Kind | Used for | Operators |
 | --- | --- | --- |
 | ID-like | `ID`, scalars hinted `id` (e.g. `UUID`) | `eq` `neq` `in` `exists` |
-| String-like | `String`, scalars hinted `string` (`DateTime`, `Date`, `EmailAddress`, …) | `eq` `neq` `lt` `lte` `gt` `gte` `in` `between` `beginsWith` `endsWith` `contains` `exists` |
-| Number-like | `Int`, `Float`, scalars hinted `number` (`Timestamp`, `SafeInt`) | `eq` `neq` `lt` `lte` `gt` `gte` `in` `between` `exists` |
+| String-like | `String`, scalars hinted `string` (`EmailAddress`, `URL`, …) | `eq` `neq` `lt` `lte` `gt` `gte` `in` `between` `beginsWith` `endsWith` `contains` `exists` |
+| Number-like | `Int`, `Float`, scalars hinted `number` (`SafeInt`) | `eq` `neq` `lt` `lte` `gt` `gte` `in` `between` `exists` |
+| Date-like | `Date`, `DateTime`, `Time`, `Timestamp`, by name | `eq` `neq` `lt` `lte` `gt` `gte` `in` `between` `exists` |
 | Boolean-like | `Boolean`; scalars hinted `boolean`, `object` or `unknown` (with a warning) | `eq` `neq` `exists` |
 | Enum | every enum, as `<Enum>FilterInput` | `eq` `neq` `in` `exists` |
 | List | every list of scalars or enums, as `<Type>ListFilterInput` (`[String]` → `StringListFilterInput`) | `contains` `exists` |
 
-- `in` and `between` take `[T!]`; `between` takes two values, low then high, both included.
+- `in` and `between` take `[T!]`; `between` takes two values, low then high, both included. A month is `{ between: ["2026-09-01", "2026-09-30"] }` on a `Date`.
 - `exists: true` matches a set value, `exists: false` a missing or `null` one.
 - `and` and `or` take `[<Type>FilterInput!]`; `not` takes `<Type>FilterInput`. Conditions on several fields of one filter are combined with `and`.
 - To exclude a substring, use `not`: `{ not: { name: { contains: "p" } } }`.

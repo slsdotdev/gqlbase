@@ -28,6 +28,7 @@ import { TransformerPluginBase } from "../TransformerPluginBase.js";
 import { getTypeHint } from "../InternalUtilsPlugin/index.js";
 import { isManyRelationship } from "../RelationsPlugin/RelationsPlugin.utils.js";
 import {
+  DATE_SCALARS,
   FilterKind,
   FilterOperator,
   FilterOperators,
@@ -89,6 +90,10 @@ export class FilterPlugin extends TransformerPluginBase {
   }
 
   private _getScalarFilterKind(node: ScalarNode): FilterKind {
+    if (DATE_SCALARS.includes(node.name)) {
+      return "date";
+    }
+
     const hint = getTypeHint(node);
 
     switch (hint) {

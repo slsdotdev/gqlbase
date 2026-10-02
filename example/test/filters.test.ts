@@ -93,9 +93,9 @@ describe("list filters", () => {
   });
 
   it("combines conditions with and, or and not", async () => {
-    expect(await names({ and: [{ name: { beginsWith: "A" } }, { sortOrder: { gte: 2 } }] })).toEqual(
-      ["Apricots"]
-    );
+    expect(
+      await names({ and: [{ name: { beginsWith: "A" } }, { sortOrder: { gte: 2 } }] })
+    ).toEqual(["Apricots"]);
     expect(await names({ or: [{ name: { eq: "Beets" } }, { sortOrder: { eq: 0 } }] })).toEqual([
       "Beets",
       "Produce",
@@ -163,5 +163,64 @@ describe("list filters", () => {
       "Apples",
       "Apricots",
     ]);
+  });
+});
+
+describe("date filters", () => {
+  beforeAll(async () => {
+    await migrate();
+
+    for (const bookedOn of ["2026-08-31", "2026-09-01", "2026-09-15", "2026-09-30", "2026-10-01"]) {
+      await dsql.ledgerEntries.create({ data: { amountMinor: 1_00, currency: "EUR", bookedOn } });
+    }
+  });
+
+  const days = async (filter: Record<string, unknown>) => {
+    const result = await execute<{
+      listLedgerEntries: { edges: { node: { bookedOn: string } }[] };
+    }>(
+      /* GraphQL */ `
+        query List($filter: LedgerEntryFilterInput) {
+          listLedgerEntries(filter: $filter) {
+            edges {
+              node {
+                bookedOn
+              }
+            }
+          }
+        }
+      `,
+      { variables: { filter } }
+    );
+
+    expect(result.errors).toBeUndefined();
+    return result.data?.listLedgerEntries.edges.map((edge) => edge.node.bookedOn).sort();
+  };
+
+  it("scopes a month with between, both ends included", async () => {
+    expect(await days({ bookedOn: { between: ["2026-09-01", "2026-09-30"] } })).toEqual([
+      "2026-09-01",
+      "2026-09-15",
+      "2026-09-30",
+    ]);
+  });
+
+  it("compares dates", async () => {
+    expect(await days({ bookedOn: { gte: "2026-09-30" } })).toEqual(["2026-09-30", "2026-10-01"]);
+    expect(await days({ bookedOn: { lt: "2026-09-01" } })).toEqual(["2026-08-31"]);
+  });
+
+  it("rejects substring operators on dates", async () => {
+    const result = await execute(/* GraphQL */ `
+      query {
+        listLedgerEntries(filter: { bookedOn: { beginsWith: "2026-09" } }) {
+          edges {
+            cursor
+          }
+        }
+      }
+    `);
+
+    expect(result.errors?.[0]?.message).toMatch(/beginsWith/);
   });
 });

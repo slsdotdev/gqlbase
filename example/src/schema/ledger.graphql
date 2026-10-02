@@ -10,5 +10,9 @@ type LedgerEntry @model {
   id: UUID!
   amountMinor: SafeInt!
   currency: Currency!
+  """
+  The day the entry is booked on. Month reports filter it with `between`.
+  """
+  bookedOn: Date!
   memo: String
 }

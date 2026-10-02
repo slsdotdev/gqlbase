@@ -26,7 +26,7 @@ describe("SafeInt and custom scalars", () => {
     const result = await execute<{
       createLedgerEntry: { id: string; amountMinor: number; currency: string };
     }>(CREATE_LEDGER_ENTRY, {
-      variables: { input: { amountMinor: LARGE_AMOUNT, currency: "EUR" } },
+      variables: { input: { amountMinor: LARGE_AMOUNT, currency: "EUR", bookedOn: "2026-10-01" } },
     });
 
     expect(result.errors).toBeUndefined();
@@ -47,7 +47,7 @@ describe("SafeInt and custom scalars", () => {
 
   it("filters SafeInt values with number operators", async () => {
     await execute(CREATE_LEDGER_ENTRY, {
-      variables: { input: { amountMinor: 1_00, currency: "EUR" } },
+      variables: { input: { amountMinor: 1_00, currency: "EUR", bookedOn: "2026-10-01" } },
     });
 
     const result = await execute<{
@@ -76,7 +76,11 @@ describe("SafeInt and custom scalars", () => {
   it("round-trips Number.MAX_SAFE_INTEGER", async () => {
     const result = await execute<{ createLedgerEntry: { amountMinor: number } }>(
       CREATE_LEDGER_ENTRY,
-      { variables: { input: { amountMinor: Number.MAX_SAFE_INTEGER, currency: "EUR" } } }
+      {
+        variables: {
+          input: { amountMinor: Number.MAX_SAFE_INTEGER, currency: "EUR", bookedOn: "2026-10-01" },
+        },
+      }
     );
 
     expect(result.errors).toBeUndefined();
@@ -86,7 +90,7 @@ describe("SafeInt and custom scalars", () => {
   it("rejects a value above the safe range instead of storing it rounded", async () => {
     // As over the wire: JSON numbers are doubles, so 2^53 + 1 arrives as 2^53.
     const variables = JSON.parse(
-      '{ "input": { "amountMinor": 9007199254740993, "currency": "EUR" } }'
+      '{ "input": { "amountMinor": 9007199254740993, "currency": "EUR", "bookedOn": "2026-10-01" } }'
     ) as Record<string, unknown>;
 
     const result = await execute(CREATE_LEDGER_ENTRY, { variables });
@@ -97,7 +101,7 @@ describe("SafeInt and custom scalars", () => {
 
   it("rejects a SafeInt that is not an integer", async () => {
     const result = await execute(CREATE_LEDGER_ENTRY, {
-      variables: { input: { amountMinor: 1.5, currency: "EUR" } },
+      variables: { input: { amountMinor: 1.5, currency: "EUR", bookedOn: "2026-10-01" } },
     });
 
     expect(result.errors?.[0]?.extensions?.errorType).toBe("ValidationError");
@@ -106,7 +110,7 @@ describe("SafeInt and custom scalars", () => {
 
   it("rejects a currency that is not an ISO 4217 code, through the Zod override", async () => {
     const result = await execute(CREATE_LEDGER_ENTRY, {
-      variables: { input: { amountMinor: 1_00, currency: "euro" } },
+      variables: { input: { amountMinor: 1_00, currency: "euro", bookedOn: "2026-10-01" } },
     });
 
     expect(result.errors?.[0]?.extensions?.errorType).toBe("ValidationError");
