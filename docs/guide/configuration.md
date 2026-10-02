@@ -78,7 +78,7 @@ Resolution order is defaults → config file → CLI flags (`packages/cli/src/co
 
 A plugin factory is a function returning `{ create(context) }`; presets are plain functions returning an array of factories. Nested arrays are flattened one level, so presets and single plugins can be mixed freely.
 
-**Core plugins.** The transformer always registers these first, in this order (`packages/core/src/plugins/corePlugins.ts`): `InternalUtilsPlugin` (which provides `@gqlbase_internal` and `@gqlbase_typehint`), `UtilitiesPlugin`, `InterfaceUtilsPlugin`, `ScalarsPlugin`, then `RfcFeaturesPlugin` when `semanticNullability` is on, then `ModelPlugin`, `RelationsPlugin`, then `NodeInterfacePlugin` and `ConnectionPlugin` when `relay` is on, then `SchemaGeneratorPlugin`, `ModelTypesGeneratorPlugin`. They cannot be removed or reordered, and are configured only through the [transformer options](#transformer-options).
+**Core plugins.** The transformer always registers these first, in this order (`packages/core/src/plugins/corePlugins.ts`): `InternalUtilsPlugin` (which provides `@gqlbase_internal` and `@gqlbase_typehint`), `UtilitiesPlugin`, `InterfaceUtilsPlugin`, `ScalarsPlugin`, then `RfcFeaturesPlugin` when `semanticNullability` is on, then `ModelPlugin`, `FilterPlugin`, `RelationsPlugin`, then `NodeInterfacePlugin` and `ConnectionPlugin` when `relay` is on, then `SchemaGeneratorPlugin`, `ModelTypesGeneratorPlugin`. They cannot be removed or reordered, and are configured only through the [transformer options](#transformer-options).
 
 **Order matters.** Your plugins are registered after the core plugins, in the order listed. Within every phase, plugins run in registration order. Plugin names must be unique, so the same plugin cannot be registered twice.
 

@@ -20,7 +20,7 @@ The utility directives are declared by `UtilitiesPlugin` (`packages/core/src/plu
 One core rule decides what reaches the client schema: `isPublicSchemaField(field, parent)` (`packages/core/src/plugins/SchemaGeneratorPlugin/SchemaGeneratorPlugin.utils.ts`). A field is public unless it is `@serverOnly`, `@writeOnly` or internal. The public SDL, the TS schema types and the AppSync resolver types all use it. The inputs, Zod and the database describe what is *stored* and apply their own rules. The table was derived from the code:
 
 - **SDL**: `UtilitiesPlugin.cleanup` and `SchemaGeneratorPlugin`.
-- **GraphQL inputs**: `ModelPlugin.utils.ts`.
+- **GraphQL inputs**: `ModelPlugin.utils.ts`; filters: `FilterPlugin.utils.ts`.
 - **TS**: `ModelTypesGeneratorPlugin`.
 - **Zod**: `ZodSchemaGeneratorPlugin` and `ZodSchemaGeneratorPlugin.utils.ts`.
 - **DB**: `DsqlBaseSchemaGeneratorPlugin` and `DrizzleSchemaGeneratorPlugin`.

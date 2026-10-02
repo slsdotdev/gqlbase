@@ -106,7 +106,7 @@ A relation field marked `@clientOnly` gets no key field, whatever its ends. It i
 
 Without Relay, a `@hasMany` becomes a plain list. The list keeps the field's own nullability, including `@semanticNonNull`, and its items are always non-null. There are no pagination arguments: `first` and `after` belong to Relay connections. A type already written as a list (`posts: [Post] @hasMany`) is left as written.
 
-The `filter` argument is only added on `@model` types (see [Models](./models.md#where-the-filter-is-accepted)).
+Every `@hasMany` gets the `filter` argument, whatever its parent type (see [Models](./models.md#where-the-filter-is-accepted)).
 
 `@hasOne` and `@belongsTo` fields keep their declared type.
 

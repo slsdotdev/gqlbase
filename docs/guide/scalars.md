@@ -98,7 +98,7 @@ A new scalar in `ScalarsPlugin` must be added to:
 A new *hint* value touches even more places:
 - `TypeHintValue`;
 - `TypesGeneratorBase._createTypeNameIdentifier`;
-- `ModelPlugin._createScalarFilterInput`;
+- `FilterPlugin._createScalarFilterInput`;
 - the Zod scalar switch;
 - `TYPE_HINT_TYPE_MAP` (dsqlbase) and `TYPE_HINT_DRIZZLE_MAP` (Drizzle).
 

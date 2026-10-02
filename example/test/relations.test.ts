@@ -175,4 +175,27 @@ describe("relations", () => {
     expect(names).toContain("Produce");
     expect(names).not.toContain("Greens");
   });
+
+  it("filters a @hasMany on a type that is not stored", async () => {
+    const result = await execute<{
+      viewer: { categories: { edges: { node: { name: string } }[] } };
+    }>(/* GraphQL */ `
+      query Viewer {
+        viewer {
+          categories(filter: { slug: { eq: "produce" } }) {
+            edges {
+              node {
+                name
+              }
+            }
+          }
+        }
+      }
+    `);
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data?.viewer.categories.edges.map((edge) => edge.node.name)).toEqual([
+      "Produce",
+    ]);
+  });
 });

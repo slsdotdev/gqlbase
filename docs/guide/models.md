@@ -119,14 +119,12 @@ Update inputs are partial: an omitted field is left unchanged, and `null` sets a
 
 ## Filter inputs
 
-`<Model>FilterInput` is created when the model has the `list` operation, or when it is the target of a `@hasMany` field on a model. It contains one entry per filterable field plus `and`, `or` and `not`.
+Filters are handled by `FilterPlugin` (`packages/core/src/plugins/FilterPlugin/FilterPlugin.ts`), a core plugin. `<Type>FilterInput` is created for the target of every `@hasMany` field, including the `list<Models>` queries. It contains one entry per filterable field plus `and`, `or` and `not`.
 
 **Skipped fields:**
 - everything skipped from inputs (`@readOnly`, `@serverOnly`, `@clientOnly`, relations);
-- `@createOnly` or `@updateOnly` fields not also marked `@filterOnly`;
+- `@writeOnly`, `@createOnly` or `@updateOnly` fields not also marked `@filterOnly`;
 - fields whose type is an object, interface or union. Non-model object fields, unions and interfaces cannot be filtered.
-
-`@writeOnly` fields are **not** skipped.
 
 ### Operator sets
 
@@ -152,8 +150,11 @@ The built-in inputs are added in `before()`: `IDFilterInput`, `StringFilterInput
 
 ### Where the filter is accepted
 
-- `list<Models>(filter:)` on `Query`.
-- Every `@hasMany` field **on a `@model` type** gets `filter: <Target>FilterInput`. A `@hasMany` on a non-model type (for example a root `Viewer` type) gets no `filter` argument.
+Every `@hasMany` field gets `filter: <Target>FilterInput`, whatever its parent type:
+- `list<Models>(filter:)` on `Query`;
+- `@hasMany` fields on models;
+- `@hasMany` fields on types that are not stored, such as a `Viewer` (see [Relations → Keys only between stored types](./relations.md#keys-only-between-stored-types));
+- `@hasMany` fields declared on `Query`.
 
 Sorting is not generated: there is no `orderBy` argument.
 

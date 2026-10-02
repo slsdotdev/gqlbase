@@ -49,18 +49,6 @@ describe("ModelPlugin", () => {
       expect(context.document.getNode("model")).toBeInstanceOf(DirectiveDefinitionNode);
       expect(context.document.getNode("ModelOperation")).toBeInstanceOf(EnumNode);
     });
-
-    it("adds scalar filter notes and utility types", () => {
-      plugin.before();
-
-      expect(context.document.getNode("IDFilterInput")).toBeInstanceOf(InputObjectNode);
-      expect(context.document.getNode("StringFilterInput")).toBeInstanceOf(InputObjectNode);
-      expect(context.document.getNode("IntFilterInput")).toBeInstanceOf(InputObjectNode);
-      expect(context.document.getNode("FloatFilterInput")).toBeInstanceOf(InputObjectNode);
-      expect(context.document.getNode("BooleanFilterInput")).toBeInstanceOf(InputObjectNode);
-      expect(context.document.getNode("SizeFilterInput")).toBeInstanceOf(InputObjectNode);
-      expect(context.document.getNode("SortDirection")).toBeInstanceOf(EnumNode);
-    });
   });
 
   describe("on executing model node", () => {
@@ -77,8 +65,6 @@ describe("ModelPlugin", () => {
       expect(query.hasField("getModel")).toBeTruthy();
       expect(query.getField("getModel")?.hasArgument("id")).toBeTruthy();
       expect(query.hasField("listModels")).toBeTruthy();
-      expect(query.getField("listModels")?.hasArgument("filter")).toBeTruthy();
-      expect(context.document.getNode("ModelFilterInput")).toBeInstanceOf(InputObjectNode);
       expect(query.getField("listModels")?.hasDirective("hasMany")).toBeTruthy();
     });
 
@@ -98,10 +84,6 @@ describe("ModelPlugin", () => {
     });
 
     it("creates operation inputs", () => {
-      expect(context.document.getNode("ModelFilterInput")).toBeInstanceOf(InputObjectNode);
-      expect(context.document.getNode("TagListFilterInput")).toBeInstanceOf(InputObjectNode);
-      expect(context.document.getNode("StatusFilterInput")).toBeInstanceOf(InputObjectNode);
-
       expect(context.document.getNode("CreateModelInput")).toBeInstanceOf(InputObjectNode);
       expect(context.document.getNode("UpdateModelInput")).toBeInstanceOf(InputObjectNode);
     });
