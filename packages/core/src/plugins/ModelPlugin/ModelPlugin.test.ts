@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { createTransformer } from "../../transformer/index.js";
 import {
   DirectiveDefinitionNode,
   DocumentNode,
@@ -139,5 +140,29 @@ describe("ModelPlugin operations", () => {
 
     expect(context.document.getQueryNode().hasField("getModel")).toBe(true);
     expect(context.document.getNode("Mutation")).toBeUndefined();
+  });
+});
+
+describe("ModelPlugin mutation inputs for a self-referencing object", () => {
+  let schema: string;
+
+  beforeAll(() => {
+    ({ schema } = createTransformer().transform(/* GraphQL */ `
+      type PricingModel {
+        amount: Float!
+        floor: PricingModel
+      }
+
+      type Product @model {
+        id: ID!
+        pricingModel: PricingModel
+      }
+    `));
+  });
+
+  it("reuses the input for the nested reference", () => {
+    expect(schema).toMatch(
+      /input PricingModelInput \{\s+amount: Float!\s+floor: PricingModelInput\s+\}/
+    );
   });
 });

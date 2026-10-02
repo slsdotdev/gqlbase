@@ -217,7 +217,9 @@ export class ModelPlugin implements ITransformerPlugin {
     }
 
     if (!mutationInput) {
+      // Added before its fields, so an object type that refers back to itself reuses it.
       const input = InputObjectNode.create(inputName);
+      this.context.document.addNode(input);
 
       for (const field of model.fields ?? []) {
         if (verb === "create" && shouldSkipFieldFromCreateInput(field)) {
@@ -301,8 +303,6 @@ export class ModelPlugin implements ITransformerPlugin {
           );
         }
       }
-
-      this.context.document.addNode(input);
     }
   }
 
