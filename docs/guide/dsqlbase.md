@@ -89,7 +89,7 @@ export const postRelations = relations(posts, {
 - **Not null.** `.notNull()` when the field is non-null or `@semanticNonNull`.
 - **Scalars.** Mapped as in [Scalars](./scalars.md): `ID` → `uuid`, `String` → `text`, `Int` → `int`, `Float` → `real`, `Boolean` → `bool`, `DateTime` → `timestamp(…, { mode: "iso" })`, `SafeInt` → `safeint` (see below), … Custom scalars use `scalarMap`, then their type hint.
 - **Enums.** An enum becomes `$enum("<snake>_enum", [...])` only when a non-list column of a stored model uses it; the column is `<camel>Enum.column("<col>")`. A list of enums is a `json` column typed with the enum's TS type.
-- **Lists.** Every list field, scalar or not, becomes a single `json(...)` column typed `.$type<T[]>()`.
+- **Lists.** Every list field, scalar or not, becomes a single `json(...)` column typed `.$type<T[]>()`. dsqlbase 0.1.6 has no array operators: its `contains` is a `LIKE` on text, so a `<Type>ListFilterInput` cannot be passed to `where` for these columns yet.
 - **Non-model object, interface or union fields.** A single `json(...)` column typed `.$type<Type>()`. There is no nesting, no per-field filtering and no validation.
 - **A field typed as another `@model` without a relation directive** throws "Unsupported field type".
 - **Relations.** One `relations(table, {...})` per model, exported as `<camel>Relations`:

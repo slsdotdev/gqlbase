@@ -128,25 +128,41 @@ Filters are handled by `FilterPlugin` (`packages/core/src/plugins/FilterPlugin/F
 
 ### Operator sets
 
-The built-in inputs are added in `before()`: `IDFilterInput`, `StringFilterInput`, `IntFilterInput`, `FloatFilterInput`, `BooleanFilterInput`, `SizeFilterInput`, and an enum `SortDirection { ASC DESC }`. Nothing references `SortDirection` yet.
+One operator vocabulary is used on every model, whatever its backend. The names are dsqlbase's, so a filter is a valid dsqlbase `where`; other backends translate it (see [AppSync](./appsync.md)). The operator lists live in `FilterPlugin.utils.ts` (`FilterOperators`).
+
+The built-in inputs are added in `before()`: `IDFilterInput`, `StringFilterInput`, `IntFilterInput`, `FloatFilterInput` and `BooleanFilterInput`.
 
 | Kind | Used for | Operators |
 | --- | --- | --- |
-| ID-like | `ID`, scalars hinted `id` (e.g. `UUID`) | `ne` `eq` `in` `exists` |
-| String-like | `String`, scalars hinted `string` (`DateTime`, `Date`, `EmailAddress`, …) | `ne` `eq` `le` `lt` `ge` `gt` `in` `contains` `notContains` `between` `beginsWith` `exists` `size` |
-| Number-like | `Int`, `Float`, scalars hinted `number` (`Timestamp`) | `ne` `eq` `le` `lt` `ge` `gt` `in` `between` `exists` |
-| Boolean-like | `Boolean`; scalars hinted `boolean`, `object` or `unknown` (with a warning) | `ne` `eq` `exists` |
-| Enum | every enum, as `<Enum>FilterInput` | `eq` `ne` `in` `exists` |
-| List | lists of custom scalars or enums, as `<Type>ListFilterInput` | `contains` `notContains` `size` |
-| Size | the `size` operand | `ne` `eq` `le` `lt` `ge` `gt` `between` (all `Int`) |
+| ID-like | `ID`, scalars hinted `id` (e.g. `UUID`) | `eq` `neq` `in` `exists` |
+| String-like | `String`, scalars hinted `string` (`DateTime`, `Date`, `EmailAddress`, …) | `eq` `neq` `lt` `lte` `gt` `gte` `in` `between` `beginsWith` `endsWith` `contains` `exists` |
+| Number-like | `Int`, `Float`, scalars hinted `number` (`Timestamp`, `SafeInt`) | `eq` `neq` `lt` `lte` `gt` `gte` `in` `between` `exists` |
+| Boolean-like | `Boolean`; scalars hinted `boolean`, `object` or `unknown` (with a warning) | `eq` `neq` `exists` |
+| Enum | every enum, as `<Enum>FilterInput` | `eq` `neq` `in` `exists` |
+| List | every list of scalars or enums, as `<Type>ListFilterInput` (`[String]` → `StringListFilterInput`) | `contains` `exists` |
 
-`in` and `between` take `[T!]`. `exists` takes `Boolean`. Custom scalars get their own `<Scalar>FilterInput`, shaped by their [type hint](./scalars.md).
+- `in` and `between` take `[T!]`; `between` takes two values, low then high, both included.
+- `exists: true` matches a set value, `exists: false` a missing or `null` one.
+- `and` and `or` take `[<Type>FilterInput!]`; `not` takes `<Type>FilterInput`. Conditions on several fields of one filter are combined with `and`.
+- To exclude a substring, use `not`: `{ not: { name: { contains: "p" } } }`.
+- Custom scalars get their own `<Scalar>FilterInput`, shaped by their [type hint](./scalars.md).
+- A `<Type>FilterInput` declared in the source is used as is.
 
-> **Two list quirks.**
-> - A list of a built-in scalar (for example `tags: [String]`) gets the element's filter (`StringFilterInput`), not a list filter.
-> - A list of a custom scalar or enum only gets `<Type>ListFilterInput` when no `<Type>FilterInput` exists yet. Otherwise it reuses the element filter.
->
-> See [Known gaps](../internals/known-gaps.md).
+#### Migrating from the 0.1 operators
+
+0.2 renames the operators and removes the ones no backend shared. Update client operations:
+
+| 0.1 | 0.2 |
+| --- | --- |
+| `ne` | `neq` |
+| `le` | `lte` |
+| `ge` | `gte` |
+| `notContains: x` | `not: { <field>: { contains: x } }` |
+| `size` (and `SizeFilterInput`) | removed |
+| a list of a built-in scalar filtered with the element's filter (`tags: StringFilterInput`) | `tags: StringListFilterInput` (`contains`, `exists`) |
+| `and: [XFilterInput]`, `or: [XFilterInput]` | `[XFilterInput!]` |
+
+`eq`, `lt`, `gt`, `in`, `between`, `beginsWith`, `contains` and `exists` are unchanged. `endsWith` is new.
 
 ### Where the filter is accepted
 
