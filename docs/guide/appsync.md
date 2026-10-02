@@ -19,6 +19,7 @@ Defined in `packages/plugins/src/appsync/appSyncPreset.ts`.
 | `middyAppSync.enable` | `true` | Register `MiddyAppSyncGraphQLPlugin`. |
 | `middyAppSync.authorizationModes` | none | Any of `cognito`, `iam`, `oidc`, `apiKey`, `lambda`. |
 | `middyAppSync.relationsOnly` | `true` | See [Resolver types](#resolver-types). |
+| `dynamoDBFilter` | `false` | Emit `appsync/dynamodb-filter.ts`. See [DynamoDB filters](#dynamodb-filters). |
 
 ## AppSync scalars and directives
 
@@ -91,6 +92,36 @@ declare module "@middy-appsync/graphql" {
 - **Only public fields get an entry** (`isPublicSchemaField`, see [Field visibility](./field-visibility.md)), so `@serverOnly` operations are not listed. Types that are not in the output schema get no entry.
 
 The file only provides types. Resolver implementations and data access are up to the application.
+
+## DynamoDB filters
+
+With `dynamoDBFilter: true`, `AppSyncDynamoDBFilterPlugin` (`packages/plugins/src/appsync/AppSyncDynamoDBFilterPlugin/`) emits `appsync/dynamodb-filter.ts`. Its `toDynamoDBFilter(filter)` turns a generated filter input into the `filter` of a DynamoDB `Query` or `Scan` request in an APPSYNC_JS resolver:
+
+```ts
+import { toDynamoDBFilter } from "../generated/appsync/dynamodb-filter";
+
+export function request(ctx) {
+  return { operation: "Scan", filter: toDynamoDBFilter(ctx.args.filter) };
+}
+```
+
+It returns `{ expression, expressionNames, expressionValues }`, or `null` when the filter has no condition. It imports `util` from `@aws-appsync/utils`, so bundle it with the resolver as usual.
+
+`util.transform.toDynamoDBFilterExpression` cannot be used instead: it takes AppSync's own operator names and does not handle nested paths.
+
+| Filter | DynamoDB |
+| --- | --- |
+| `eq` `neq` `lt` `lte` `gt` `gte` | `=` `<>` `<` `<=` `>` `>=` |
+| `in` | `IN (…)`; an empty list is an error |
+| `between: [a, b]` | `BETWEEN a AND b` |
+| `beginsWith` | `begins_with` |
+| `contains` | `contains`, on strings, sets and lists |
+| `exists: true` / `false` | `attribute_exists` and not `NULL` / `attribute_not_exists` or `NULL`, so a `null` attribute counts as missing, as in SQL |
+| `endsWith` | not supported by DynamoDB: `util.error` |
+| `and` `or` `not` | `AND` `OR` `NOT`, to any depth |
+| `<field>: { where: … }` | member paths, `#pricingModel.#amount`, to any depth |
+
+APPSYNC_JS has no recursion and no `while` loop, so the function walks the filter tree in a `for…of` loop over a list that it appends to, then joins the clauses in a reverse pass.
 
 ## Related
 
