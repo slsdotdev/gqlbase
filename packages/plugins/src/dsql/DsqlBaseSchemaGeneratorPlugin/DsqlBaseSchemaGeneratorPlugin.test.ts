@@ -113,3 +113,65 @@ describe("tenancy claims in the tables", () => {
     expect(tables).toMatch(/vendorId: \w+\("vendor_id"\)\.notNull\(\)/);
   });
 });
+
+describe("indexes and unique constraints", () => {
+  let tables: string;
+
+  beforeAll(() => {
+    const output = createTransformer({
+      tenancy: { vendor: { claims: { vendorId: "ID" } } },
+      plugins: [dsqlbase()],
+    }).transform(/* GraphQL */ `
+      type Product
+        @model
+        @scope(name: vendor)
+        @index(
+          name: "products_vendor_slug_idx"
+          unique: true
+          columns: [{ field: "vendorId" }, { field: "slug" }]
+        )
+        @index(
+          name: "products_created_idx"
+          columns: [{ field: "createdAt", sort: DESC, nulls: LAST }]
+          include: ["status"]
+          distinctNulls: false
+        )
+        @unique(fields: ["vendorId", "sku"]) {
+        id: ID!
+        slug: String!
+        sku: String!
+        code: String! @unique
+        status: String
+        createdAt: String
+      }
+    `);
+
+    tables = output.files.find((file) => file.path === "dsqlbase/schema.ts")?.content ?? "";
+  });
+
+  it("marks a @unique field's column unique", () => {
+    expect(tables).toContain('code: text("code").notNull().unique()');
+  });
+
+  it("emits a unique index, on a tenancy claim and a field", () => {
+    expect(tables).toContain(
+      'products.index("products_vendor_slug_idx", { unique: true }).columns(c => [c.vendorId, c.slug]);'
+    );
+  });
+
+  it("emits per-column order, include and distinctNulls", () => {
+    expect(tables).toContain(
+      'products.index("products_created_idx").columns(c => [c.createdAt.sort("DESC").nullsLast()]).include(c => [c.status]).distinctNulls(false);'
+    );
+  });
+
+  it("emits a composite unique constraint", () => {
+    expect(tables).toContain("products.unique(c => [c.vendorId, c.sku]);");
+  });
+
+  it("declares them after the table", () => {
+    expect(tables.indexOf("products.index(")).toBeGreaterThan(
+      tables.indexOf('export const products = table("products"')
+    );
+  });
+});

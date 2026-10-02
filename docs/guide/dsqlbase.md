@@ -120,7 +120,6 @@ The builder and the `@dsqlbase/core` import are emitted only when a column uses 
 ### Not generated
 
 Nothing below is emitted:
-- indexes or unique constraints;
 - tenancy / scoped columns;
 - `guid()` global-id columns;
 - `numeric` columns (unless through `scalarMap`);
@@ -171,7 +170,19 @@ Rules, checked once relation keys and tenancy claims exist (`execute`):
 - `@unique` on a type needs `fields`; on a field it takes none;
 - the type is a stored model (a `@model` that is not `@clientOnly`).
 
-The directives and their types are removed from the output schema.
+The generator emits a `@unique` field as `.unique()` on its column, and each `@index` and type-level `@unique` as its own statement after the table, since the builders return the index or constraint rather than the table:
+
+```ts
+export const products = table("products", {
+  code: text("code").notNull().unique(),
+  …
+});
+products.index("products_vendor_slug_idx", { unique: true }).columns(c => [c.vendorId, c.slug]);
+products.index("products_created_idx").columns(c => [c.createdAt.sort("DESC")]).include(c => [c.status]);
+products.unique(c => [c.vendorId, c.sku]);
+```
+
+A column's default order (`ASC`, nulls as Postgres orders them) emits nothing; `distinctNulls` is emitted only when given. The directives and their types are removed from the output schema.
 
 ## Filters and `orderBy`
 

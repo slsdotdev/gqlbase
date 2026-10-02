@@ -53,6 +53,12 @@ import {
   ScalarConfig,
 } from "./DsqlBaseSchemaGeneratorPlugin.utils.js";
 import { isBuildInScalar } from "@gqlbase/shared/definition";
+import {
+  getIndexes,
+  getUniqueConstraints,
+  isUnique,
+  type DsqlIndexColumn,
+} from "../DsqlBaseUtilsPlugin/index.js";
 
 /**
  * Generates dsqlbase schema definitions from GraphQL type definitions.
@@ -203,6 +209,10 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
 
     if (!isSemanticNullable(field)) {
       expression = this._chainCallExp(expression, "notNull");
+    }
+
+    if (isUnique(field)) {
+      expression = this._chainCallExp(expression, "unique");
     }
 
     return expression;
@@ -473,6 +483,89 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
     }
   }
 
+  /**
+   * `(c) => [c.a, c.b]`: the column callback the dsqlbase table builders take.
+   */
+  private _columnsCallback(columns: ts.Expression[]): ts.ArrowFunction {
+    return ts.factory.createArrowFunction(
+      undefined,
+      undefined,
+      [ts.factory.createParameterDeclaration(undefined, undefined, "c")],
+      undefined,
+      ts.factory.createToken(ts.SyntaxKind.EqualsGreaterThanToken),
+      ts.factory.createArrayLiteralExpression(columns)
+    );
+  }
+
+  private _columnRef(field: string): ts.Expression {
+    return ts.factory.createPropertyAccessExpression(ts.factory.createIdentifier("c"), field);
+  }
+
+  private _indexColumnRef(column: DsqlIndexColumn): ts.Expression {
+    let expression = this._columnRef(column.field);
+
+    if (column.sort === "DESC") {
+      expression = this._chainCallExp(expression, "sort", [ts.factory.createStringLiteral("DESC")]);
+    }
+
+    if (column.nulls) {
+      expression = this._chainCallExp(
+        expression,
+        column.nulls === "FIRST" ? "nullsFirst" : "nullsLast"
+      );
+    }
+
+    return expression;
+  }
+
+  /**
+   * One statement per `@index` and `@unique(fields:)`, after the table: the builders return the index or constraint, not
+   * the table, so they cannot be chained onto `table(...)`.
+   */
+  private _generateTableConstraints(node: ObjectNode, tableVarName: string) {
+    const table = ts.factory.createIdentifier(tableVarName);
+
+    for (const index of getIndexes(node)) {
+      const args: ts.Expression[] = [ts.factory.createStringLiteral(index.name)];
+
+      if (index.unique) {
+        args.push(
+          ts.factory.createObjectLiteralExpression([
+            ts.factory.createPropertyAssignment("unique", ts.factory.createTrue()),
+          ])
+        );
+      }
+
+      let expression = this._chainCallExp(this._chainCallExp(table, "index", args), "columns", [
+        this._columnsCallback(index.columns.map((column) => this._indexColumnRef(column))),
+      ]);
+
+      if (index.include?.length) {
+        expression = this._chainCallExp(expression, "include", [
+          this._columnsCallback(index.include.map((field) => this._columnRef(field))),
+        ]);
+      }
+
+      if (index.distinctNulls !== undefined && index.distinctNulls !== null) {
+        expression = this._chainCallExp(expression, "distinctNulls", [
+          index.distinctNulls ? ts.factory.createTrue() : ts.factory.createFalse(),
+        ]);
+      }
+
+      this._tables.push(ts.factory.createExpressionStatement(expression));
+    }
+
+    for (const fields of getUniqueConstraints(node)) {
+      this._tables.push(
+        ts.factory.createExpressionStatement(
+          this._chainCallExp(table, "unique", [
+            this._columnsCallback(fields.map((field) => this._columnRef(field))),
+          ])
+        )
+      );
+    }
+  }
+
   private _generateTable(node: ObjectNode) {
     this._imports.add("table");
 
@@ -496,6 +589,7 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
     ]);
 
     this._tables.push(this._exportExp(tableVarName, tableDef));
+    this._generateTableConstraints(node, tableVarName);
     this._generateRelations(node, tableVarName);
   }
 
