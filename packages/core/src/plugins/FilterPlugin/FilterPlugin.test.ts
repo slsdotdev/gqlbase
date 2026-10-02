@@ -141,3 +141,68 @@ describe("FilterPlugin on @hasMany", () => {
     expect(schema).toContain("input EmployeeFilterInput {");
   });
 });
+
+describe("FilterPlugin on object fields", () => {
+  let schema: string;
+
+  beforeAll(() => {
+    ({ schema } = createTransformer().transform(/* GraphQL */ `
+      type PricingModel {
+        amount: Float!
+        currency: String!
+        floor: PricingModel
+      }
+
+      interface Media {
+        url: String!
+      }
+
+      type Image implements Media {
+        url: String!
+      }
+
+      type Video implements Media {
+        url: String!
+      }
+
+      union Badge = Image | Video
+
+      type Product @model {
+        id: ID!
+        pricingModel: PricingModel
+        cover: Media
+        badge: Badge
+        tiers: [PricingModel!]
+      }
+    `));
+  });
+
+  it("filters an object field through exists and where", () => {
+    expect(schema).toMatch(
+      /input ProductFilterInput \{[^}]*pricingModel: PricingModelFieldFilterInput/
+    );
+    expect(schema).toMatch(
+      /input PricingModelFieldFilterInput \{\s+exists: Boolean\s+where: PricingModelFilterInput\s+\}/
+    );
+  });
+
+  it("gives the member filter its own and, or and not", () => {
+    expect(schema).toMatch(
+      /input PricingModelFilterInput \{\s+amount: FloatFilterInput\s+currency: StringFilterInput\s+floor: PricingModelFieldFilterInput\s+and: \[PricingModelFilterInput!\]\s+or: \[PricingModelFilterInput!\]\s+not: PricingModelFilterInput\s+\}/
+    );
+  });
+
+  it("filters an interface field by its own fields", () => {
+    expect(schema).toMatch(
+      /input MediaFieldFilterInput \{\s+exists: Boolean\s+where: MediaFilterInput\s+\}/
+    );
+  });
+
+  it("filters a union field by exists only", () => {
+    expect(schema).toMatch(/input BadgeFieldFilterInput \{\s+exists: Boolean\s+\}/);
+  });
+
+  it("leaves out lists of objects", () => {
+    expect(schema).not.toMatch(/input ProductFilterInput \{[^}]*tiers/);
+  });
+});

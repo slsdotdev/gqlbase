@@ -124,7 +124,7 @@ Filters are handled by `FilterPlugin` (`packages/core/src/plugins/FilterPlugin/F
 **Skipped fields:**
 - everything skipped from inputs (`@readOnly`, `@serverOnly`, `@clientOnly`, relations);
 - `@writeOnly`, `@createOnly` or `@updateOnly` fields not also marked `@filterOnly`;
-- fields whose type is an object, interface or union. Non-model object fields, unions and interfaces cannot be filtered.
+- lists of objects, interfaces or unions.
 
 ### Operator sets
 
@@ -147,6 +147,42 @@ The built-in inputs are added in `before()`: `IDFilterInput`, `StringFilterInput
 - To exclude a substring, use `not`: `{ not: { name: { contains: "p" } } }`.
 - Custom scalars get their own `<Scalar>FilterInput`, shaped by their [type hint](./scalars.md).
 - A `<Type>FilterInput` declared in the source is used as is.
+
+### Object fields
+
+A field typed as an object or interface is filtered through `<Type>FieldFilterInput`: `exists` on the value itself, and `where` on its members. Operators on the object itself sit beside `where`, so a member named like an operator is never ambiguous.
+
+```graphql
+input ProductFilterInput {
+  status: ProductStatusFilterInput
+  pricingModel: PricingModelFieldFilterInput
+  and: [ProductFilterInput!]
+  or: [ProductFilterInput!]
+  not: ProductFilterInput
+}
+
+input PricingModelFieldFilterInput {
+  exists: Boolean
+  where: PricingModelFilterInput
+}
+
+input PricingModelFilterInput {
+  amount: FloatFilterInput
+  currency: StringFilterInput
+  and: [PricingModelFilterInput!]
+  or: [PricingModelFilterInput!]
+  not: PricingModelFilterInput
+}
+```
+
+```graphql
+{ status: { eq: ACTIVE }, pricingModel: { where: { amount: { lte: 50 } } } }
+```
+
+- `where` follows the same rules as a model's filter, with its own `and`, `or` and `not`, to any depth. A type that refers to itself reuses its filter.
+- A union field gets `exists` only: its members share no fields.
+- Lists of objects are not filterable. See [Known gaps](../internals/known-gaps.md).
+- dsqlbase 0.1.6 cannot run a nested `where` yet (see [dsqlbase](./dsqlbase.md)).
 
 #### Migrating from the 0.1 operators
 

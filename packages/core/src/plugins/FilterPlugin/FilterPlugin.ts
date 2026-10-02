@@ -14,12 +14,14 @@ import {
   isListTypeNode,
   isObjectNode,
   isScalarNode,
+  isUnionNode,
   ListTypeNode,
   NamedTypeNode,
   NonNullTypeNode,
   ObjectNode,
   ScalarNode,
   TypeNode,
+  UnionNode,
 } from "../../definition/index.js";
 import { createPluginFactory } from "../createPluginFactory.js";
 import { TransformerPluginBase } from "../TransformerPluginBase.js";
@@ -37,7 +39,8 @@ import {
  * filter inputs it references.
  *
  * - `<Type>FilterInput`: one entry per filterable field of the target, plus `and`, `or` and `not`.
- * - Shared per-scalar inputs (`StringFilterInput`, `IntFilterInput`, …), and `<Enum>FilterInput` per enum.
+ * - Shared per-scalar inputs (`StringFilterInput`, `IntFilterInput`, …), `<Enum>FilterInput` per enum, `<Type>ListFilterInput` per list.
+ * - `<Type>FieldFilterInput` for object-like fields: `exists`, and `where: <Type>FilterInput` on the members.
  *
  * @example
  * ```graphql
@@ -127,6 +130,67 @@ export class FilterPlugin extends TransformerPluginBase {
     return inputName;
   }
 
+  /**
+   * The filter input for one field, or `null` when the field cannot be filtered: a list of objects, or an unknown type (reported by the
+   * validation that runs after execute).
+   */
+  private _getFieldFilterInputName(field: FieldNode): string | null {
+    const typeName = field.type.getTypeName();
+    const typeDef = isBuildInScalar(typeName)
+      ? ScalarNode.create(typeName)
+      : this.context.document.getNode(typeName);
+
+    if (!typeDef) {
+      return null;
+    }
+
+    if (isScalarNode(typeDef) || isEnumNode(typeDef)) {
+      return this._getValueFilterInputName(field, typeDef);
+    }
+
+    if (isListTypeNode(field.type)) {
+      return null;
+    }
+
+    if (isObjectNode(typeDef) || isInterfaceNode(typeDef) || isUnionNode(typeDef)) {
+      return this._createFieldFilterInput(typeDef).name;
+    }
+
+    return null;
+  }
+
+  /**
+   * `<Type>FieldFilterInput` for an object-like field: `exists` on the value itself, and `where` on its members. A union has no common
+   * members, so it gets `exists` only.
+   */
+  private _createFieldFilterInput(typeDef: ObjectNode | InterfaceNode | UnionNode) {
+    const inputName = pascalCase(typeDef.name, "field", "filter", "input");
+    const existing = this.context.document.getNode(inputName);
+
+    if (existing) {
+      return existing;
+    }
+
+    const input = InputObjectNode.create(inputName, undefined, undefined, [
+      InputValueNode.create(
+        FilterOperator.EXISTS,
+        undefined,
+        undefined,
+        NamedTypeNode.create("Boolean")
+      ),
+    ]);
+    this.context.document.addNode(input);
+
+    if (!isUnionNode(typeDef)) {
+      const where = this._createFilterInput(typeDef);
+      input.addField(
+        InputValueNode.create("where", undefined, undefined, NamedTypeNode.create(where.name))
+      );
+    }
+
+    return input;
+  }
+
   private _createFilterInput(target: ObjectNode | InterfaceNode): InputObjectNode {
     const filterInputName = pascalCase(target.name, "filter", "input");
     let filterInput = this.context.document.getNode(filterInputName);
@@ -138,47 +202,38 @@ export class FilterPlugin extends TransformerPluginBase {
       );
     }
 
-    if (!filterInput) {
-      filterInput = InputObjectNode.create(filterInputName);
+    if (filterInput) {
+      return filterInput;
+    }
 
-      for (const field of target.fields ?? []) {
-        if (shouldSkipFieldFromFilterInput(field)) {
-          continue;
-        }
+    // Added before its fields, so a type that refers back to itself reuses it.
+    filterInput = InputObjectNode.create(filterInputName);
+    this.context.document.addNode(filterInput);
 
-        const typeName = field.type.getTypeName();
-        const typeDef = isBuildInScalar(typeName)
-          ? ScalarNode.create(typeName)
-          : this.context.document.getNode(typeName);
-
-        // An unknown type is reported by the validation that runs after execute.
-        if (!typeDef || !(isScalarNode(typeDef) || isEnumNode(typeDef))) {
-          continue;
-        }
-
-        filterInput.addField(
-          InputValueNode.create(
-            field.name,
-            undefined,
-            undefined,
-            NamedTypeNode.create(this._getValueFilterInputName(field, typeDef))
-          )
-        );
+    for (const field of target.fields ?? []) {
+      if (shouldSkipFieldFromFilterInput(field)) {
+        continue;
       }
 
-      const self = NonNullTypeNode.create(filterInputName);
-      filterInput.addField(
-        InputValueNode.create("and", undefined, undefined, ListTypeNode.create(self))
-      );
-      filterInput.addField(
-        InputValueNode.create("or", undefined, undefined, ListTypeNode.create(self))
-      );
-      filterInput.addField(
-        InputValueNode.create("not", undefined, undefined, NamedTypeNode.create(filterInputName))
-      );
+      const inputName = this._getFieldFilterInputName(field);
 
-      this.context.document.addNode(filterInput);
+      if (inputName) {
+        filterInput.addField(
+          InputValueNode.create(field.name, undefined, undefined, NamedTypeNode.create(inputName))
+        );
+      }
     }
+
+    const self = NonNullTypeNode.create(filterInputName);
+    filterInput.addField(
+      InputValueNode.create("and", undefined, undefined, ListTypeNode.create(self))
+    );
+    filterInput.addField(
+      InputValueNode.create("or", undefined, undefined, ListTypeNode.create(self))
+    );
+    filterInput.addField(
+      InputValueNode.create("not", undefined, undefined, NamedTypeNode.create(filterInputName))
+    );
 
     return filterInput;
   }

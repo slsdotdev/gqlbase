@@ -12,9 +12,9 @@ When a relation target is a union, `RelationsPlugin._setRelationKey` (`packages/
 
 **Fix:** forward both arguments.
 
-### 5. Object-like fields cannot be filtered
+### 5. Lists of objects cannot be filtered
 
-`ModelPlugin._createFilterInput` (`packages/core/src/plugins/ModelPlugin/ModelPlugin.ts`) skips every field whose type is object-like: object, interface or union. Non-model object fields, union relations and interface fields never appear in `<Model>FilterInput`.
+`FilterPlugin._getFieldFilterInputName` (`packages/core/src/plugins/FilterPlugin/FilterPlugin.ts`) returns no filter for a list of objects, interfaces or unions (`tiers: [PricingModel!]`), so the field is left out of `<Type>FilterInput`. Object fields that are not lists are filtered through `<Type>FieldFilterInput`.
 
 ### 6. `SortDirection` is generated but never used
 
