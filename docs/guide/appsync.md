@@ -19,6 +19,7 @@ Defined in `packages/plugins/src/appsync/appSyncPreset.ts`.
 | `middyAppSync.enable` | `true` | Register `MiddyAppSyncGraphQLPlugin`. |
 | `middyAppSync.authorizationModes` | none | Any of `cognito`, `iam`, `oidc`, `apiKey`, `lambda`. |
 | `middyAppSync.relationsOnly` | `true` | See [Resolver types](#resolver-types). |
+| `dynamoDBFilter` | `false` | Emit `appsync/dynamodb-filter.ts`. See [DynamoDB filters](#dynamodb-filters). |
 
 ## AppSync scalars and directives
 
@@ -91,6 +92,28 @@ declare module "@middy-appsync/graphql" {
 - **Only public fields get an entry** (`isPublicSchemaField`, see [Field visibility](./field-visibility.md)), so `@serverOnly` operations are not listed. Types that are not in the output schema get no entry.
 
 The file only provides types. Resolver implementations and data access are up to the application.
+
+## DynamoDB filters
+
+With `dynamoDBFilter: true`, `AppSyncDynamoDBFilterPlugin` (`packages/plugins/src/appsync/AppSyncDynamoDBFilterPlugin/`) emits `appsync/dynamodb-filter.ts`. Its `toDynamoDBFilter(filter)` turns a generated filter input into the `filter` of a DynamoDB `Query` or `Scan` request in an APPSYNC_JS resolver:
+
+```ts
+import { toDynamoDBFilter } from "../generated/appsync/dynamodb-filter";
+
+export function request(ctx) {
+  return { operation: "Scan", filter: toDynamoDBFilter(ctx.args.filter) };
+}
+```
+
+It sanitizes the filter for `util.transform.toDynamoDBFilterExpression`, calls it, and returns the parsed result, or `null` when no condition is left. It imports `util` from `@aws-appsync/utils`, so bundle it with the resolver as usual.
+
+- **Operators are renamed** to AppSync's: `neq` → `ne`, `lte` → `le`, `gte` → `ge`, `exists` → `attributeExists`. The others are the same. Only operator keys are renamed, never field names.
+- **Nested `where` conditions are dropped**: AppSync cannot filter on nested paths. `exists` on the object field itself is kept. A field filtered only through `where` is not filtered at all on this backend.
+- **Explicit `null`s are dropped**, and so are the conditions they leave empty, as on every backend.
+- **`endsWith`** is not supported by DynamoDB: `util.error`.
+- **`exists`** follows AppSync: `attributeExists: true` matches an attribute stored as `NULL`, unlike SQL.
+
+APPSYNC_JS has no recursion, and its `for…of` does not visit elements appended during the loop, so the function does not walk the filter as a tree. It makes one pass over the characters of the filter's JSON, keeping a stack of the objects it is in.
 
 ## Related
 

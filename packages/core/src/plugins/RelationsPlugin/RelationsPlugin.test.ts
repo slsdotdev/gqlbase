@@ -1,24 +1,24 @@
 import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { print } from "graphql";
 import { TransformerContext } from "../../context/index.js";
-import { DocumentNode, ListTypeNode, ObjectNode } from "../../definition/index.js";
+import { DocumentNode, InterfaceNode, ListTypeNode, ObjectNode } from "../../definition/index.js";
 import { RelationsPlugin } from "./RelationsPlugin.js";
 
 const document = DocumentNode.fromSource(/* GraphQL */ `
-  type User {
+  type User @model {
     id: ID!
     name: String!
     posts: Post @hasMany(key: "authorId")
   }
 
-  type Post {
+  type Post @model {
     id: ID!
     title: String!
     author: User @hasOne
     tags: Tag @hasMany
   }
 
-  type Tag {
+  type Tag @model {
     id: ID!
     name: String!
   }
@@ -77,6 +77,152 @@ describe("RelationsPlugin", () => {
 
     expect(viewerNode.getField("user")?.type.getTypeName()).toBe("User");
     expect(viewerNode.hasField("userId")).toBeFalsy();
+  });
+});
+
+describe("RelationsPlugin keys between stored types", () => {
+  const source = /* GraphQL */ `
+    type Employee @model {
+      id: ID!
+      team: Team @belongsTo
+      badge: Badge @hasOne
+      settings: Settings @hasOne
+      owner: Owner @belongsTo
+    }
+
+    type Team @model {
+      id: ID!
+      members: Employee @hasMany
+      assets: Asset @hasMany
+      devices: Device @hasMany
+    }
+
+    type Badge @model {
+      id: ID!
+    }
+
+    type Settings {
+      id: ID!
+    }
+
+    type Owner @model @clientOnly {
+      id: ID!
+      employees: Employee @hasMany
+    }
+
+    type Viewer {
+      employees: Employee @hasMany(key: "viewerId")
+    }
+
+    type Session {
+      id: ID!
+      employees: Employee @hasMany
+    }
+
+    interface Asset {
+      id: ID!
+    }
+
+    type Laptop implements Asset @model {
+      id: ID!
+    }
+
+    interface Device {
+      id: ID!
+    }
+
+    type Phone implements Device {
+      id: ID!
+    }
+
+    type Query {
+      employees: Employee @hasMany(key: "queryId")
+    }
+  `;
+
+  let context: TransformerContext;
+  let employee: ObjectNode;
+  let badge: ObjectNode;
+  let asset: InterfaceNode;
+
+  beforeAll(() => {
+    context = new TransformerContext({});
+    const plugin = new RelationsPlugin(context);
+    context.registerPlugin(plugin);
+    context.startWork(DocumentNode.fromSource(source));
+
+    for (const name of ["Employee", "Team", "Owner", "Viewer", "Session", "Query"]) {
+      plugin.normalize(context.document.getNodeOrThrow(name) as ObjectNode);
+    }
+
+    employee = context.document.getNodeOrThrow("Employee") as ObjectNode;
+    badge = context.document.getNodeOrThrow("Badge") as ObjectNode;
+    asset = context.document.getNodeOrThrow("Asset") as InterfaceNode;
+  });
+
+  it("keys @model to @model", () => {
+    expect(employee.hasField("teamId")).toBe(true);
+    expect(badge.hasField("employeeId")).toBe(true);
+  });
+
+  it("keys a @model to an interface every implementation of which is a @model", () => {
+    expect(asset.hasField("teamId")).toBe(true);
+  });
+
+  it("does not key a @model to an interface with a plain implementation", () => {
+    const device = context.document.getNodeOrThrow("Device") as InterfaceNode;
+    expect(device.hasField("teamId")).toBe(false);
+  });
+
+  it("does not key from a root type", () => {
+    expect(employee.hasField("queryId")).toBe(false);
+  });
+
+  it("does not key from a plain type without an id, instead of throwing", () => {
+    expect(employee.hasField("viewerId")).toBe(false);
+  });
+
+  it("does not key from a plain type with an id", () => {
+    expect(employee.hasField("sessionId")).toBe(false);
+  });
+
+  it("does not key from a @clientOnly type", () => {
+    expect(employee.hasField("ownerId")).toBe(false);
+  });
+
+  it("does not key a @model to a plain type", () => {
+    const settings = context.document.getNodeOrThrow("Settings") as ObjectNode;
+    expect(settings.hasField("employeeId")).toBe(false);
+  });
+});
+
+describe("RelationsPlugin key without an id", () => {
+  let context: TransformerContext;
+  let plugin: RelationsPlugin;
+
+  beforeAll(() => {
+    context = new TransformerContext({});
+    plugin = new RelationsPlugin(context);
+    context.registerPlugin(plugin);
+    context.startWork(
+      DocumentNode.fromSource(/* GraphQL */ `
+        type Log @model {
+          entries: Entry @hasMany
+        }
+
+        type Entry @model {
+          id: ID!
+        }
+      `)
+    );
+  });
+
+  it("names the source that has no id", () => {
+    const log = context.document.getNodeOrThrow("Log") as ObjectNode;
+
+    expect(() => plugin.normalize(log)).toThrow(
+      "Relation Log.entries needs the id of Log for its key, but Log has no id field."
+    );
   });
 });
 

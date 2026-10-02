@@ -5,8 +5,8 @@ import {
   defineResolvers,
 } from "@middy-appsync/graphql";
 import { dsql } from "../lib/dsql";
-import { allOf, toWhere } from "../lib/filter";
-import { DEFAULT_PAGE_SIZE, toConnection } from "../lib/connection";
+import { allOf, withoutNulls } from "../lib/filter";
+import { orderOf, pageOf, toConnection } from "../lib/connection";
 import { validate } from "../lib/validation";
 import {
   CreateCategoryInputSchema,
@@ -25,17 +25,15 @@ const getCategory = createQueryResolver({
 const listCategories = createQueryResolver({
   fieldName: "listCategories",
   resolve: async ({ args }) => {
-    const first = args.first ?? DEFAULT_PAGE_SIZE;
+    const { first, offset, limit } = pageOf(args);
     const rows = await dsql.categories.findMany({
-      where: allOf<CategoryWhere>(
-        toWhere(args.filter),
-        args.after ? { id: { gt: args.after } } : null
-      ),
-      orderBy: { id: "asc" },
-      limit: first + 1,
+      where: allOf<CategoryWhere>(withoutNulls(args.filter)),
+      orderBy: orderOf(args.orderBy),
+      limit,
+      offset,
     });
 
-    return toConnection(rows, first);
+    return toConnection(rows, first, offset);
   },
 });
 
@@ -43,17 +41,15 @@ const listCategories = createQueryResolver({
 const searchCategories = createQueryResolver({
   fieldName: "searchCategories",
   resolve: async ({ args }) => {
-    const first = args.first ?? DEFAULT_PAGE_SIZE;
+    const { first, offset, limit } = pageOf(args);
     const rows = await dsql.categories.findMany({
-      where: allOf<CategoryWhere>(
-        toWhere({ name: args.name }),
-        args.after ? { id: { gt: args.after } } : null
-      ),
+      where: allOf<CategoryWhere>(withoutNulls({ name: args.name })),
       orderBy: { id: "asc" },
-      limit: first + 1,
+      limit,
+      offset,
     });
 
-    return toConnection(rows, first);
+    return toConnection(rows, first, offset);
   },
 });
 
@@ -109,18 +105,15 @@ const categoryChildren = createResolver({
   typeName: "Category",
   fieldName: "children",
   resolve: async ({ source, args }) => {
-    const first = args.first ?? DEFAULT_PAGE_SIZE;
+    const { first, offset, limit } = pageOf(args);
     const rows = await dsql.categories.findMany({
-      where: allOf<CategoryWhere>(
-        { parentId: source.id },
-        toWhere(args.filter),
-        args.after ? { id: { gt: args.after } } : null
-      ),
-      orderBy: { id: "asc" },
-      limit: first + 1,
+      where: allOf<CategoryWhere>({ parentId: source.id }, withoutNulls(args.filter)),
+      orderBy: orderOf(args.orderBy),
+      limit,
+      offset,
     });
 
-    return toConnection(rows, first);
+    return toConnection(rows, first, offset);
   },
 });
 

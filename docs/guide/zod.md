@@ -14,7 +14,7 @@ The plugin is `ZodSchemaGeneratorPlugin` (`packages/plugins/src/zod/ZodSchemaGen
 | --- | --- | --- |
 | `fileName` | `"schema.validators.ts"` | File name inside `zod/`. |
 | `emitOutput` | `false` | Also return the file content from `transform()` as `output.zodSchemas`. |
-| `generateArgumentSchemas` | `false` | Also emit schemas for every input type used as a field argument, and their dependencies (filter inputs, mutation inputs, custom inputs). |
+| `generateArgumentSchemas` | `false` | Also emit schemas for every input type used as a field argument, and their dependencies (filter and `orderBy` inputs, including those on `@hasMany` fields of non-model types, mutation inputs, custom inputs). |
 | `scalars` | `{}` | Zod code per scalar name, used instead of the built-in mapping or the type hint. See [Scalars](#scalars). |
 
 ## What is generated

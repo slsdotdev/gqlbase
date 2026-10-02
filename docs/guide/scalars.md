@@ -63,7 +63,7 @@ The argument is declared `type: TypeHint!`, so the value is a bare **enum litera
 | `object` | `Record<string, unknown>` | `z.record(z.string(), z.unknown())` | boolean-like | `json` | `jsonb` | `AWSJSON` |
 | `unknown` | `unknown` (warning) | `z.unknown()` | boolean-like (warning) | `text` | `text` | none: the transform throws |
 
-Operator sets are listed in [Models](./models.md#operator-sets).
+The built-in date scalars (`Date`, `DateTime`, `Time`, `Timestamp`) are filtered as dates whatever their hint: ranges and `between`, no substring operators. Operator sets are listed in [Models](./models.md#operator-sets).
 
 ## Adding a custom scalar
 
@@ -98,7 +98,7 @@ A new scalar in `ScalarsPlugin` must be added to:
 A new *hint* value touches even more places:
 - `TypeHintValue`;
 - `TypesGeneratorBase._createTypeNameIdentifier`;
-- `ModelPlugin._createScalarFilterInput`;
+- `FilterPlugin._getScalarFilterKind`;
 - the Zod scalar switch;
 - `TYPE_HINT_TYPE_MAP` (dsqlbase) and `TYPE_HINT_DRIZZLE_MAP` (Drizzle).
 

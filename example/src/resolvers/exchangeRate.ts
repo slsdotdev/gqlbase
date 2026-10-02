@@ -1,5 +1,5 @@
 import { createQueryResolver, defineResolvers } from "@middy-appsync/graphql";
-import { DEFAULT_PAGE_SIZE, toConnection } from "../lib/connection";
+import { pageOf, toConnection } from "../lib/connection";
 
 // ExchangeRate is @clientOnly: nothing is stored, the resolver provides the data.
 const RATES = [
@@ -18,10 +18,9 @@ const getExchangeRate = createQueryResolver({
 const listExchangeRates = createQueryResolver({
   fieldName: "listExchangeRates",
   resolve: async ({ args }) => {
-    const first = args.first ?? DEFAULT_PAGE_SIZE;
-    const rows = RATES.filter((rate) => !args.after || rate.id > args.after);
+    const { first, offset, limit } = pageOf(args);
 
-    return toConnection(rows.slice(0, first + 1), first);
+    return toConnection(RATES.slice(offset, offset + limit), first, offset);
   },
 });
 

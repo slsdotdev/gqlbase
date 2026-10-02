@@ -7,6 +7,7 @@ import {
   middyAppSyncGraphQLPlugin,
   MiddyAppSyncGraphQLPluginOptions,
 } from "./MiddyAppSyncGraphQLPlugin/index.js";
+import { appSyncDynamoDBFilterPlugin } from "./AppSyncDynamoDBFilterPlugin/index.js";
 
 interface MiddyAppSyncOptions extends MiddyAppSyncGraphQLPluginOptions {
   /**
@@ -34,6 +35,13 @@ interface AppSyncPresetOptions {
    * Options for the MiddyAppSyncGraphQLPlugin
    */
   middyAppSync?: MiddyAppSyncOptions;
+
+  /**
+   * If true, emits `appsync/dynamodb-filter.ts`, which turns a filter input into a DynamoDB filter for APPSYNC_JS resolvers.
+   *
+   * @default false
+   */
+  dynamoDBFilter?: boolean;
 }
 
 /**
@@ -42,12 +50,18 @@ interface AppSyncPresetOptions {
  * Includes:
  * - `AppSyncUtilsPlugin`
  * - `AppSyncSchemaGeneratorPlugin`
+ * - `MiddyAppSyncGraphQLPlugin`, unless `middyAppSync.enable` is false
+ * - `AppSyncDynamoDBFilterPlugin`, when `dynamoDBFilter` is true
  *
  * @returns An array of plugin factories.
  */
 
 export function appsyncPreset(options: AppSyncPresetOptions = {}) {
-  const { middyAppSync = { enable: true }, ...schemaGeneratorOptions } = options;
+  const {
+    middyAppSync = { enable: true },
+    dynamoDBFilter = false,
+    ...schemaGeneratorOptions
+  } = options;
 
   const base = [
     appSyncUtilsPlugin(),
@@ -59,6 +73,10 @@ export function appsyncPreset(options: AppSyncPresetOptions = {}) {
 
   if (middyAppSync.enable !== false) {
     base.push(middyAppSyncGraphQLPlugin(middyAppSync));
+  }
+
+  if (dynamoDBFilter) {
+    base.push(appSyncDynamoDBFilterPlugin());
   }
 
   return base;

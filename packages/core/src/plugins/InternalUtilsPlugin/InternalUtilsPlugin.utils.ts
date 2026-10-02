@@ -1,10 +1,11 @@
 import { Kind } from "graphql";
-import { ScalarNode } from "../../definition/index.js";
+import { InputValueNode, ScalarNode } from "../../definition/index.js";
 import { WithDirectivesNode } from "../../definition/WithDirectivesNode.js";
 
 export const InternalDirective = Object.freeze({
   INTERNAL: "gqlbase_internal",
   TYPE_HINT: "gqlbase_typehint",
+  TUPLE: "gqlbase_tuple",
 });
 
 export const TypeHintValue = Object.freeze({
@@ -58,4 +59,18 @@ export const getTypeHint = (node: ScalarNode): TypeHintValueType => {
   }
 
   return "unknown";
+};
+
+/**
+ * The size of a list input field marked `@gqlbase_tuple(size: n)`, or `null`. GraphQL has no fixed-size list: the generated TS types and
+ * Zod schemas type such a field as an `n`-tuple, for example the `[low, high]` of a filter's `between`.
+ */
+export const getTupleSize = (node: InputValueNode): number | null => {
+  const size = node.getDirective(InternalDirective.TUPLE)?.getArgument("size");
+
+  if (size && size.value.kind === Kind.INT) {
+    return Number(size.value.value);
+  }
+
+  return null;
 };

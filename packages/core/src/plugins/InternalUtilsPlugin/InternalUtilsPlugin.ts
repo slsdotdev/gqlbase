@@ -6,6 +6,7 @@ import {
   DirectiveNode,
   DirectiveDefinitionNode,
   EnumNode,
+  InputObjectNode,
   InputValueNode,
   ScalarNode,
   NonNullTypeNode,
@@ -29,6 +30,8 @@ import { InternalDirective, TypeHintValue } from "./InternalUtilsPlugin.utils.js
  * directive `@gqlbase_internal` on ARGUMENT_DEFINITION | ENUM | ENUM_VALUE | FIELD_DEFINITION | INPUT_FIELD_DEFINITION | INTERFACE | OBJECT | SCALAR | UNION
  *
  * directive `@gqlbase_typehint(type: TypeHint!)` on SCALAR
+ *
+ * directive `@gqlbase_tuple(size: Int!)` on INPUT_FIELD_DEFINITION
  *
  * enum TypeHint `@gqlbase_internal` {
  *   id
@@ -83,6 +86,14 @@ export class InternalUtilsPlugin implements ITransformerPlugin {
         )
       )
       .addNode(
+        DirectiveDefinitionNode.create(
+          InternalDirective.TUPLE,
+          undefined,
+          ["INPUT_FIELD_DEFINITION"],
+          InputValueNode.create("size", undefined, undefined, NonNullTypeNode.create("Int"))
+        )
+      )
+      .addNode(
         EnumNode.create(
           "TypeHint",
           undefined,
@@ -93,13 +104,17 @@ export class InternalUtilsPlugin implements ITransformerPlugin {
   }
 
   public match(node: DefinitionNode): boolean {
-    return node instanceof ScalarNode;
+    return node instanceof ScalarNode || node instanceof InputObjectNode;
   }
 
   /**
    * `validateSDL` does not check argument values, so a string literal (`type: "string"`) or an unknown value would silently become `unknown`. Reject both.
    */
-  public normalize(definition: ScalarNode): void {
+  public normalize(definition: ScalarNode | InputObjectNode): void {
+    if (!(definition instanceof ScalarNode)) {
+      return;
+    }
+
     const argument = definition.getDirective(InternalDirective.TYPE_HINT)?.getArgument("type");
 
     if (!argument) {
@@ -116,7 +131,17 @@ export class InternalUtilsPlugin implements ITransformerPlugin {
     }
   }
 
-  public cleanup(definition: ScalarNode): void {
+  public cleanup(definition: ScalarNode | InputObjectNode): void {
+    if (definition instanceof InputObjectNode) {
+      for (const field of definition.fields ?? []) {
+        if (field.hasDirective(InternalDirective.TUPLE)) {
+          field.removeDirective(InternalDirective.TUPLE);
+        }
+      }
+
+      return;
+    }
+
     if (definition.hasDirective(InternalDirective.TYPE_HINT)) {
       definition.removeDirective(InternalDirective.TYPE_HINT);
     }
@@ -126,6 +151,7 @@ export class InternalUtilsPlugin implements ITransformerPlugin {
     this.context.document
       .removeNode(InternalDirective.INTERNAL)
       .removeNode(InternalDirective.TYPE_HINT)
+      .removeNode(InternalDirective.TUPLE)
       .removeNode("TypeHint");
   }
 }

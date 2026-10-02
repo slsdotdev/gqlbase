@@ -6,6 +6,7 @@ import { interfaceUtilsPlugin } from "./InterfaceUtilsPlugin/index.js";
 import { scalarsPlugin } from "./ScalarsPlugin/index.js";
 import { rfcFeaturesPlugin } from "./RfcFeaturesPlugin/index.js";
 import { modelPlugin } from "./ModelPlugin/index.js";
+import { filterPlugin } from "./FilterPlugin/index.js";
 import { relationPlugin } from "./RelationsPlugin/index.js";
 import { nodeInterfacePlugin } from "./NodeInterfacePlugin/index.js";
 import { connectionPlugin } from "./ConnectionPlugin/index.js";
@@ -26,6 +27,7 @@ export function corePlugins(
     scalarsPlugin(),
     ...(options.semanticNullability ? [rfcFeaturesPlugin()] : []),
     modelPlugin(),
+    filterPlugin(),
     relationPlugin(),
     ...(options.relay ? [nodeInterfacePlugin(), connectionPlugin()] : []),
     schemaGeneratorPlugin(),

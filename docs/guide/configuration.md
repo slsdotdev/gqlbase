@@ -78,7 +78,7 @@ Resolution order is defaults → config file → CLI flags (`packages/cli/src/co
 
 A plugin factory is a function returning `{ create(context) }`; presets are plain functions returning an array of factories. Nested arrays are flattened one level, so presets and single plugins can be mixed freely.
 
-**Core plugins.** The transformer always registers these first, in this order (`packages/core/src/plugins/corePlugins.ts`): `InternalUtilsPlugin` (which provides `@gqlbase_internal` and `@gqlbase_typehint`), `UtilitiesPlugin`, `InterfaceUtilsPlugin`, `ScalarsPlugin`, then `RfcFeaturesPlugin` when `semanticNullability` is on, then `ModelPlugin`, `RelationsPlugin`, then `NodeInterfacePlugin` and `ConnectionPlugin` when `relay` is on, then `SchemaGeneratorPlugin`, `ModelTypesGeneratorPlugin`. They cannot be removed or reordered, and are configured only through the [transformer options](#transformer-options).
+**Core plugins.** The transformer always registers these first, in this order (`packages/core/src/plugins/corePlugins.ts`): `InternalUtilsPlugin` (which provides `@gqlbase_internal` and `@gqlbase_typehint`), `UtilitiesPlugin`, `InterfaceUtilsPlugin`, `ScalarsPlugin`, then `RfcFeaturesPlugin` when `semanticNullability` is on, then `ModelPlugin`, `FilterPlugin`, `RelationsPlugin`, then `NodeInterfacePlugin` and `ConnectionPlugin` when `relay` is on, then `SchemaGeneratorPlugin`, `ModelTypesGeneratorPlugin`. They cannot be removed or reordered, and are configured only through the [transformer options](#transformer-options).
 
 **Order matters.** Your plugins are registered after the core plugins, in the order listed. Within every phase, plugins run in registration order. Plugin names must be unique, so the same plugin cannot be registered twice.
 
@@ -159,6 +159,12 @@ output.files; // [{ type, path, filename, content }]
 - `schema.types.ts` matches `schema.graphql`: it no longer has `@serverOnly` or `@writeOnly` fields, relation keys or unused definitions. Resolver code that reads those from a parent uses the AppSync `<Type>Source` type, which its `source` now has.
 - Unused enums, inputs, unions and scalars are no longer printed in `schema.graphql` or the AppSync schema.
 - Without Relay, `@hasMany` fields and list queries return `[T!]` (was `[T]`), or `[T!]!` for a non-null field. `relationPlugin({ usePaginationTypes })` and its `{ items, nextToken }` shape are removed.
+
+**Client operations: filters and ordering** ([decision 0004](../decisions/0004-filters-ordering-and-relation-keys.md)).
+
+- Filter operators are renamed: `ne` → `neq`, `le` → `lte`, `ge` → `gte`; `notContains` becomes `not: { <field>: { contains } }`; `size` is removed. The full table is in [Models → Migrating from the 0.1 operators](./models.md#migrating-from-the-01-operators).
+- `SortDirection` is `asc`/`desc` (was `ASC`/`DESC`, unused) and every `@hasMany` takes `orderBy`.
+- Relation keys are added only between stored types: a `@hasMany` on a plain type no longer adds a key to its target.
 - With Relay and without `semanticNullability`, `edges` is `[XEdge!]!` and `XEdge.node` is non-null.
 
 ## Related

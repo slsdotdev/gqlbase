@@ -365,3 +365,22 @@ extend type Query {
   """
   searchCategories(name: StringFilterInput!, first: Int, after: String): CategoryConnection!
 }
+
+# ------------------------------------------------------------------------------
+# Viewer
+# ------------------------------------------------------------------------------
+
+"""
+The caller's view of the catalogue. It is not stored and has no id: its relations are served by
+resolvers, so `@hasMany` adds no key to the target.
+"""
+type Viewer {
+  """
+  Top-level categories, without a parent.
+  """
+  categories: Category @hasMany
+}
+
+extend type Query {
+  viewer: Viewer!
+}

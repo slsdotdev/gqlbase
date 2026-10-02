@@ -9,6 +9,7 @@ export * from "./InterfaceUtilsPlugin/index.js";
 export * from "./ScalarsPlugin/index.js";
 export * from "./RfcFeaturesPlugin/index.js";
 export * from "./ModelPlugin/index.js";
+export * from "./FilterPlugin/index.js";
 export * from "./RelationsPlugin/index.js";
 export * from "./NodeInterfacePlugin/index.js";
 export * from "./SchemaGeneratorPlugin/index.js";

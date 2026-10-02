@@ -55,7 +55,7 @@ describe("list filters", () => {
 
   it("filters strings by equality", async () => {
     expect(await names({ name: { eq: "Beets" } })).toEqual(["Beets"]);
-    expect(await names({ slug: { ne: "produce" } })).toEqual([
+    expect(await names({ slug: { neq: "produce" } })).toEqual([
       "Apples",
       "Apricots",
       "Beets",
@@ -64,17 +64,22 @@ describe("list filters", () => {
     expect(await names({ name: { in: ["Apples", "Carrots"] } })).toEqual(["Apples", "Carrots"]);
   });
 
-  it("filters strings by prefix and substring", async () => {
+  it("filters strings by prefix, suffix and substring", async () => {
     expect(await names({ name: { beginsWith: "Ap" } })).toEqual(["Apples", "Apricots"]);
     expect(await names({ name: { contains: "rro" } })).toEqual(["Carrots"]);
-    expect(await names({ name: { notContains: "p" } })).toEqual(["Beets", "Carrots", "Produce"]);
+    expect(await names({ name: { endsWith: "ts" } })).toEqual(["Apricots", "Beets", "Carrots"]);
+    expect(await names({ not: { name: { contains: "p" } } })).toEqual([
+      "Beets",
+      "Carrots",
+      "Produce",
+    ]);
   });
 
   it("filters numbers by range", async () => {
     expect(await names({ sortOrder: { gt: 2 } })).toEqual(["Beets", "Carrots"]);
-    expect(await names({ sortOrder: { ge: 3 } })).toEqual(["Beets", "Carrots"]);
+    expect(await names({ sortOrder: { gte: 3 } })).toEqual(["Beets", "Carrots"]);
     expect(await names({ sortOrder: { lt: 1 } })).toEqual(["Produce"]);
-    expect(await names({ sortOrder: { le: 1 } })).toEqual(["Apples", "Produce"]);
+    expect(await names({ sortOrder: { lte: 1 } })).toEqual(["Apples", "Produce"]);
     expect(await names({ sortOrder: { between: [2, 3] } })).toEqual(["Apricots", "Beets"]);
   });
 
@@ -87,10 +92,24 @@ describe("list filters", () => {
     ]);
   });
 
+  it("ignores an explicit null operand", async () => {
+    expect(await names({ name: { eq: null }, sortOrder: { lt: 1, gt: null } })).toEqual([
+      "Produce",
+    ]);
+  });
+
+  it("filters a @readOnly field", async () => {
+    expect(await names({ isArchived: { eq: true } })).toEqual([]);
+    expect(await names({ isArchived: { eq: false }, sortOrder: { lte: 1 } })).toEqual([
+      "Apples",
+      "Produce",
+    ]);
+  });
+
   it("combines conditions with and, or and not", async () => {
-    expect(await names({ and: [{ name: { beginsWith: "A" } }, { sortOrder: { ge: 2 } }] })).toEqual(
-      ["Apricots"]
-    );
+    expect(
+      await names({ and: [{ name: { beginsWith: "A" } }, { sortOrder: { gte: 2 } }] })
+    ).toEqual(["Apricots"]);
     expect(await names({ or: [{ name: { eq: "Beets" } }, { sortOrder: { eq: 0 } }] })).toEqual([
       "Beets",
       "Produce",
@@ -119,7 +138,7 @@ describe("list filters", () => {
           }
         }
       `,
-      { variables: { id: rootId, filter: { sortOrder: { ge: 3 } } } }
+      { variables: { id: rootId, filter: { sortOrder: { gte: 3 } } } }
     );
 
     expect(result.errors).toBeUndefined();
@@ -158,5 +177,64 @@ describe("list filters", () => {
       "Apples",
       "Apricots",
     ]);
+  });
+});
+
+describe("date filters", () => {
+  beforeAll(async () => {
+    await migrate();
+
+    for (const bookedOn of ["2026-08-31", "2026-09-01", "2026-09-15", "2026-09-30", "2026-10-01"]) {
+      await dsql.ledgerEntries.create({ data: { amountMinor: 1_00, currency: "EUR", bookedOn } });
+    }
+  });
+
+  const days = async (filter: Record<string, unknown>) => {
+    const result = await execute<{
+      listLedgerEntries: { edges: { node: { bookedOn: string } }[] };
+    }>(
+      /* GraphQL */ `
+        query List($filter: LedgerEntryFilterInput) {
+          listLedgerEntries(filter: $filter) {
+            edges {
+              node {
+                bookedOn
+              }
+            }
+          }
+        }
+      `,
+      { variables: { filter } }
+    );
+
+    expect(result.errors).toBeUndefined();
+    return result.data?.listLedgerEntries.edges.map((edge) => edge.node.bookedOn).sort();
+  };
+
+  it("scopes a month with between, both ends included", async () => {
+    expect(await days({ bookedOn: { between: ["2026-09-01", "2026-09-30"] } })).toEqual([
+      "2026-09-01",
+      "2026-09-15",
+      "2026-09-30",
+    ]);
+  });
+
+  it("compares dates", async () => {
+    expect(await days({ bookedOn: { gte: "2026-09-30" } })).toEqual(["2026-09-30", "2026-10-01"]);
+    expect(await days({ bookedOn: { lt: "2026-09-01" } })).toEqual(["2026-08-31"]);
+  });
+
+  it("rejects substring operators on dates", async () => {
+    const result = await execute(/* GraphQL */ `
+      query {
+        listLedgerEntries(filter: { bookedOn: { beginsWith: "2026-09" } }) {
+          edges {
+            cursor
+          }
+        }
+      }
+    `);
+
+    expect(result.errors?.[0]?.message).toMatch(/beginsWith/);
   });
 });

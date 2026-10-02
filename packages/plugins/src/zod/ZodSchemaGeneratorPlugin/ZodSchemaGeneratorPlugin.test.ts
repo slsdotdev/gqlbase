@@ -1098,6 +1098,53 @@ describe("ZodSchemaGeneratorPlugin", () => {
       expect(output).toContain("StringFilterInputSchema");
     });
 
+    it("emits schemas for filter and orderBy on a parent that is not a model", () => {
+      const output = generateSchemas(
+        plugin,
+        context,
+        /* GraphQL */ `
+          enum SortDirection {
+            asc
+            desc
+          }
+          input PriceFilterInput {
+            amount: FloatFilterInput
+            and: [PriceFilterInput!]
+          }
+          input PriceFieldFilterInput {
+            exists: Boolean
+            where: PriceFilterInput
+          }
+          input FloatFilterInput {
+            lte: Float
+            between: [Float!]
+          }
+          input ItemFilterInput {
+            price: PriceFieldFilterInput
+          }
+          input ItemOrderByInput {
+            name: SortDirection
+          }
+          type Item {
+            name: String
+          }
+          type Viewer {
+            items(filter: ItemFilterInput, orderBy: ItemOrderByInput): [Item!]
+          }
+          type Query {
+            viewer: Viewer
+          }
+        `,
+        ["Item", "Viewer", "Query"]
+      );
+
+      expect(output).toContain("ItemFilterInputSchema");
+      expect(output).toContain("PriceFieldFilterInputSchema");
+      expect(output).toContain("PriceFilterInputSchema");
+      expect(output).toContain("ItemOrderByInputSchema");
+      expect(output).toContain("SortDirectionSchema");
+    });
+
     it("does not overwrite model-derived create/update schemas", () => {
       const output = generateSchemas(
         plugin,

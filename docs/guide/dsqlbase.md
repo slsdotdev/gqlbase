@@ -89,8 +89,8 @@ export const postRelations = relations(posts, {
 - **Not null.** `.notNull()` when the field is non-null or `@semanticNonNull`.
 - **Scalars.** Mapped as in [Scalars](./scalars.md): `ID` → `uuid`, `String` → `text`, `Int` → `int`, `Float` → `real`, `Boolean` → `bool`, `DateTime` → `timestamp(…, { mode: "iso" })`, `SafeInt` → `safeint` (see below), … Custom scalars use `scalarMap`, then their type hint.
 - **Enums.** An enum becomes `$enum("<snake>_enum", [...])` only when a non-list column of a stored model uses it; the column is `<camel>Enum.column("<col>")`. A list of enums is a `json` column typed with the enum's TS type.
-- **Lists.** Every list field, scalar or not, becomes a single `json(...)` column typed `.$type<T[]>()`.
-- **Non-model object, interface or union fields.** A single `json(...)` column typed `.$type<Type>()`. There is no nesting, no per-field filtering and no validation.
+- **Lists.** Every list field, scalar or not, becomes a single `json(...)` column typed `.$type<T[]>()`. dsqlbase 0.1.6 has no array operators: its `contains` is a `LIKE` on text, so a `<Type>ListFilterInput` cannot be passed to `where` for these columns yet.
+- **Non-model object, interface or union fields.** A single `json(...)` column typed `.$type<Type>()`. There is no nesting and no validation. The generated filter has a nested `where` for these fields, but dsqlbase 0.1.6 cannot run it: its `where` has no operators on `json` members.
 - **A field typed as another `@model` without a relation directive** throws "Unsupported field type".
 - **Relations.** One `relations(table, {...})` per model, exported as `<camel>Relations`:
   - `@belongsTo` → `belongsTo(target, { from: [source.key], to: [target.id] })`;
@@ -126,6 +126,21 @@ Nothing below is emitted:
 - `numeric` columns (unless through `scalarMap`);
 - check constraints (from `@constraint`);
 - polymorphic relations.
+
+## Filters and `orderBy`
+
+The generated filter inputs use dsqlbase's operator names, so a `filter` argument is a dsqlbase `where` and an `orderBy` argument is a dsqlbase `orderBy`, with no translation:
+
+```ts
+const rows = await dsql.categories.findMany({
+  where: withoutNulls(args.filter),
+  orderBy: { ...withoutNulls(args.orderBy), id: "asc" },
+});
+```
+
+- **Explicit `null`s.** GraphQL passes an omitted operand as absent and an explicit one as `null`; dsqlbase reads `null` as a value. Drop explicit `null`s, and the conditions they leave empty, before the call. The example's `withoutNulls` (`example/src/lib/filter.ts`) does this, and `example/test/where.types.ts` checks at compile time that the result is assignable to `where` and `orderBy`.
+- **`between`** is typed `[low, high]` in the generated TS types and Zod schemas, matching dsqlbase.
+- **Not supported by dsqlbase 0.1.6:** list filters on `json` columns and nested `where` on object fields (see [Rules](#rules)).
 
 ## Related
 

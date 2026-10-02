@@ -34,6 +34,7 @@ import {
 } from "./RelationsPlugin.utils.js";
 import { isClientOnly, UtilityDirective } from "../UtilitiesPlugin/index.js";
 import { isSemanticNullable } from "../RfcFeaturesPlugin/RfcFeaturesPlugin.utils.js";
+import { isModel } from "../ModelPlugin/ModelPlugin.utils.js";
 
 /**
  * Adds the `@hasOne`, `@hasMany` and `@belongsTo` relation directives, the key fields they need, and the list shape of `@hasMany` fields.
@@ -43,6 +44,9 @@ import { isSemanticNullable } from "../RfcFeaturesPlugin/RfcFeaturesPlugin.utils
  * - `@hasOne` and `@hasMany` store the key on the **target** type: `camelCase(<source type>, "id")`, or `key:`.
  *
  * Keys are added as `@serverOnly @writeOnly` fields, so they are stored but not in the output schema.
+ *
+ * A key is added only when both ends are stored types (see `_isStored`). Any other relation is resolved by a resolver: it keeps its
+ * shape and arguments, but gets no key.
  *
  * @definition
  * ```graphql
@@ -127,7 +131,39 @@ export class RelationsPlugin implements ITransformerPlugin {
     return target;
   }
 
-  private _getKeyTypeName(target: RelationTarget): string {
+  /**
+   * A stored type has a table: a `@model` that is not `@clientOnly`. An interface or a union is stored when every type implementing it, or
+   * every member, is.
+   */
+  private _isStored(node: RelationTarget): boolean {
+    if (isObjectNode(node)) {
+      return isModel(node) && !isClientOnly(node);
+    }
+
+    const members: DefinitionNode[] = [];
+
+    if (isUnionNode(node)) {
+      for (const type of node.types ?? []) {
+        const member = this.context.document.getNode(type.getTypeName());
+        if (member) members.push(member);
+      }
+    } else {
+      if (isClientOnly(node)) return false;
+
+      for (const candidate of this.context.document.definitions.values()) {
+        if (isObjectNode(candidate) && candidate.hasInterface(node.name)) {
+          members.push(candidate);
+        }
+      }
+    }
+
+    return (
+      members.length > 0 &&
+      members.every((member) => isValidRelationTarget(member) && this._isStored(member))
+    );
+  }
+
+  private _getKeyTypeName(target: RelationTarget, relation: string): string {
     if (isUnionNode(target)) {
       const idTypes = new Set<string>();
 
@@ -142,7 +178,7 @@ export class RelationsPlugin implements ITransformerPlugin {
           if (!idField) {
             throw new TransformerPluginExecutionError(
               this.name,
-              `Union type ${target.name} has a member ${unionType.name} that does not have an id field. A key directive with an explicit type must be provided.`
+              `Relation ${relation} needs an id on every member of ${target.name}, but ${unionType.name} has no id field.`
             );
           }
 
@@ -168,7 +204,7 @@ export class RelationsPlugin implements ITransformerPlugin {
     if (!idField) {
       throw new TransformerPluginExecutionError(
         this.name,
-        `Relation target ${target.name} does not have an id field. A key directive with an explicit type must be provided.`
+        `Relation ${relation} needs the id of ${target.name} for its key, but ${target.name} has no id field.`
       );
     }
 
@@ -272,28 +308,33 @@ export class RelationsPlugin implements ITransformerPlugin {
     for (const field of definition.fields ?? []) {
       const relation = this._getFieldRelation(definition, field);
 
-      if (!relation || isClientOnly(field)) {
+      if (!relation?.key || isClientOnly(field)) {
         continue;
       }
 
-      if (relation.key) {
-        if (isBelongsToRelationship(field)) {
-          this._setRelationKey(
-            definition,
-            relation.key,
-            this._getKeyTypeName(relation.target),
-            isSemanticNullable(field)
-          );
-          continue;
-        }
+      // Without a table at both ends there is no row to key on: a resolver serves the relation.
+      if (!this._isStored(definition) || !this._isStored(relation.target)) {
+        continue;
+      }
 
+      const name = `${definition.name}.${field.name}`;
+
+      if (isBelongsToRelationship(field)) {
         this._setRelationKey(
-          relation.target,
+          definition,
           relation.key,
-          this._getKeyTypeName(definition),
+          this._getKeyTypeName(relation.target, name),
           isSemanticNullable(field)
         );
+        continue;
       }
+
+      this._setRelationKey(
+        relation.target,
+        relation.key,
+        this._getKeyTypeName(definition, name),
+        isSemanticNullable(field)
+      );
     }
   }
 

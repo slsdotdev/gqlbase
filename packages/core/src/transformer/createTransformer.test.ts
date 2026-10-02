@@ -52,6 +52,7 @@ describe("createTransformer", () => {
       "InterfaceUtilsPlugin",
       "ScalarsPlugin",
       "ModelPlugin",
+      "FilterPlugin",
       "RelationsPlugin",
       "SchemaGeneratorPlugin",
       "ModelTypesGeneratorPlugin",

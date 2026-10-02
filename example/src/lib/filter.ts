@@ -1,74 +1,47 @@
 /**
- * Generated filter inputs use gqlbase's operator names (`ne`, `le`, `ge`, …); dsqlbase's `where`
- * uses `neq`, `lte`, `gte`. Until the vocabularies are unified, resolvers translate.
+ * `T` without `null` at any depth.
  */
-const OPERATORS: Record<string, string> = {
-  eq: "eq",
-  ne: "neq",
-  lt: "lt",
-  le: "lte",
-  gt: "gt",
-  ge: "gte",
-  in: "in",
-  between: "between",
-  contains: "contains",
-  beginsWith: "beginsWith",
-  exists: "exists",
-};
+export type WithoutNulls<T> = T extends readonly unknown[]
+  ? { [K in keyof T]: WithoutNulls<Exclude<T[K], null>> }
+  : T extends object
+    ? { [K in keyof T]: WithoutNulls<Exclude<T[K], null>> }
+    : Exclude<T, null>;
 
-type Filter = Record<string, unknown>;
+/**
+ * Generated filters use dsqlbase's operators, so a filter is a dsqlbase `where` as it is (see
+ * `test/where.types.ts`). The only difference is GraphQL's explicit `null`: an omitted operand is
+ * absent, an explicit one is `null`, which dsqlbase would read as a value. Drop them, and the
+ * conditions they leave empty: dsqlbase 0.1.6 prints invalid SQL for an empty condition.
+ */
+export const withoutNulls = <T>(value: T): WithoutNulls<T> => {
+  if (Array.isArray(value)) {
+    return value
+      .map((item: unknown) => withoutNulls(item))
+      .filter((item) => !isEmptyObject(item)) as WithoutNulls<T>;
+  }
 
-export const toWhere = <TWhere>(filter: Filter | null | undefined): TWhere => {
-  const where: Filter = {};
-  const and: Filter[] = [];
+  if (value === null || typeof value !== "object") {
+    return value as WithoutNulls<T>;
+  }
 
-  for (const [field, value] of Object.entries(filter ?? {})) {
-    if (value === null || value === undefined) {
-      continue;
-    }
+  const result: Record<string, unknown> = {};
 
-    if (field === "and" || field === "or") {
-      where[field] = (value as Filter[]).map((item) => toWhere<Filter>(item));
-      continue;
-    }
+  for (const [key, item] of Object.entries(value)) {
+    const kept = item === null || item === undefined ? undefined : withoutNulls(item);
 
-    if (field === "not") {
-      where.not = toWhere<Filter>(value as Filter);
-      continue;
-    }
-
-    const condition: Filter = {};
-
-    for (const [operator, operand] of Object.entries(value as Filter)) {
-      if (operand === null || operand === undefined) {
-        continue;
-      }
-
-      if (operator === "notContains") {
-        and.push({ not: { [field]: { contains: operand } } });
-        continue;
-      }
-
-      const mapped = OPERATORS[operator];
-
-      if (!mapped) {
-        throw new Error(`Filter operator "${operator}" is not supported`);
-      }
-
-      condition[mapped] = operand;
-    }
-
-    if (Object.keys(condition).length) {
-      where[field] = condition;
+    if (kept !== undefined && !isEmptyObject(kept)) {
+      result[key] = kept;
     }
   }
 
-  if (and.length) {
-    where.and = [...((where.and as Filter[]) ?? []), ...and];
-  }
-
-  return where as TWhere;
+  return result as WithoutNulls<T>;
 };
+
+const isEmptyObject = (value: unknown) =>
+  typeof value === "object" &&
+  value !== null &&
+  !Array.isArray(value) &&
+  Object.keys(value).length === 0;
 
 /**
  * Combines `where` conditions, dropping empty ones. dsqlbase 0.1.6 prints invalid SQL for an

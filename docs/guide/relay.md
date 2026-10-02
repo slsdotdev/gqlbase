@@ -38,7 +38,7 @@ becomes
 ```graphql
 type User implements Node {
   id: ID!
-  posts(filter: PostFilterInput, first: Int, after: String): PostConnection!
+  posts(filter: PostFilterInput, orderBy: PostOrderByInput, first: Int, after: String): PostConnection!
 }
 
 type PostConnection {
@@ -59,7 +59,7 @@ type PageInfo {
 }
 ```
 
-- The field type becomes `<Target>Connection!`, with `first: Int` and `after: String` arguments added. `filter` comes from `ModelPlugin`, and only on `@model` types.
+- The field type becomes `<Target>Connection!`, with `first: Int` and `after: String` arguments added. `filter` and `orderBy` come from `FilterPlugin`, on every `@hasMany`, before `first` and `after`.
 - `edges` and `node` are non-null, as above. With the `semanticNullability` option on, they stay nullable and carry `@semanticNonNull` instead: `edges: [PostEdge] @semanticNonNull(levels: [0, 1])` and `node: Post @semanticNonNull`.
 - `cursor` and `node` on the edge are marked `@clientOnly` internally. They get no stored column and no input entry.
 - Connection and edge types are shared per target. A type already named `<Target>Connection` or `<Target>Edge` is reused.
