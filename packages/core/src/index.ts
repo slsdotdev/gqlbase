@@ -7,6 +7,7 @@ export {
   DEFAULT_TRANSFORMER_OPTIONS,
   type OperationType,
   type TransformerOptions,
+  type TenancyScopeOptions,
 } from "./context/index.js";
 export {
   TransformerPluginBase,

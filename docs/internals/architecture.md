@@ -47,12 +47,12 @@ The root `packages/plugins/src/index.ts` exports only the appsync preset. Each p
 
 `createTransformer` (`packages/core/src/transformer/createTransformer.ts`) creates a `TransformerContext`. It then registers plugins in this order:
 
-1. the core plugins, from `corePlugins()` (`packages/core/src/plugins/corePlugins.ts`), in a fixed order: `InternalUtilsPlugin`, `UtilitiesPlugin`, `InterfaceUtilsPlugin`, `ScalarsPlugin`, then `RfcFeaturesPlugin` when `options.semanticNullability` is on, then `ModelPlugin`, `FilterPlugin`, `RelationsPlugin`, then `NodeInterfacePlugin` and `ConnectionPlugin` when `options.relay` is on, then `SchemaGeneratorPlugin`, `ModelTypesGeneratorPlugin`;
+1. the core plugins, from `corePlugins()` (`packages/core/src/plugins/corePlugins.ts`), in a fixed order: `InternalUtilsPlugin`, `UtilitiesPlugin`, `InterfaceUtilsPlugin`, `ScalarsPlugin`, then `RfcFeaturesPlugin` when `options.semanticNullability` is on, then `ModelPlugin`, `TenancyPlugin` when `options.tenancy` declares a scope, then `FilterPlugin`, `RelationsPlugin`, then `NodeInterfacePlugin` and `ConnectionPlugin` when `options.relay` is on, then `SchemaGeneratorPlugin`, `ModelTypesGeneratorPlugin`;
 2. every factory from `options.plugins`, flattened in config order.
 
 `SchemaGeneratorPlugin.output` runs once every plugin has cleaned up. Before printing `schema.graphql`, it removes every definition that nothing public reaches (`collectPublicDefinitions`), leftover `@gqlbase_internal` definitions included. The AppSync schema is printed in a later `output` hook, from the same pruned document, so both contain only what the client can reach.
 
-The transformer options (`relay`, `semanticNullability`, `operations`) are resolved with their defaults and frozen onto `context.options` before any plugin is created.
+The transformer options (`relay`, `semanticNullability`, `operations`, `tenancy`) are resolved with their defaults and frozen onto `context.options` before any plugin is created.
 
 Presets are plain arrays of factories, so they expand in place. Registering a plugin calls its `init()` straight away. Plugin names must be unique.
 
