@@ -15,7 +15,6 @@ import {
   isModel,
   isPrimaryKeyField,
   collectPublicDefinitions,
-  isClientOnly,
   isPublicSchemaField,
 } from "@gqlbase/core/plugins";
 import {
@@ -45,8 +44,6 @@ import { stronglyConnectedComponents } from "@gqlbase/shared/utils";
 import {
   CUSTOM_SCALAR_ZOD_MAP,
   mergeOptions,
-  shouldIncludeInZodCreate,
-  shouldIncludeInZodUpdate,
   ZodSchemaGeneratorPluginOptions,
 } from "./ZodSchemaGeneratorPlugin.utils.js";
 
@@ -110,6 +107,8 @@ export class ZodSchemaGeneratorPlugin extends TransformerPluginBase {
   private nodes: ts.Node[] = [];
   private pending: PendingSchema[] = [];
   private pendingByName = new Map<string, PendingSchema>();
+  // Schemas whose expression is being built: a type that refers back to itself references the schema in the making.
+  private building = new Set<string>();
   private currentRef: (name: string) => ts.Expression = (name) => ts.factory.createIdentifier(name);
   private options: Required<ZodSchemaGeneratorPluginOptions>;
 
@@ -368,7 +367,7 @@ export class ZodSchemaGeneratorPlugin extends TransformerPluginBase {
       return arrayExpr;
     }
 
-    let expr = this._createScalarZodExpression(fieldType.name);
+    let expr = this._createInputLeafZodExpression(fieldType.name);
     expr = this._applyConstraints(expr, field);
 
     if (level === 0) {
@@ -378,6 +377,28 @@ export class ZodSchemaGeneratorPlugin extends TransformerPluginBase {
     }
 
     return expr;
+  }
+
+  /**
+   * A leaf in a mutation input schema. A plain object field is `<Type>Input` in the GraphQL input, so it references
+   * `<Type>InputSchema`, derived from the same input; everything else is a scalar or enum.
+   */
+  private _createInputLeafZodExpression(typeName: string): ts.Expression {
+    const typeDef = this.context.document.getNode(typeName);
+    const input = this.context.document.getNode(pascalCase(typeName, "input"));
+
+    if (
+      typeDef &&
+      isObjectNode(typeDef) &&
+      !isModel(typeDef) &&
+      input &&
+      isInputObjectNode(input)
+    ) {
+      this._generateMutationInput(input, typeDef, "create");
+      return this.currentRef(`${input.name}Schema`);
+    }
+
+    return this._createScalarZodExpression(typeName);
   }
 
   private _applyModelTopLevelNullable(
@@ -428,29 +449,27 @@ export class ZodSchemaGeneratorPlugin extends TransformerPluginBase {
     return properties;
   }
 
-  private _isFieldReferencingModel(field: FieldNode): boolean {
-    const typeDef = this.context.document.getNode(field.type.getTypeName());
-
-    if (typeDef && isModel(typeDef)) return true;
-    return false;
-  }
-
-  private _createModelInputFieldProperties(
-    model: ObjectNode,
+  /**
+   * The properties of a schema derived from a GraphQL mutation input: one per input field, so the schema accepts
+   * exactly what the input does. The expression comes from the source field, keeping its constraints and the
+   * create/update nullability, which SDL cannot express (an update rejects `null` on a required field). An input
+   * field the source does not declare (a hand-written input) is read from the input itself.
+   */
+  private _createMutationInputProperties(
+    input: InputObjectNode,
+    source: ObjectNode,
     mode: "create" | "update"
   ): ts.ObjectLiteralElementLike[] {
     const properties: ts.ObjectLiteralElementLike[] = [];
-    const shouldInclude = mode === "create" ? shouldIncludeInZodCreate : shouldIncludeInZodUpdate;
 
-    for (const field of model.fields ?? []) {
-      if (isInternal(field) || this._isFieldReferencingModel(field) || !shouldInclude(field)) {
-        continue;
-      }
-
-      const zodExpr = this._createModelFieldZodExpression(field, field.type, mode);
+    for (const inputField of input.fields ?? []) {
+      const field = source.getField(inputField.name);
+      const zodExpr = field
+        ? this._createModelFieldZodExpression(field, field.type, mode)
+        : this._createInputFieldZodExpression(inputField, inputField.type);
 
       properties.push(
-        ts.factory.createPropertyAssignment(ts.factory.createIdentifier(field.name), zodExpr)
+        ts.factory.createPropertyAssignment(ts.factory.createIdentifier(inputField.name), zodExpr)
       );
     }
 
@@ -487,7 +506,9 @@ export class ZodSchemaGeneratorPlugin extends TransformerPluginBase {
    * local set.
    */
   private _registerSchema(fullName: string, build: () => ts.Expression, exported = true): void {
-    if (this.pendingByName.has(fullName)) return;
+    if (this.pendingByName.has(fullName) || this.building.has(fullName)) return;
+
+    this.building.add(fullName);
 
     const deps = new Set<string>();
     const prevRef = this.currentRef;
@@ -500,6 +521,7 @@ export class ZodSchemaGeneratorPlugin extends TransformerPluginBase {
     const expr = build();
 
     this.currentRef = prevRef;
+    this.building.delete(fullName);
 
     const entry: PendingSchema = { name: fullName, exported, expr, deps };
     this.pending.push(entry);
@@ -594,19 +616,70 @@ export class ZodSchemaGeneratorPlugin extends TransformerPluginBase {
       return this._zCall("object", [ts.factory.createObjectLiteralExpression(properties, true)]);
     });
 
-    // Create/update schemas describe the stored row; a client-only model is never stored.
-    if (isObjectNode(definition) && isModel(definition) && !isClientOnly(definition)) {
+    if (isObjectNode(definition) && isModel(definition)) {
       this._generateModelMutationSchemas(definition);
     }
   }
 
+  /**
+   * `Create<Model>InputSchema` and `Update<Model>InputSchema`, for the GraphQL inputs the model has.
+   */
   private _generateModelMutationSchemas(model: ObjectNode) {
     for (const mode of ["create", "update"] as const) {
-      this._registerSchema(pascalCase(mode, model.name, "input", "schema"), () => {
-        const properties = this._createModelInputFieldProperties(model, mode);
-        return this._zCall("object", [ts.factory.createObjectLiteralExpression(properties, true)]);
-      });
+      const input = this.context.document.getNode(pascalCase(mode, model.name, "input"));
+
+      if (input && isInputObjectNode(input)) {
+        this._generateMutationInput(input, model, mode);
+      }
     }
+  }
+
+  /**
+   * The schema of a mutation input, derived from the type it was created from. A nested `<Type>Input` is shared by
+   * every operation and follows the create rules (see `ModelPlugin`).
+   */
+  private _generateMutationInput(
+    input: InputObjectNode,
+    source: ObjectNode,
+    mode: "create" | "update"
+  ) {
+    this._registerSchema(`${input.name}Schema`, () => {
+      const properties = this._createMutationInputProperties(input, source, mode);
+      return this._zCall("object", [ts.factory.createObjectLiteralExpression(properties, true)]);
+    });
+  }
+
+  /**
+   * The model, or plain object, a mutation input was created from: `Create<Model>Input`, `Update<Model>Input` or a
+   * nested `<Type>Input`. `null` for any other input.
+   */
+  private _getMutationInputSource(
+    input: InputObjectNode
+  ): { source: ObjectNode; mode: "create" | "update" } | null {
+    if (!input.name.endsWith("Input")) {
+      return null;
+    }
+
+    const base = input.name.slice(0, -"Input".length);
+
+    for (const mode of ["create", "update"] as const) {
+      const prefix = pascalCase(mode);
+      const model = base.startsWith(prefix)
+        ? this.context.document.getNode(base.slice(prefix.length))
+        : undefined;
+
+      if (model && isModel(model)) {
+        return { source: model, mode };
+      }
+    }
+
+    const object = this.context.document.getNode(base);
+
+    if (object && isObjectNode(object) && !isModel(object)) {
+      return { source: object, mode: "create" };
+    }
+
+    return null;
   }
 
   private _generateInputObject(definition: InputObjectNode) {
@@ -702,6 +775,12 @@ export class ZodSchemaGeneratorPlugin extends TransformerPluginBase {
 
     visited.add(typeName);
 
+    const mutationInput = this._getMutationInputSource(node);
+
+    if (mutationInput) {
+      return this._generateMutationInput(node, mutationInput.source, mutationInput.mode);
+    }
+
     for (const field of node.fields ?? []) {
       const depName = field.type.getTypeName();
       if (depName !== typeName) {
@@ -717,6 +796,7 @@ export class ZodSchemaGeneratorPlugin extends TransformerPluginBase {
     this.nodes = [];
     this.pending = [];
     this.pendingByName = new Map();
+    this.building = new Set();
     this.currentRef = (name) => ts.factory.createIdentifier(name);
 
     // import * as z from "zod/v4";

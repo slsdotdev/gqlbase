@@ -22,7 +22,7 @@ A relation field says "this field is resolved from another record", linked by a 
 
 - `key:` overrides the name.
 - If a field with that name already exists, it is kept as declared.
-- Otherwise the added key field is marked `@serverOnly @writeOnly`: it exists on the stored record, in the TS model type, in the Zod create/update schemas and in the database table, but not in the public schema or the GraphQL inputs.
+- Otherwise the added key field is marked `@serverOnly @writeOnly`: it exists on the stored record, in the TS model type and in the database table, but not in the public schema, the GraphQL inputs or the Zod schemas.
 - The key is nullable when the relation field is nullable (after `@semanticNonNull`), and non-null otherwise.
 
 ```graphql
@@ -53,7 +53,7 @@ type Post {
 }
 ```
 
-`Post.userId`, `Post.authorId` and `Post.editorUserId` are present in the Zod `Create/UpdatePostInputSchema`, the `posts` table and the AppSync resolver `PostSource` type. They are absent from `schema.graphql` and `schema.types.ts`.
+`Post.userId`, `Post.authorId` and `Post.editorUserId` are present in the `posts` table and the AppSync resolver `PostSource` type. They are absent from `schema.graphql`, `schema.types.ts` and the Zod schemas.
 
 > **Choosing between `@hasOne` and `@belongsTo`.** Use `@belongsTo` when the current type stores the foreign key (`Post.author`). Use `@hasOne` when the *other* type stores a key pointing back (`User.profile: Profile @hasOne` puts `userId` on `Profile`).
 

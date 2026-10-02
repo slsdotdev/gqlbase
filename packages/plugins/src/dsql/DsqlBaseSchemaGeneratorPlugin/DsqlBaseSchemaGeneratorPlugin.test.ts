@@ -56,13 +56,13 @@ describe("type-level visibility in stored outputs", () => {
       output.files.find((file) => file.path === "zod/schema.validators.ts")?.content ?? "";
   });
 
-  it("keeps a table and row schemas for a @serverOnly model", () => {
+  it("keeps a table for a @serverOnly model, with no Zod schemas", () => {
     expect(tables).toContain('table("import_jobs"');
     expect(tables).toContain('lastImportId: uuid("last_import_id")');
-    expect(validators).toContain("export const CreateImportJobInputSchema");
+    expect(validators).not.toContain("ImportJob");
   });
 
-  it("gives a @clientOnly model no table and no row schemas", () => {
+  it("gives a @clientOnly model no table and no create/update schemas", () => {
     expect(tables).not.toContain("exchange_rates");
     expect(validators).toContain("export const ExchangeRateSchema");
     expect(validators).not.toContain("CreateExchangeRateInputSchema");

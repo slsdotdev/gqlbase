@@ -24,7 +24,7 @@ The plugin is `ZodSchemaGeneratorPlugin` (`packages/plugins/src/zod/ZodSchemaGen
 | enum `E` | `ESchema = z.enum([...])` |
 | object or interface `T` | `TSchema = z.object({...})` |
 | union `U` | `USchema = z.union([...])` |
-| `@model` type `M` | `MSchema`, plus `CreateMInputSchema` and `UpdateMInputSchema` |
+| `@model` type `M` | `MSchema`, plus `CreateMInputSchema` and `UpdateMInputSchema` for the inputs it has, and `TInputSchema` for nested objects |
 | input type `I` | `ISchema`, only with `generateArgumentSchemas` |
 
 - Root types, scalars, directive definitions and `@gqlbase_internal` definitions produce nothing.
@@ -40,24 +40,14 @@ The plugin is `ZodSchemaGeneratorPlugin` (`packages/plugins/src/zod/ZodSchemaGen
 
 ### Model create/update schemas
 
-`Create<Model>InputSchema` and `Update<Model>InputSchema` describe the **stored record** for a write, so a `@clientOnly` model gets neither. They are not the GraphQL `Create<Model>Input`. The field rules come from `shouldIncludeInZodCreate` / `shouldIncludeInZodUpdate` in `ZodSchemaGeneratorPlugin.utils.ts`:
+`Create<Model>InputSchema` and `Update<Model>InputSchema` guard the GraphQL `Create<Model>Input` and `Update<Model>Input`, and have exactly their fields. A model gets a schema only for the inputs it has: a `@clientOnly` model, a `@serverOnly` model and a model without the `create`/`update` operation get none.
 
-- **Included:**
-  - `@readOnly`, `@serverOnly` and `@writeOnly` fields;
-  - relation key fields such as `authorId`.
-- **Excluded:**
-  - relation fields;
-  - `@clientOnly` fields;
-  - fields whose type is another `@model`;
-  - the operation-specific fields (`@filterOnly`, `@updateOnly` from create, `@createOnly` from update, unless combined).
-- **Create schema:**
-  - `id` is `.optional()`;
-  - other fields keep their nullability.
-- **Update schema:**
-  - `id` is required;
-  - non-null fields become `.optional()`;
-  - nullable fields become `.nullable().optional()`.
-- **Non-model object fields** reference the object's output `<Type>Schema`.
+- **Fields:** the fields of the GraphQL input (see [Models](./models.md#mutation-inputs)). Values the server sets, such as `@readOnly` and `@serverOnly` fields and relation keys, are not in the schemas: validate `args.input`, then add them.
+- **Expressions** come from the model field, so `@constraint` applies, and the nullability says what SDL cannot:
+  - create: `id` is `.optional()`; other fields keep their nullability;
+  - update: `id` is required; non-null fields become `.optional()`, so `null` is rejected; nullable fields become `.nullable().optional()`.
+- **Non-model object fields** reference `<Type>InputSchema`, derived the same way from the nested `<Type>Input`. It has that input's fields, follows the create rules for every operation (a nested object is written whole), and is emitted with or without `generateArgumentSchemas`.
+- A hand-written `Create<Model>Input` that the model reuses gets the same treatment, field by field; a field the model does not declare is read from the input.
 
 The full comparison with the GraphQL inputs is in [Field visibility](./field-visibility.md).
 

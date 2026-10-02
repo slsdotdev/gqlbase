@@ -915,204 +915,106 @@ describe("ZodSchemaGeneratorPlugin", () => {
   });
 
   describe("model create/update schemas", () => {
-    let plugin: ZodSchemaGeneratorPlugin;
-    let context: TransformerContext;
+    let validators: string;
+    let createPost: string;
+    let updatePost: string;
 
     beforeAll(() => {
-      context = new TransformerContext();
-      plugin = new ZodSchemaGeneratorPlugin(context, { emitOutput: true });
-      context.registerPlugin(plugin);
+      const output = createTransformer({
+        plugins: [zodSchemaGeneratorPlugin()],
+      }).transform(/* GraphQL */ `
+        type Author @model {
+          id: ID!
+          name: String!
+        }
+
+        type Post @model {
+          id: ID!
+          title: String! @constraint(min: 3)
+          body: String
+          slug: String! @createOnly
+          note: String @updateOnly
+          importRef: String @writeOnly
+          createdAt: String @readOnly
+          createdBy: String @serverOnly
+          readers: Int @clientOnly
+          author: Author @belongsTo
+          meta: PostMeta!
+        }
+
+        type PostMeta {
+          words: Int! @constraint(min: 0)
+          indexedAt: String @readOnly
+          parent: PostMeta
+        }
+
+        type Draft @model(operations: [GET, LIST]) {
+          id: ID!
+          title: String!
+        }
+      `);
+
+      validators =
+        output.files.find((file) => file.path === "zod/schema.validators.ts")?.content ?? "";
+      createPost = validators.slice(
+        validators.indexOf("export const CreatePostInputSchema"),
+        validators.indexOf("export const UpdatePostInputSchema")
+      );
+      updatePost = validators.slice(validators.indexOf("export const UpdatePostInputSchema"));
+      updatePost = updatePost.slice(0, updatePost.indexOf("});"));
     });
 
-    it("emits Create/Update schemas alongside the model schema", () => {
-      const output = generateSchemas(
-        plugin,
-        context,
-        /* GraphQL */ `
-          type User @model {
-            id: ID!
-            name: String!
-          }
-          type Query {
-            me: User
-          }
-        `,
-        ["User"]
-      );
+    it("has exactly the fields of Create<Model>Input", () => {
+      expect(createPost).toContain("title:");
+      expect(createPost).toContain("body:");
+      expect(createPost).toContain("slug:");
+      expect(createPost).toContain("importRef:");
+      expect(createPost).toContain("meta:");
 
-      expect(output).toContain("export const UserSchema = z.object({");
-      expect(output).toContain("export const CreateUserInputSchema = z.object({");
-      expect(output).toContain("export const UpdateUserInputSchema = z.object({");
+      for (const name of ["note", "createdAt", "createdBy", "readers", "author", "authorId"]) {
+        expect(createPost).not.toContain(`${name}:`);
+      }
     });
 
-    it("uses .optional() (no .nullable()) for non-null model fields on update", () => {
-      const output = generateSchemas(
-        plugin,
-        context,
-        /* GraphQL */ `
-          type User @model {
-            id: ID!
-            name: String!
-            age: Int!
-          }
-          type Query {
-            me: User
-          }
-        `,
-        ["User"]
-      );
+    it("has exactly the fields of Update<Model>Input", () => {
+      expect(updatePost).toContain("note:");
+      expect(updatePost).toContain("importRef:");
 
-      expect(output).toContain("name: z.string().optional()");
-      expect(output).not.toContain("name: z.string().nullable()");
-      expect(output).toContain("age: z.int().optional()");
-      expect(output).not.toContain("age: z.int().nullable()");
+      for (const name of ["slug", "createdAt", "createdBy", "readers", "author", "authorId"]) {
+        expect(updatePost).not.toContain(`${name}:`);
+      }
     });
 
-    it("uses .nullable().optional() for nullable model fields on update", () => {
-      const output = generateSchemas(
-        plugin,
-        context,
-        /* GraphQL */ `
-          type User @model {
-            id: ID!
-            bio: String
-          }
-          type Query {
-            me: User
-          }
-        `,
-        ["User"]
-      );
-
-      // UpdateUserInputSchema must accept null on a nullable field
-      expect(output).toContain("bio: z.string().nullable().optional()");
+    it("makes id optional on create and required on update", () => {
+      expect(createPost).toContain("id: z.string().optional()");
+      expect(updatePost).toMatch(/id: z\.string\(\),/);
     });
 
-    it("requires id on update and makes id optional on create", () => {
-      const output = generateSchemas(
-        plugin,
-        context,
-        /* GraphQL */ `
-          type User @model {
-            id: ID!
-            name: String!
-          }
-          type Query {
-            me: User
-          }
-        `,
-        ["User"]
-      );
-
-      const createIdx = output.indexOf("CreateUserInputSchema");
-      const updateIdx = output.indexOf("UpdateUserInputSchema");
-      const createBlock = output.slice(createIdx, updateIdx);
-      const updateBlock = output.slice(updateIdx);
-
-      expect(createBlock).toContain("id: z.string().optional()");
-      expect(updateBlock).toContain("id: z.string()");
-      expect(updateBlock).not.toMatch(/id: z\.string\(\)\.optional/);
+    it("keeps constraints, and rejects null on a required field on update", () => {
+      expect(createPost).toContain("title: z.string().min(3),");
+      expect(updatePost).toContain("title: z.string().min(3).optional()");
+      expect(updatePost).toContain("body: z.string().nullable().optional()");
     });
 
-    it("includes @serverOnly and @readOnly fields", () => {
-      const output = generateSchemas(
-        plugin,
-        context,
-        /* GraphQL */ `
-          type User @model {
-            id: ID!
-            name: String!
-            createdAt: String @readOnly
-            createdBy: String @serverOnly
-          }
-          type Query {
-            me: User
-          }
-        `,
-        ["User"]
-      );
+    it("references the nested <Type>InputSchema, which follows <Type>Input", () => {
+      const meta = validators.slice(validators.indexOf("export const PostMetaInputSchema"));
 
-      const createIdx = output.indexOf("CreateUserInputSchema");
-      const updateIdx = output.indexOf("UpdateUserInputSchema");
-      const createBlock = output.slice(createIdx, updateIdx);
-
-      expect(createBlock).toContain("createdAt:");
-      expect(createBlock).toContain("createdBy:");
+      expect(createPost).toContain("meta: PostMetaInputSchema");
+      expect(updatePost).toContain("meta: PostMetaInputSchema.optional()");
+      expect(meta).toContain("words: z.int().min(0)");
+      expect(meta.slice(0, meta.indexOf("});"))).not.toContain("indexedAt");
     });
 
-    it("excludes relation fields from create/update schemas", () => {
-      const output = generateSchemas(
-        plugin,
-        context,
-        /* GraphQL */ `
-          type Post @model {
-            id: ID!
-            title: String!
-            author: User @hasOne
-          }
-          type User @model {
-            id: ID!
-          }
-          type Query {
-            post: Post
-          }
-        `,
-        ["Post"]
+    it("wraps a nested input that refers back to itself in z.lazy", () => {
+      expect(validators).toContain(
+        "parent: z.lazy(() => PostMetaInputSchema).nullable().optional()"
       );
-
-      const createIdx = output.indexOf("CreatePostInputSchema");
-      const updateIdx = output.indexOf("UpdatePostInputSchema");
-      const createBlock = output.slice(createIdx, updateIdx);
-      const updateBlock = output.slice(updateIdx);
-
-      expect(createBlock).not.toContain("author:");
-      expect(updateBlock).not.toContain("author:");
     });
 
-    it("excludes @clientOnly fields", () => {
-      const output = generateSchemas(
-        plugin,
-        context,
-        /* GraphQL */ `
-          type User @model {
-            id: ID!
-            displayName: String @clientOnly
-            name: String!
-          }
-          type Query {
-            me: User
-          }
-        `,
-        ["User"]
-      );
-
-      const createIdx = output.indexOf("CreateUserInputSchema");
-      const updateIdx = output.indexOf("UpdateUserInputSchema");
-      const createBlock = output.slice(createIdx, updateIdx);
-      const updateBlock = output.slice(updateIdx);
-
-      expect(createBlock).not.toContain("displayName:");
-      expect(updateBlock).not.toContain("displayName:");
-    });
-
-    it("emits create/update schemas regardless of @model operations", () => {
-      const output = generateSchemas(
-        plugin,
-        context,
-        /* GraphQL */ `
-          type UserPreferences @model(operations: [LIST]) {
-            id: ID!
-            theme: String!
-          }
-          type Query {
-            me: UserPreferences
-          }
-        `,
-        ["UserPreferences"]
-      );
-
-      expect(output).toContain("export const CreateUserPreferencesInputSchema");
-      expect(output).toContain("export const UpdateUserPreferencesInputSchema");
+    it("emits only the schemas of the inputs the model has", () => {
+      expect(validators).toContain("export const DraftSchema");
+      expect(validators).not.toContain("CreateDraftInputSchema");
+      expect(validators).not.toContain("UpdateDraftInputSchema");
     });
   });
 
@@ -1204,38 +1106,28 @@ describe("ZodSchemaGeneratorPlugin", () => {
       expect(output).toContain("SortDirectionSchema");
     });
 
-    it("does not overwrite model-derived create/update schemas", () => {
-      const output = generateSchemas(
-        plugin,
-        context,
-        /* GraphQL */ `
-          input CreateUserInput {
-            name: String
-          }
-          type User @model {
-            id: ID!
-            name: String!
-            secret: String @serverOnly
-          }
-          type Query {
-            me: User
-          }
-          type Mutation {
-            createUser(input: CreateUserInput!): User
-          }
-        `,
-        ["User"]
-      );
+    it("derives a hand-written Create<Model>Input from the model, once", () => {
+      const output = createTransformer({
+        plugins: [zodSchemaGeneratorPlugin({ generateArgumentSchemas: true })],
+      }).transform(/* GraphQL */ `
+        input CreateUserInput {
+          name: String
+        }
 
-      // Model-derived schema must include the serverOnly field.
-      const createIdx = output.indexOf("CreateUserInputSchema");
-      expect(createIdx).toBeGreaterThan(-1);
-      const createBlock = output.slice(createIdx, createIdx + 400);
-      expect(createBlock).toContain("secret:");
+        type User @model {
+          id: ID!
+          name: String! @constraint(max: 20)
+          secret: String @serverOnly
+        }
+      `);
 
-      // The walker should not have emitted a second `export const CreateUserInputSchema`.
-      const matches = output.match(/CreateUserInputSchema = z\.object/g) ?? [];
-      expect(matches.length).toBe(1);
+      const validators =
+        output.files.find((file) => file.path === "zod/schema.validators.ts")?.content ?? "";
+      const create = validators.slice(validators.indexOf("export const CreateUserInputSchema"));
+
+      expect(validators.match(/CreateUserInputSchema = z\.object/g)).toHaveLength(1);
+      expect(create).toContain("name: z.string().max(20)");
+      expect(create.slice(0, create.indexOf("});"))).not.toContain("secret");
     });
   });
 
