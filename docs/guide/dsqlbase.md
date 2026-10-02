@@ -182,7 +182,9 @@ products.index("products_created_idx").columns(c => [c.createdAt.sort("DESC")]).
 products.unique(c => [c.vendorId, c.sku]);
 ```
 
-A column's default order (`ASC`, nulls as Postgres orders them) emits nothing; `distinctNulls` is emitted only when given. The directives and their types are removed from the output schema.
+A column's default order (`ASC`, nulls as Postgres orders them) emits nothing; `distinctNulls` is emitted only when given.
+
+> **dsqlbase 0.1.6 and `sort: DESC`.** Its migration runner creates a `DESC` index column, but on the next run against the same database it reports the index as changed (`IMMUTABLE_INDEX`) and stops. Avoid `sort: DESC` until dsqlbase fixes this. The directives and their types are removed from the output schema.
 
 ## Filters and `orderBy`
 

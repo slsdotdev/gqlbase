@@ -21,7 +21,7 @@ type Category implements Timestamped & SoftDeletable
   parentId: UUID @serverOnly
 
   name: String @semanticNonNull @constraint(min: 1, max: 120)
-  slug: String @semanticNonNull @constraint(pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$", max: 80)
+  slug: String @semanticNonNull @constraint(pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$", max: 80) @unique
   description: String @constraint(max: 1000)
   iconUrl: URL
   sortOrder: Int @semanticNonNull
@@ -52,7 +52,17 @@ price is computed at checkout from actual weight.
 type Product implements Auditable & SoftDeletable & Versioned
   @model
   @scope(name: vendor)
-  @access(allow: [ADMIN, VENDOR, SHOP]) {
+  @access(allow: [ADMIN, VENDOR, SHOP])
+  @index(
+    name: "products_vendor_slug_idx"
+    unique: true
+    columns: [{ field: "vendorId" }, { field: "slug" }]
+  )
+  @index(
+    name: "products_vendor_recent_idx"
+    columns: [{ field: "vendorId" }, { field: "createdAt" }]
+    include: ["status"]
+  ) {
   id: UUID!
 
   name: String @semanticNonNull @constraint(min: 1, max: 200)

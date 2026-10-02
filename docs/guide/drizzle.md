@@ -42,6 +42,7 @@ The rules match [dsqlbase](./dsqlbase.md#rules), with these differences:
 - **Not null:** `.notNull()` follows non-null / `@semanticNonNull`.
 - **Relation keys and `@serverOnly` fields** are columns.
 - **Skipped:** `@clientOnly` fields, relation fields and internal fields.
+- **No indexes or unique constraints.** `@index` and `@unique` are declared by the [dsqlbase plugins](./dsqlbase.md#indexes-and-unique-constraints), and the Drizzle generator does not read them. A Drizzle-only config cannot use them: they are not declared, so the schema fails validation.
 
 `DrizzleUtilitiesPlugin` (`packages/plugins/src/drizzle/DrizzleUtilitiesPlugin/`) is an empty placeholder. It has no factory and is not exported.
 
