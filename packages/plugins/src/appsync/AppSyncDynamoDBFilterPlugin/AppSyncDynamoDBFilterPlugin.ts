@@ -2,9 +2,9 @@ import { createPluginFactory, ITransformerContext, TransformerPluginBase } from 
 import { DYNAMODB_FILTER_SOURCE } from "./AppSyncDynamoDBFilterPlugin.source.js";
 
 /**
- * Emits `appsync/dynamodb-filter.ts`: `toDynamoDBFilter(filter)`, which turns a generated filter input into the `filter` of an AppSync
- * DynamoDB request (`expression`, `expressionNames`, `expressionValues`), nested `where` included. It runs in APPSYNC_JS and imports
- * `util` from `@aws-appsync/utils`.
+ * Emits `appsync/dynamodb-filter.ts`: `toDynamoDBFilter(filter)` renames a generated filter's operators to AppSync's, drops what
+ * DynamoDB cannot filter on (nested `where`), and passes the result to `util.transform.toDynamoDBFilterExpression`. It runs in
+ * APPSYNC_JS and imports `util` from `@aws-appsync/utils`.
  *
  * Registered by `appsyncPreset({ dynamoDBFilter: true })`.
  */

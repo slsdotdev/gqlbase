@@ -105,23 +105,15 @@ export function request(ctx) {
 }
 ```
 
-It returns `{ expression, expressionNames, expressionValues }`, or `null` when the filter has no condition. It imports `util` from `@aws-appsync/utils`, so bundle it with the resolver as usual.
+It sanitizes the filter for `util.transform.toDynamoDBFilterExpression`, calls it, and returns the parsed result, or `null` when no condition is left. It imports `util` from `@aws-appsync/utils`, so bundle it with the resolver as usual.
 
-`util.transform.toDynamoDBFilterExpression` cannot be used instead: it takes AppSync's own operator names and does not handle nested paths.
+- **Operators are renamed** to AppSync's: `neq` → `ne`, `lte` → `le`, `gte` → `ge`, `exists` → `attributeExists`. The others are the same. Only operator keys are renamed, never field names.
+- **Nested `where` conditions are dropped**: AppSync cannot filter on nested paths. `exists` on the object field itself is kept. A field filtered only through `where` is not filtered at all on this backend.
+- **Explicit `null`s are dropped**, and so are the conditions they leave empty, as on every backend.
+- **`endsWith`** is not supported by DynamoDB: `util.error`.
+- **`exists`** follows AppSync: `attributeExists: true` matches an attribute stored as `NULL`, unlike SQL.
 
-| Filter | DynamoDB |
-| --- | --- |
-| `eq` `neq` `lt` `lte` `gt` `gte` | `=` `<>` `<` `<=` `>` `>=` |
-| `in` | `IN (…)`; an empty list is an error |
-| `between: [a, b]` | `BETWEEN a AND b` |
-| `beginsWith` | `begins_with` |
-| `contains` | `contains`, on strings, sets and lists |
-| `exists: true` / `false` | `attribute_exists` and not `NULL` / `attribute_not_exists` or `NULL`, so a `null` attribute counts as missing, as in SQL |
-| `endsWith` | not supported by DynamoDB: `util.error` |
-| `and` `or` `not` | `AND` `OR` `NOT`, to any depth |
-| `<field>: { where: … }` | member paths, `#pricingModel.#amount`, to any depth |
-
-APPSYNC_JS has no recursion and no `while` loop, so the function walks the filter tree in a `for…of` loop over a list that it appends to, then joins the clauses in a reverse pass.
+APPSYNC_JS has no recursion, and its `for…of` does not visit elements appended during the loop, so the function does not walk the filter as a tree. It makes one pass over the characters of the filter's JSON, keeping a stack of the objects it is in.
 
 ## Related
 

@@ -5,15 +5,10 @@ import { appsyncPreset } from "../appSyncPreset.js";
 
 type Filter = Record<string, unknown>;
 
-interface DynamoDBFilter {
-  expression: string;
-  expressionNames: Record<string, string>;
-  expressionValues: Record<string, unknown>;
-}
-
 /**
  * Runs the emitted module in Node. `util` stands in for APPSYNC_JS: `error` throws like
- * `util.error`, and `toMapValues` returns the plain values so they can be compared.
+ * `util.error`, and `toDynamoDBFilterExpression` echoes its input, so a test sees exactly what
+ * AppSync's helper would receive.
  */
 const load = (source: string) => {
   const { outputText } = ts.transpileModule(source, {
@@ -24,19 +19,19 @@ const load = (source: string) => {
     error: (message: string) => {
       throw new Error(message);
     },
-    dynamodb: { toMapValues: (values: Record<string, unknown>) => values },
+    transform: { toDynamoDBFilterExpression: (filter: unknown) => JSON.stringify(filter) },
   };
 
   const exports: Record<string, unknown> = {};
   const require = () => ({ util });
   new Function("exports", "require", outputText)(exports, require);
 
-  return exports.toDynamoDBFilter as (filter: Filter | null) => DynamoDBFilter | null;
+  return exports.toDynamoDBFilter as (filter: Filter | null) => unknown;
 };
 
 describe("AppSyncDynamoDBFilterPlugin", () => {
   let source: string | undefined;
-  let toDynamoDBFilter: (filter: Filter | null) => DynamoDBFilter | null;
+  let toDynamoDBFilter: (filter: Filter | null) => unknown;
 
   beforeAll(() => {
     const output = createTransformer({
@@ -66,93 +61,91 @@ describe("AppSyncDynamoDBFilterPlugin", () => {
     expect(output.files.map((file) => file.path)).not.toContain("appsync/dynamodb-filter.ts");
   });
 
-  it("returns null for no filter or an empty one", () => {
+  it("returns null for no filter or one left empty", () => {
     expect(toDynamoDBFilter(null)).toBeNull();
     expect(toDynamoDBFilter({})).toBeNull();
     expect(toDynamoDBFilter({ name: { eq: null } })).toBeNull();
+    expect(toDynamoDBFilter({ pricingModel: { where: { amount: { lte: 5 } } } })).toBeNull();
   });
 
-  it("maps comparisons", () => {
-    const operators = { eq: "=", neq: "<>", lt: "<", lte: "<=", gt: ">", gte: ">=" };
-
-    for (const [operator, symbol] of Object.entries(operators)) {
-      expect(toDynamoDBFilter({ price: { [operator]: 5 } })).toEqual({
-        expression: `#n0 ${symbol} :v0`,
-        expressionNames: { "#n0": "price" },
-        expressionValues: { ":v0": 5 },
-      });
-    }
-  });
-
-  it("maps in, between, beginsWith and contains", () => {
-    expect(toDynamoDBFilter({ status: { in: ["A", "B"] } })?.expression).toBe("#n0 IN (:v0, :v1)");
-    expect(toDynamoDBFilter({ price: { between: [1, 9] } })).toMatchObject({
-      expression: "(#n0 BETWEEN :v0 AND :v1)",
-      expressionValues: { ":v0": 1, ":v1": 9 },
-    });
-    expect(toDynamoDBFilter({ name: { beginsWith: "Ap" } })?.expression).toBe(
-      "begins_with(#n0, :v0)"
-    );
-    expect(toDynamoDBFilter({ tags: { contains: "x" } })?.expression).toBe("contains(#n0, :v0)");
-  });
-
-  it("treats a null attribute as missing in exists", () => {
-    expect(toDynamoDBFilter({ memo: { exists: true } })).toEqual({
-      expression: "(attribute_exists(#n0) AND NOT attribute_type(#n0, :v0))",
-      expressionNames: { "#n0": "memo" },
-      expressionValues: { ":v0": "NULL" },
-    });
-    expect(toDynamoDBFilter({ memo: { exists: false } })?.expression).toBe(
-      "(attribute_not_exists(#n0) OR attribute_type(#n0, :v0))"
-    );
-  });
-
-  it("joins several operators and fields with AND", () => {
-    expect(toDynamoDBFilter({ price: { gte: 1, lt: 9 }, name: { eq: "Kale" } })).toEqual({
-      expression: "(#n0 >= :v0 AND #n0 < :v1 AND #n1 = :v2)",
-      expressionNames: { "#n0": "price", "#n1": "name" },
-      expressionValues: { ":v0": 1, ":v1": 9, ":v2": "Kale" },
-    });
-  });
-
-  it("filters nested members through where, to any depth", () => {
+  it("renames operators to AppSync's", () => {
     expect(
       toDynamoDBFilter({
-        status: { eq: "ACTIVE" },
-        pricingModel: {
-          exists: true,
-          where: { amount: { lte: 50 }, floor: { where: { amount: { gt: 1 } } } },
-        },
+        price: { neq: 1, lte: 9, gte: 2, eq: 3, lt: 8, gt: 0 },
+        memo: { exists: true },
       })
     ).toEqual({
-      expression:
-        "(#n0 = :v0 AND (attribute_exists(#n1) AND NOT attribute_type(#n1, :v1)) AND (#n1.#n2 <= :v2 AND #n1.#n3.#n2 > :v3))",
-      expressionNames: { "#n0": "status", "#n1": "pricingModel", "#n2": "amount", "#n3": "floor" },
-      expressionValues: { ":v0": "ACTIVE", ":v1": "NULL", ":v2": 50, ":v3": 1 },
+      price: { ne: 1, le: 9, ge: 2, eq: 3, lt: 8, gt: 0 },
+      memo: { attributeExists: true },
     });
   });
 
-  it("combines and, or and not at depth", () => {
-    const result = toDynamoDBFilter({
+  it("keeps in, between, beginsWith and contains", () => {
+    const filter = {
+      status: { in: ["A", "B"] },
+      price: { between: [1, 9] },
+      name: { beginsWith: "Ap", contains: "p" },
+    };
+
+    expect(toDynamoDBFilter(filter)).toEqual(filter);
+  });
+
+  it("renames inside and, or and not at any depth", () => {
+    expect(
+      toDynamoDBFilter({
+        or: [
+          { name: { neq: "Kale" } },
+          { and: [{ price: { gte: 5 } }, { not: { price: { lte: 9 } } }] },
+        ],
+      })
+    ).toEqual({
       or: [
-        { name: { eq: "Kale" } },
-        { and: [{ price: { lt: 5 } }, { not: { name: { contains: "x" } } }] },
+        { name: { ne: "Kale" } },
+        { and: [{ price: { ge: 5 } }, { not: { price: { le: 9 } } }] },
       ],
     });
-
-    expect(result?.expression).toBe("((NOT (contains(#n0, :v2)) AND #n1 < :v1) OR #n0 = :v0)");
-    expect(result?.expressionNames).toEqual({ "#n0": "name", "#n1": "price" });
   });
 
-  it("applies and, or and not inside a nested where", () => {
+  it("does not rename fields named like an operator", () => {
+    expect(toDynamoDBFilter({ exists: { eq: true }, neq: { gte: 1 } })).toEqual({
+      exists: { eq: true },
+      neq: { ge: 1 },
+    });
+  });
+
+  it("drops nested where conditions, keeping exists on the object", () => {
     expect(
-      toDynamoDBFilter({ pricingModel: { where: { not: { amount: { gt: 9 } } } } })?.expression
-    ).toBe("NOT (#n0.#n1 > :v0)");
+      toDynamoDBFilter({
+        pricingModel: {
+          where: { amount: { lte: 50 }, and: [{ currency: { eq: "EUR" } }] },
+          exists: true,
+        },
+        status: { eq: "ACTIVE" },
+      })
+    ).toEqual({ pricingModel: { attributeExists: true }, status: { eq: "ACTIVE" } });
+
+    expect(
+      toDynamoDBFilter({
+        and: [
+          { cover: { exists: false, where: { url: { beginsWith: "s3" } } } },
+          { name: { eq: "Kale" } },
+        ],
+      })
+    ).toEqual({ and: [{ cover: { attributeExists: false } }, { name: { eq: "Kale" } }] });
   });
 
-  it("rejects endsWith, an empty in and unknown operators through util.error", () => {
+  it("drops explicit nulls, and the conditions they leave empty", () => {
+    expect(
+      toDynamoDBFilter({ name: { eq: null, neq: "x" }, price: { lt: null }, not: null, memo: null })
+    ).toEqual({ name: { ne: "x" } });
+  });
+
+  it("keeps strings that look like JSON or operators", () => {
+    const filter = { name: { eq: '{"where":{"neq":1}}', contains: 'say "hi", \\ :null' } };
+    expect(toDynamoDBFilter(filter)).toEqual(filter);
+  });
+
+  it("rejects endsWith through util.error", () => {
     expect(() => toDynamoDBFilter({ name: { endsWith: "s" } })).toThrow(/endsWith/);
-    expect(() => toDynamoDBFilter({ name: { in: [] } })).toThrow(/at least one value/);
-    expect(() => toDynamoDBFilter({ name: { ge: 1 } })).toThrow(/Unknown filter operator ge/);
   });
 });
