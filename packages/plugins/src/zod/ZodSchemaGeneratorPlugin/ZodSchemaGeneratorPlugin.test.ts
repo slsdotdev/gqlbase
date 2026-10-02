@@ -1,8 +1,8 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { TransformerContext } from "@gqlbase/core";
+import { createTransformer, TransformerContext } from "@gqlbase/core";
 import { DocumentNode } from "@gqlbase/core/definition";
 import { ScalarsPlugin, UtilitiesPlugin } from "@gqlbase/core/plugins";
-import { ZodSchemaGeneratorPlugin } from "./ZodSchemaGeneratorPlugin.js";
+import { ZodSchemaGeneratorPlugin, zodSchemaGeneratorPlugin } from "./ZodSchemaGeneratorPlugin.js";
 
 const generateSchemas = (
   plugin: ZodSchemaGeneratorPlugin,
@@ -94,7 +94,7 @@ describe("ZodSchemaGeneratorPlugin", () => {
       expect(output).not.toContain("UnusedSchema");
     });
 
-    it("keeps an enum used only by a @serverOnly field", () => {
+    it("skips an enum used only by a @serverOnly field", () => {
       const output = generateSchemas(
         plugin,
         context,
@@ -113,7 +113,7 @@ describe("ZodSchemaGeneratorPlugin", () => {
         ["Visibility"]
       );
 
-      expect(output).toContain('export const VisibilitySchema = z.enum(["HIDDEN"])');
+      expect(output).not.toContain("VisibilitySchema");
     });
   });
 
@@ -804,6 +804,65 @@ describe("ZodSchemaGeneratorPlugin", () => {
       );
 
       expect(output).toContain("address: AddressSchema");
+    });
+  });
+
+  describe("object schemas follow the public schema", () => {
+    let validators: string;
+
+    beforeAll(() => {
+      const output = createTransformer({
+        plugins: [zodSchemaGeneratorPlugin()],
+      }).transform(/* GraphQL */ `
+        interface Entry {
+          id: ID!
+        }
+
+        type Note implements Entry {
+          id: ID!
+          body: String!
+          importRef: String @writeOnly
+          deletedAt: String @serverOnly
+          rating: Int @clientOnly
+          audit: AuditRecord @serverOnly
+        }
+
+        type AuditRecord {
+          actor: String!
+        }
+
+        type Secret implements Entry @serverOnly {
+          id: ID!
+          value: String!
+        }
+
+        type Query {
+          entry(id: ID!): Entry
+          note(id: ID!): Note
+        }
+      `);
+
+      validators =
+        output.files.find((file) => file.path === "zod/schema.validators.ts")?.content ?? "";
+    });
+
+    it("leaves out @serverOnly and @writeOnly fields, and keeps @clientOnly ones", () => {
+      const note = validators.slice(validators.indexOf("export const NoteSchema"));
+
+      expect(note).toContain("body: z.string()");
+      expect(note).toContain("rating: z.int().nullable().optional()");
+      expect(note).not.toContain("deletedAt");
+      expect(note).not.toContain("importRef");
+      expect(note).not.toContain("audit");
+    });
+
+    it("emits nothing for types only @serverOnly fields reach", () => {
+      expect(validators).not.toContain("AuditRecordSchema");
+    });
+
+    it("emits nothing for a @serverOnly type, even one implementing a public interface", () => {
+      expect(validators).toContain("export const EntrySchema");
+      expect(validators).not.toContain("SecretSchema");
     });
   });
 

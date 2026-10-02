@@ -10,13 +10,13 @@ import {
   type BaseScalarName,
   hasConstraints,
   parseConstraints,
-  isWriteOnly,
   isSemanticNullable,
   isRelationField,
   isModel,
   isPrimaryKeyField,
-  collectReachableDefinitions,
+  collectPublicDefinitions,
   isClientOnly,
+  isPublicSchemaField,
 } from "@gqlbase/core/plugins";
 import {
   DefinitionNode,
@@ -414,7 +414,7 @@ export class ZodSchemaGeneratorPlugin extends TransformerPluginBase {
     const properties: ts.ObjectLiteralElementLike[] = [];
 
     for (const field of definition.fields ?? []) {
-      if (isInternal(field) || isWriteOnly(field) || isRelationField(field)) {
+      if (!isPublicSchemaField(field, definition) || isRelationField(field)) {
         continue;
       }
 
@@ -662,9 +662,9 @@ export class ZodSchemaGeneratorPlugin extends TransformerPluginBase {
     }
 
     this._registerSchema(`${definition.name}Schema`, () => {
-      const memberRefs = (definition.types ?? []).map((type) =>
-        this.currentRef(`${type.name}Schema`)
-      );
+      const memberRefs = (definition.types ?? [])
+        .filter((type) => this.reachable?.has(type.name) ?? true)
+        .map((type) => this.currentRef(`${type.name}Schema`));
       return this._zCall("union", [ts.factory.createArrayLiteralExpression(memberRefs)]);
     });
   }
@@ -745,9 +745,9 @@ export class ZodSchemaGeneratorPlugin extends TransformerPluginBase {
   }
 
   public generate(definition: DefinitionNode) {
-    // Stored rows and inputs: every non-internal field counts, including @serverOnly and @writeOnly ones.
+    // The schemas guard the API, so only definitions the client schema reaches get one.
     // Collected on the first call: execute has finished, and nothing changes the document during generate.
-    this.reachable ??= collectReachableDefinitions(this.context, (field) => !isInternal(field));
+    this.reachable ??= collectPublicDefinitions(this.context);
 
     if (!isOperationNode(definition) && !this.reachable.has(definition.name)) {
       return;

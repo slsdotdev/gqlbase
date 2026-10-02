@@ -28,14 +28,14 @@ The plugin is `ZodSchemaGeneratorPlugin` (`packages/plugins/src/zod/ZodSchemaGen
 | input type `I` | `ISchema`, only with `generateArgumentSchemas` |
 
 - Root types, scalars, directive definitions and `@gqlbase_internal` definitions produce nothing.
-- Definitions that no field reaches from the root types, including `@serverOnly` and `@writeOnly` fields, produce nothing (`collectReachableDefinitions`).
+- The schemas guard the API, so they follow the public schema. Definitions the client schema does not reach produce nothing (`collectPublicDefinitions`): a `@serverOnly` type, including a `@serverOnly @model` or one implementing a public interface, and anything only `@serverOnly` fields reach.
 - Schemas are emitted in dependency order, and cycles are wrapped in `z.lazy(...)`.
 - Self-referencing inputs (for example `and: [XFilterInput]`) are built as a base object plus `.extend(...)`.
 
 ### Object schemas (`<Type>Schema`)
 
-- **Excluded fields:** `@writeOnly` fields and relation fields.
-- **Kept fields:** everything else, including `@serverOnly` and `@clientOnly` fields.
+- **Fields:** the public fields (`isPublicSchemaField`), so `@serverOnly` and `@writeOnly` fields are left out and `@clientOnly` fields are kept. Relation fields are left out.
+- A database row parsed with `<Type>Schema` loses its `@serverOnly` values: Zod drops unknown keys.
 - **Nullability:** a nullable field becomes `.nullable().optional()`; nullable list items become `.nullable()`. `@semanticNonNull` counts as non-null.
 
 ### Model create/update schemas
