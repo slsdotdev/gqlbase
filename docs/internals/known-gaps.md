@@ -20,10 +20,6 @@ When a relation target is a union, `RelationsPlugin._setRelationKey` (`packages/
 
 `ModelPlugin.before` adds `enum SortDirection { ASC DESC }` to every document. No generated field or input references it, and list queries have no sort argument (a `TODO: Handle sort input` sits beside `_createListQueryField`). Because nothing reaches it, `SchemaGeneratorPlugin` drops it from the output and the generators skip it, but it is still created on every run.
 
-### 8. Relations on types without an `id` throw
-
-A relation field on a non-model type that has no `id` field throws "does not have an id field" in `RelationsPlugin`, even when `key:` is given. An example is `posts: [Post] @hasMany` on a `Viewer` root. Only `@clientOnly` relation fields avoid it. The error message suggests "a key directive with an explicit type", which does not exist.
-
 ### 12. List filter inputs are inconsistent
 
 `[String]` fields get `StringFilterInput` rather than a list filter. `<Type>ListFilterInput` is created only when no `<Type>FilterInput` exists yet.

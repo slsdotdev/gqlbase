@@ -151,4 +151,28 @@ describe("relations", () => {
       .sort();
     expect(names).toEqual(["Greens", "Roots", "Squash"]);
   });
+
+  it("resolves a @hasMany on a type that is not stored, without a key", async () => {
+    const result = await execute<{
+      viewer: { categories: { edges: { node: { name: string } }[] } };
+    }>(/* GraphQL */ `
+      query Viewer {
+        viewer {
+          categories {
+            edges {
+              node {
+                name
+              }
+            }
+          }
+        }
+      }
+    `);
+
+    expect(result.errors).toBeUndefined();
+
+    const names = result.data?.viewer.categories.edges.map((edge) => edge.node.name);
+    expect(names).toContain("Produce");
+    expect(names).not.toContain("Greens");
+  });
 });

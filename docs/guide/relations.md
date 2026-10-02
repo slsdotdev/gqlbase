@@ -61,21 +61,39 @@ type Post {
 
 On `Query` and `Subscription`, relation fields get no key (`key` is `null`). The relation directive only marks the field so that pagination and resolver generation treat it as a relation. `ModelPlugin` uses this for `get<Model>` (`@hasOne`) and `list<Models>` (`@hasMany`), and `NodeInterfacePlugin` uses it for `node` (`@hasOne`). `Mutation` is never processed.
 
-### Non-model types
+### Keys only between stored types
 
-Relations are processed on every object and interface type, not just `@model` types. A key field is therefore added even when the source or the target is not a model.
+A key is a stored column pointing at a stored row, so it is added only when **both ends are stored types**: a `@model` that is not `@clientOnly`. An interface or a union counts as stored when every type implementing it, or every member, is stored.
 
-**The type that supplies the key's type needs an `id` field:**
+Any other relation is served by a resolver. It gets no key field, but keeps its list or connection shape and its arguments, and still counts as a relation for resolver generation.
+
+| Source → target | Key |
+| --- | --- |
+| `@model` → `@model` | yes |
+| root type (`Query`) → anything | no |
+| plain type, with or without an `id` (`Viewer`) → `@model` | no |
+| `@clientOnly` type → `@model` | no |
+| `@model` → `@clientOnly` type or plain type | no |
+
+```graphql
+type Viewer {
+  categories: Category @hasMany # no key on Category: a resolver lists them
+}
+
+extend type Query {
+  viewer: Viewer!
+}
+```
+
+When both ends are stored, the type that supplies the key's type needs an `id` field:
 - for `@hasOne`/`@hasMany`, the source;
 - for `@belongsTo`, the target.
 
-Without an `id` field the transform throws ("does not have an id field"), even when `key:` is given. So a relation on an id-less namespace type (for example `type Viewer { posts: Post @hasMany }`) only works when the field is marked `@clientOnly`, which skips key placement. See [Known gaps](../internals/known-gaps.md).
-
-The database generators only emit relations between `@model` types, and throw for anything else.
+Without one the transform throws, naming the relation and the type ("Relation Log.entries needs the id of Log for its key, but Log has no id field."), even when `key:` is given.
 
 ### `@clientOnly` relations
 
-A relation field marked `@clientOnly` gets no key field. It is still reshaped (list or connection), and still counts as a relation for resolver generation.
+A relation field marked `@clientOnly` gets no key field, whatever its ends. It is still reshaped (list or connection), and still counts as a relation for resolver generation.
 
 ## List shape
 
