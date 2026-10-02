@@ -78,6 +78,7 @@ The dsqlbase generator emits each claim as an ordinary not-null column, like a h
 
 ## Related
 
+- [Decision 0005](../decisions/0005-tenancy-scopes.md)
 - [Field visibility](./field-visibility.md)
 - [Configuration](./configuration.md#transformer-options)
 - [dsqlbase](./dsqlbase.md)
