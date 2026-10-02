@@ -3,7 +3,6 @@ import {
   isClientOnly,
   isCreateOnly,
   isFilterOnly,
-  isReadOnly,
   isServerOnly,
   isUpdateOnly,
   isWriteOnly,
@@ -22,11 +21,11 @@ export const DATE_SCALARS: readonly string[] = [
 ];
 
 /**
- * Clients cannot filter on a value they cannot read, so `@writeOnly` fields are left out unless `@filterOnly` asks for them.
+ * A filter reads stored values: `@clientOnly` fields have none, and relations are not columns. Clients cannot filter on a value they cannot
+ * read, so `@writeOnly` fields are left out unless `@filterOnly` asks for them. `@readOnly` only stops writes, so it is filterable.
  */
 export const shouldSkipFieldFromFilterInput = (field: FieldNode): boolean => {
   return (
-    isReadOnly(field) ||
     isServerOnly(field) ||
     isClientOnly(field) ||
     isRelationField(field) ||

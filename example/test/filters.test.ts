@@ -92,6 +92,14 @@ describe("list filters", () => {
     ]);
   });
 
+  it("filters a @readOnly field", async () => {
+    expect(await names({ isArchived: { eq: true } })).toEqual([]);
+    expect(await names({ isArchived: { eq: false }, sortOrder: { lte: 1 } })).toEqual([
+      "Apples",
+      "Produce",
+    ]);
+  });
+
   it("combines conditions with and, or and not", async () => {
     expect(
       await names({ and: [{ name: { beginsWith: "A" } }, { sortOrder: { gte: 2 } }] })

@@ -32,7 +32,7 @@ The entries were checked by running the transformer.
 | Field marked | Public SDL type | Create input | Update / upsert input | Filter input | TS model type | Zod `<Type>Schema` | Zod `Create`/`Update…InputSchema` | DB column |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | *(nothing)* | ✓ | ✓ | ✓ (nullable) | ✓ | ✓ | ✓ | ✓ / ✓ | ✓ |
-| `@readOnly` | ✓ | — | — | — | ✓ | ✓ | ✓ / ✓ | ✓ |
+| `@readOnly` | ✓ | — | — | ✓ | ✓ | ✓ | ✓ / ✓ | ✓ |
 | `@writeOnly` | — | ✓ | ✓ | — ¹ | — | — | ✓ / ✓ | ✓ |
 | `@serverOnly` | — | — | — | — | — | ✓ | ✓ / ✓ | ✓ |
 | `@clientOnly` | ✓ | — | — | — | ✓ | ✓ | — / — | — |

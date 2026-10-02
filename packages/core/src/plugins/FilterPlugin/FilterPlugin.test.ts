@@ -19,6 +19,9 @@ describe("FilterPlugin filter inputs", () => {
         name: String!
         password: String @writeOnly
         inviteCode: String @writeOnly @filterOnly
+        createdAt: DateTime @readOnly
+        secret: String @serverOnly
+        nickname: String @clientOnly
         tags: [Tag]
         labels: [String]
         status: Status
@@ -88,6 +91,15 @@ describe("FilterPlugin filter inputs", () => {
   it("leaves out @writeOnly fields", () => {
     expect(filterInput).toContain("name: StringFilterInput");
     expect(filterInput).not.toContain("password");
+  });
+
+  it("keeps @readOnly fields: they are read, not written", () => {
+    expect(filterInput).toContain("createdAt: DateTimeFilterInput");
+  });
+
+  it("leaves out @serverOnly and @clientOnly fields", () => {
+    expect(filterInput).not.toContain("secret");
+    expect(filterInput).not.toContain("nickname");
   });
 
   it("keeps a @writeOnly field that is also @filterOnly", () => {

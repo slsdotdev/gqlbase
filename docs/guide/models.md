@@ -122,7 +122,7 @@ Update inputs are partial: an omitted field is left unchanged, and `null` sets a
 Filters are handled by `FilterPlugin` (`packages/core/src/plugins/FilterPlugin/FilterPlugin.ts`), a core plugin. `<Type>FilterInput` is created for the target of every `@hasMany` field, including the `list<Models>` queries. It contains one entry per filterable field plus `and`, `or` and `not`.
 
 **Skipped fields:**
-- everything skipped from inputs (`@readOnly`, `@serverOnly`, `@clientOnly`, relations);
+- `@serverOnly` and `@clientOnly` fields, and relations;
 - `@writeOnly`, `@createOnly` or `@updateOnly` fields not also marked `@filterOnly`;
 - lists of objects, interfaces or unions.
 
