@@ -3,7 +3,9 @@ import { TransformerPluginExecutionError } from "@gqlbase/shared/errors";
 import { pascalCase } from "@gqlbase/shared/format";
 import { type ITransformerContext } from "../../context/index.js";
 import {
+  ArgumentNode,
   DefinitionNode,
+  DirectiveNode,
   EnumNode,
   FieldNode,
   InputObjectNode,
@@ -23,10 +25,11 @@ import {
   ScalarNode,
   TypeNode,
   UnionNode,
+  ValueNode,
 } from "../../definition/index.js";
 import { createPluginFactory } from "../createPluginFactory.js";
 import { TransformerPluginBase } from "../TransformerPluginBase.js";
-import { getTypeHint } from "../InternalUtilsPlugin/index.js";
+import { getTypeHint, InternalDirective } from "../InternalUtilsPlugin/index.js";
 import { isManyRelationship } from "../RelationsPlugin/RelationsPlugin.utils.js";
 import {
   DATE_SCALARS,
@@ -138,7 +141,17 @@ export class FilterPlugin extends TransformerPluginBase {
         type = NamedTypeNode.create("Boolean");
       }
 
-      input.addField(InputValueNode.create(operator, undefined, undefined, type));
+      // `between` is `[low, high]`: a pair in the generated TS types and Zod schemas.
+      const directives =
+        operator === FilterOperator.BETWEEN
+          ? [
+              DirectiveNode.create(InternalDirective.TUPLE, [
+                ArgumentNode.create("size", ValueNode.int(2)),
+              ]),
+            ]
+          : undefined;
+
+      input.addField(InputValueNode.create(operator, undefined, directives, type));
     }
 
     return input;

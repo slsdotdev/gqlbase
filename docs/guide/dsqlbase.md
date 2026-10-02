@@ -127,6 +127,21 @@ Nothing below is emitted:
 - check constraints (from `@constraint`);
 - polymorphic relations.
 
+## Filters and `orderBy`
+
+The generated filter inputs use dsqlbase's operator names, so a `filter` argument is a dsqlbase `where` and an `orderBy` argument is a dsqlbase `orderBy`, with no translation:
+
+```ts
+const rows = await dsql.categories.findMany({
+  where: withoutNulls(args.filter),
+  orderBy: { ...withoutNulls(args.orderBy), id: "asc" },
+});
+```
+
+- **Explicit `null`s.** GraphQL passes an omitted operand as absent and an explicit one as `null`; dsqlbase reads `null` as a value. Drop explicit `null`s, and the conditions they leave empty, before the call. The example's `withoutNulls` (`example/src/lib/filter.ts`) does this, and `example/test/where.types.ts` checks at compile time that the result is assignable to `where` and `orderBy`.
+- **`between`** is typed `[low, high]` in the generated TS types and Zod schemas, matching dsqlbase.
+- **Not supported by dsqlbase 0.1.6:** list filters on `json` columns and nested `where` on object fields (see [Rules](#rules)).
+
 ## Related
 
 - [Scalars](./scalars.md)

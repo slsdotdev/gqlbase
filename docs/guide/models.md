@@ -153,7 +153,7 @@ The built-in inputs are added in `before()`: `IDFilterInput`, `StringFilterInput
 | Enum | every enum, as `<Enum>FilterInput` | `eq` `neq` `in` `exists` |
 | List | every list of scalars or enums, as `<Type>ListFilterInput` (`[String]` → `StringListFilterInput`) | `contains` `exists` |
 
-- `in` and `between` take `[T!]`; `between` takes two values, low then high, both included. A month is `{ between: ["2026-09-01", "2026-09-30"] }` on a `Date`.
+- `in` and `between` take `[T!]`; `between` takes two values, low then high, both included. The generated TS types and Zod schemas type `between` as the pair `[T, T]` (`@gqlbase_tuple(size: 2)`, stripped from the output schema). A month is `{ between: ["2026-09-01", "2026-09-30"] }` on a `Date`.
 - `exists: true` matches a set value, `exists: false` a missing or `null` one.
 - `and` and `or` take `[<Type>FilterInput!]`; `not` takes `<Type>FilterInput`. Conditions on several fields of one filter are combined with `and`.
 - To exclude a substring, use `not`: `{ not: { name: { contains: "p" } } }`.

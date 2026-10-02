@@ -92,6 +92,12 @@ describe("list filters", () => {
     ]);
   });
 
+  it("ignores an explicit null operand", async () => {
+    expect(await names({ name: { eq: null }, sortOrder: { lt: 1, gt: null } })).toEqual([
+      "Produce",
+    ]);
+  });
+
   it("filters a @readOnly field", async () => {
     expect(await names({ isArchived: { eq: true } })).toEqual([]);
     expect(await names({ isArchived: { eq: false }, sortOrder: { lte: 1 } })).toEqual([

@@ -3,6 +3,7 @@ import { createPluginFactory, ITransformerContext, TransformerPluginBase } from 
 import { isBuildInScalar } from "@gqlbase/shared/definition";
 import { pascalCase } from "@gqlbase/shared/format";
 import {
+  getTupleSize,
   getTypeHint,
   isInternal,
   isBaseScalar,
@@ -303,7 +304,17 @@ export class ZodSchemaGeneratorPlugin extends TransformerPluginBase {
         suffix
       );
 
-      let arrayExpr = this._zCall("array", [elementExpr]);
+      const tupleSize = level === 0 ? getTupleSize(field) : null;
+      let arrayExpr = tupleSize
+        ? this._zCall("tuple", [
+            ts.setEmitFlags(
+              ts.factory.createArrayLiteralExpression(
+                Array.from({ length: tupleSize }, () => elementExpr)
+              ),
+              ts.EmitFlags.SingleLine
+            ),
+          ])
+        : this._zCall("array", [elementExpr]);
 
       if (isNullableTypeNode(field.type, level)) {
         arrayExpr = this._applyNullable(arrayExpr, level);

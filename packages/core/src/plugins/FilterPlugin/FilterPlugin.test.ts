@@ -319,3 +319,31 @@ describe("FilterPlugin orderBy", () => {
     expect(schema).toContain("tags(filter: TagFilterInput, first: Int, after: String)");
   });
 });
+
+describe("FilterPlugin between", () => {
+  let schema: string;
+  let types: string;
+
+  beforeAll(() => {
+    const output = createTransformer().transform(/* GraphQL */ `
+      type Entry @model {
+        id: ID!
+        amount: Int!
+      }
+    `);
+
+    schema = output.schema;
+    types = output.files.find((file) => file.path === "schema.types.ts")?.content ?? "";
+  });
+
+  it("is a list in the schema, without the internal marker", () => {
+    expect(schema).toMatch(/input IntFilterInput \{[^}]*between: \[Int!\]\n/);
+    expect(schema).not.toContain("gqlbase_tuple");
+  });
+
+  it("is a [low, high] pair in the TS types", () => {
+    expect(types).toMatch(
+      /export type IntFilterInput = \{[^}]*between\?: Maybe<\[number, number\]>;/
+    );
+  });
+});

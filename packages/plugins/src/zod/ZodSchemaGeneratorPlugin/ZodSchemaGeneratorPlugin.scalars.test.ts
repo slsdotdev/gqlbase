@@ -76,3 +76,25 @@ describe("Zod scalars option", () => {
     expect(validators).not.toContain("z.never()");
   });
 });
+
+describe("Zod filter between", () => {
+  let validators: string;
+
+  beforeAll(() => {
+    const output = createTransformer({
+      plugins: [zodSchemaGeneratorPlugin({ generateArgumentSchemas: true })],
+    }).transform(/* GraphQL */ `
+      type Entry @model {
+        id: ID!
+        amount: Int!
+      }
+    `);
+
+    validators =
+      output.files.find((file) => file.path === "zod/schema.validators.ts")?.content ?? "";
+  });
+
+  it("validates between as a pair", () => {
+    expect(validators).toContain("between: z.tuple([z.int(), z.int()])");
+  });
+});

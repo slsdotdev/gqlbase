@@ -5,7 +5,7 @@ import {
   defineResolvers,
 } from "@middy-appsync/graphql";
 import { dsql } from "../lib/dsql";
-import { allOf, toWhere } from "../lib/filter";
+import { allOf, withoutNulls } from "../lib/filter";
 import { orderOf, pageOf, toConnection } from "../lib/connection";
 import { validate } from "../lib/validation";
 import {
@@ -27,7 +27,7 @@ const listCategories = createQueryResolver({
   resolve: async ({ args }) => {
     const { first, offset, limit } = pageOf(args);
     const rows = await dsql.categories.findMany({
-      where: allOf<CategoryWhere>(toWhere(args.filter)),
+      where: allOf<CategoryWhere>(withoutNulls(args.filter)),
       orderBy: orderOf(args.orderBy),
       limit,
       offset,
@@ -43,7 +43,7 @@ const searchCategories = createQueryResolver({
   resolve: async ({ args }) => {
     const { first, offset, limit } = pageOf(args);
     const rows = await dsql.categories.findMany({
-      where: allOf<CategoryWhere>(toWhere({ name: args.name })),
+      where: allOf<CategoryWhere>(withoutNulls({ name: args.name })),
       orderBy: { id: "asc" },
       limit,
       offset,
@@ -107,7 +107,7 @@ const categoryChildren = createResolver({
   resolve: async ({ source, args }) => {
     const { first, offset, limit } = pageOf(args);
     const rows = await dsql.categories.findMany({
-      where: allOf<CategoryWhere>({ parentId: source.id }, toWhere(args.filter)),
+      where: allOf<CategoryWhere>({ parentId: source.id }, withoutNulls(args.filter)),
       orderBy: orderOf(args.orderBy),
       limit,
       offset,

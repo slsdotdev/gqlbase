@@ -1,7 +1,7 @@
 import ts from "typescript";
 import { TransformerPluginBase } from "../TransformerPluginBase.js";
 import { isBuildInScalar } from "@gqlbase/shared/definition";
-import { getTypeHint } from "../InternalUtilsPlugin/index.js";
+import { getTupleSize, getTypeHint } from "../InternalUtilsPlugin/index.js";
 import {
   EnumNode,
   FieldNode,
@@ -211,7 +211,13 @@ export abstract class TypesGeneratorBase extends TransformerPluginBase {
 
     if (fieldType instanceof ListTypeNode) {
       const elementType = this._createInputValueTypeReference(field, fieldType.type, level + 1);
-      const arrayType = ts.factory.createArrayTypeNode(elementType);
+      const tupleSize = level === 0 ? getTupleSize(field) : null;
+      const arrayType = tupleSize
+        ? ts.setEmitFlags(
+            ts.factory.createTupleTypeNode(Array.from({ length: tupleSize }, () => elementType)),
+            ts.EmitFlags.SingleLine
+          )
+        : ts.factory.createArrayTypeNode(elementType);
 
       return isNullableTypeNode(field.type, level)
         ? ts.factory.createTypeReferenceNode("Maybe", [arrayType])
