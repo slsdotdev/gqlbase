@@ -99,23 +99,23 @@ type Subscription {
   Customer-facing: real-time updates for a specific order.
   Scope: SHOP.
   """
-  orderUpdated(orderId: UUID!): OrderUpdatedEvent! @scope(allow: [SHOP])
+  orderUpdated(orderId: UUID!): OrderUpdatedEvent! @access(allow: [SHOP])
 
   """
   Vendor-facing: updates on all vendor orders for a given vendor.
   Scope: VENDOR.
   """
-  vendorOrderUpdated(vendorId: UUID!): VendorOrderUpdatedEvent! @scope(allow: [VENDOR])
+  vendorOrderUpdated(vendorId: UUID!): VendorOrderUpdatedEvent! @access(allow: [VENDOR])
 
   """
   Vendor-facing: inventory alerts for all products under a vendor.
   Scope: VENDOR.
   """
-  inventoryAlert(vendorId: UUID!): LiveEvent! @scope(allow: [VENDOR])
+  inventoryAlert(vendorId: UUID!): LiveEvent! @access(allow: [VENDOR])
 
   """
   Admin-facing: firehose of all platform events for monitoring dashboards.
   Scope: ADMIN.
   """
-  platformEvents: LiveEvent! @scope(allow: [ADMIN]) @auth(requires: ADMIN)
+  platformEvents: LiveEvent! @access(allow: [ADMIN]) @auth(requires: ADMIN)
 }

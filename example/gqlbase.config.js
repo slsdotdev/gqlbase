@@ -10,6 +10,12 @@ export default defineConfig({
   transform: {
     relay: true,
     semanticNullability: true,
+    // Vendors own their catalog and orders; users own their carts, orders and account records.
+    // Admin-managed and public records (categories, markets) are in no scope.
+    tenancy: {
+      vendor: { claims: { vendorId: "UUID" } },
+      user: { claims: { userId: "UUID" } },
+    },
   },
   plugins: [
     appsyncPreset({

@@ -16,7 +16,7 @@ can list products. A vendor may operate at multiple market locations.
 """
 type Vendor implements Node & Timestamped & Auditable & SoftDeletable & Versioned
   @model
-  @scope(allow: [ADMIN, VENDOR]) {
+  @access(allow: [ADMIN, VENDOR]) {
   id: UUID!
   version: Int! @readOnly
 
@@ -25,7 +25,7 @@ type Vendor implements Node & Timestamped & Auditable & SoftDeletable & Versione
   """
   slug: String! @constraint(pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$", max: 80)
   businessName: String! @constraint(min: 2, max: 200)
-  legalName: String @constraint(max: 200) @scope(allow: [ADMIN, VENDOR])
+  legalName: String @constraint(max: 200) @access(allow: [ADMIN, VENDOR])
   description: String @constraint(max: 2000)
   shortBio: String @constraint(max: 280)
 
@@ -35,7 +35,7 @@ type Vendor implements Node & Timestamped & Auditable & SoftDeletable & Versione
 
   contactEmail: EmailAddress!
   contactPhone: PhoneNumber
-  status: VendorStatus! @readOnly @scope(allow: [ADMIN])
+  status: VendorStatus! @readOnly @access(allow: [ADMIN])
 
   """
   Tax identification number — encrypted at rest, never exposed in API.
@@ -47,21 +47,21 @@ type Vendor implements Node & Timestamped & Auditable & SoftDeletable & Versione
   """
   payoutAccountId: String @serverOnly
 
-  commissionRate: Decimal! @scope(allow: [ADMIN]) @auth(requires: ADMIN)
+  commissionRate: Decimal! @access(allow: [ADMIN]) @auth(requires: ADMIN)
   """
   Platform hold period in hours before vendor payout is released.
   """
-  payoutHoldHours: Int! @scope(allow: [ADMIN]) @auth(requires: ADMIN)
+  payoutHoldHours: Int! @access(allow: [ADMIN]) @auth(requires: ADMIN)
 
   certifications: [VendorCertification!]!
   tags: [String!]!
 
-  application: VendorApplication @hasOne @scope(allow: [ADMIN])
+  application: VendorApplication @hasOne @access(allow: [ADMIN])
   members: [VendorMember!]! @hasMany
   products: [Product!]! @hasMany(key: "vendorId")
   operatingSchedules: [OperatingSchedule!]! @hasMany
   marketAssignments: [MarketVendorAssignment!]! @hasMany
-  payouts: [VendorPayout!]! @hasMany @scope(allow: [ADMIN, VENDOR])
+  payouts: [VendorPayout!]! @hasMany @access(allow: [ADMIN, VENDOR])
   vendorOrders: [VendorOrder!]! @hasMany
 
   """
@@ -104,7 +104,7 @@ enum VendorCertification {
 Captures the full onboarding questionnaire submitted by a prospective vendor.
 Reviewed by admins; decision is recorded with optional notes.
 """
-type VendorApplication implements Node & Timestamped & Auditable @model @scope(allow: [ADMIN]) {
+type VendorApplication implements Node & Timestamped & Auditable @model @access(allow: [ADMIN]) {
   id: UUID!
   vendorId: UUID! @serverOnly
 
@@ -172,9 +172,11 @@ enum ApplicationRejectionReason {
 Associates a user with a vendor in a specific role.
 A user may belong to at most one vendor at a time (enforced at service layer).
 """
-type VendorMember implements Node & Timestamped @model @scope(allow: [ADMIN, VENDOR]) {
+type VendorMember implements Node & Timestamped
+  @model
+  @scope(name: vendor)
+  @access(allow: [ADMIN, VENDOR]) {
   id: UUID!
-  vendorId: UUID! @serverOnly
   userId: UUID! @serverOnly
 
   role: VendorMemberRole!
@@ -214,9 +216,11 @@ Weekly operating windows for a vendor, optionally scoped to a specific market.
 If `marketLocationId` is null the schedule applies to the vendor's own
 storefront / online presence.
 """
-type OperatingSchedule implements Node & Timestamped @model @scope(allow: [ADMIN, VENDOR, SHOP]) {
+type OperatingSchedule implements Node & Timestamped
+  @model
+  @scope(name: vendor)
+  @access(allow: [ADMIN, VENDOR, SHOP]) {
   id: UUID!
-  vendorId: UUID! @serverOnly
   marketLocationId: UUID @serverOnly
 
   dayOfWeek: DayOfWeek!
@@ -246,7 +250,7 @@ market location on different days.
 """
 type MarketLocation implements Node & Timestamped & SoftDeletable
   @model
-  @scope(allow: [ADMIN, VENDOR, SHOP])
+  @access(allow: [ADMIN, VENDOR, SHOP])
   @cacheControl(maxAge: 3600, scope: PUBLIC) {
   id: UUID!
 
@@ -288,9 +292,11 @@ enum MarketAmenity {
 """
 Junction entity: which vendor is at which market, with optional stall info.
 """
-type MarketVendorAssignment implements Node & Timestamped @model @scope(allow: [ADMIN, VENDOR]) {
+type MarketVendorAssignment implements Node & Timestamped
+  @model
+  @scope(name: vendor)
+  @access(allow: [ADMIN, VENDOR]) {
   id: UUID!
-  vendorId: UUID! @serverOnly
   marketLocationId: UUID! @serverOnly
 
   stallNumber: String @constraint(max: 20)

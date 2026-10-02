@@ -15,7 +15,7 @@ Categories are admin-managed and shared across all vendors.
 """
 type Category implements Timestamped & SoftDeletable
   @model
-  @scope(allow: [ADMIN, VENDOR, SHOP])
+  @access(allow: [ADMIN, VENDOR, SHOP])
   @cacheControl(maxAge: 7200, scope: PUBLIC) {
   id: UUID!
   parentId: UUID @serverOnly
@@ -51,7 +51,8 @@ price is computed at checkout from actual weight.
 """
 type Product implements Auditable & SoftDeletable & Versioned
   @model
-  @scope(allow: [ADMIN, VENDOR, SHOP]) {
+  @scope(name: vendor)
+  @access(allow: [ADMIN, VENDOR, SHOP]) {
   id: UUID!
 
   name: String @semanticNonNull @constraint(min: 1, max: 200)
@@ -98,7 +99,7 @@ type Product implements Auditable & SoftDeletable & Versioned
   category: Category @belongsTo @semanticNonNull
   variants: ProductVariant @hasMany @semanticNonNull
   reviews: Review @hasMany @semanticNonNull
-  priceHistory: PriceHistoryEntry @hasMany @semanticNonNull @scope(allow: [ADMIN, VENDOR])
+  priceHistory: PriceHistoryEntry @hasMany @semanticNonNull @access(allow: [ADMIN, VENDOR])
 
   """
   Aggregated rating. Computed at read-time from reviews.
@@ -221,7 +222,7 @@ Examples: "1 lb bag", "5 lb case", "Pint", "Quart".
 """
 type ProductVariant implements Node & Timestamped & Versioned
   @model
-  @scope(allow: [ADMIN, VENDOR, SHOP]) {
+  @access(allow: [ADMIN, VENDOR, SHOP]) {
   id: UUID!
 
   """
@@ -231,7 +232,7 @@ type ProductVariant implements Node & Timestamped & Versioned
   sku: String
     @semanticNonNull
     @constraint(pattern: "^[A-Z0-9-]{3,40}$")
-    @scope(allow: [ADMIN, VENDOR])
+    @access(allow: [ADMIN, VENDOR])
 
   price: Money @semanticNonNull
 
@@ -243,7 +244,7 @@ type ProductVariant implements Node & Timestamped & Versioned
   """
   Cost of goods for margin reporting. Vendor-only.
   """
-  costOfGoods: Money @scope(allow: [ADMIN, VENDOR])
+  costOfGoods: Money @access(allow: [ADMIN, VENDOR])
 
   """
   Weight in `weightUnit` for per-unit-weight products.
@@ -268,7 +269,7 @@ on order placement and reconciled on fulfillment or cancellation.
 """
 type InventoryRecord implements Node & Timestamped & Versioned
   @model
-  @scope(allow: [ADMIN, VENDOR]) {
+  @access(allow: [ADMIN, VENDOR]) {
   id: UUID!
 
   """
@@ -301,7 +302,7 @@ type InventoryRecord implements Node & Timestamped & Versioned
   adjustments: [InventoryAdjustment]
     @hasMany
     @semanticNonNull(levels: [0, 1])
-    @scope(allow: [ADMIN, VENDOR])
+    @access(allow: [ADMIN, VENDOR])
 }
 
 """
@@ -310,7 +311,7 @@ from receiving through sale.
 """
 type InventoryAdjustment implements Node & Timestamped
   @model(operations: [READ, CREATE])
-  @scope(allow: [ADMIN, VENDOR]) {
+  @access(allow: [ADMIN, VENDOR]) {
   id: UUID!
 
   quantityChange: Int @semanticNonNull
@@ -346,7 +347,7 @@ One entry per variant per change event.
 """
 type PriceHistoryEntry implements Node & Timestamped
   @model(operations: [READ, CREATE])
-  @scope(allow: [ADMIN, VENDOR]) {
+  @access(allow: [ADMIN, VENDOR]) {
   id: UUID!
 
   previousPrice: Money @semanticNonNull

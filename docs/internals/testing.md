@@ -82,7 +82,7 @@ The end-to-end suite checks what gqlbase promises users: that an API built on th
 AppSync cannot run locally, so `example/test/appsync.ts` stands in for it:
 
 - graphql-js builds the schema from `example/generated/appsync/schema.graphql`. AppSync declares the `AWS*` scalars and `@aws_*` directives implicitly, so a prelude adds them.
-- `execute(source, { variables, identity })` validates the operation and walks the selection like AppSync would.
+- `execute(source, { variables, identity })` validates the operation and walks the selection like AppSync would. `cognitoIdentity(sub, groups, claims)` builds a Cognito identity; `claims` adds token claims such as `custom:vendor_id`, which the example's tenancy resolvers read (`example/src/lib/claims.ts`).
 - Each field that has a resolver in `example/src/resolvers/` is sent to the example's middy router (`example/src/index.ts`) as an AppSync Lambda event, with `arguments`, `source`, `identity`, `info` and `stash`. Every other field reads the property off its parent.
 - A resolver error comes back as a GraphQL error with `extensions.errorType`. The router masks errors that are not middy `GraphQLError`s as `InternalServerError`, with a generic message.
 

@@ -24,7 +24,7 @@ scalar Decimal @gqlbase_typehint(type: string)
 Declares which access scopes may resolve or mutate this type or field.
 The transformer enforces visibility per scope at schema-generation time.
 """
-directive @scope(allow: [AccessScope!]!) on OBJECT | FIELD_DEFINITION
+directive @access(allow: [AccessScope!]!) on OBJECT | FIELD_DEFINITION
 
 """
 Marks a field as requiring a minimum role level within the resolved scope.

@@ -53,11 +53,15 @@ const attached = new Set(
   (resolvers as AnyResolver[]).map((resolver) => `${resolver.typeName}.${resolver.fieldName}`)
 );
 
-export const cognitoIdentity = (sub: string, groups: string[] = []): AppSyncIdentity => ({
+export const cognitoIdentity = (
+  sub: string,
+  groups: string[] = [],
+  claims: Record<string, string> = {}
+): AppSyncIdentity => ({
   sub,
   issuer: "https://cognito-idp.local/example",
   username: sub,
-  claims: { sub, "cognito:groups": groups },
+  claims: { ...claims, sub, "cognito:groups": groups },
   sourceIp: ["127.0.0.1"],
   defaultAuthStrategy: "ALLOW",
   groups,
