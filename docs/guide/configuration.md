@@ -167,6 +167,20 @@ output.files; // [{ type, path, filename, content }]
 - Relation keys are added only between stored types: a `@hasMany` on a plain type no longer adds a key to its target.
 - With Relay and without `semanticNullability`, `edges` is `[XEdge!]!` and `XEdge.node` is non-null.
 
+**Zod schemas** ([Zod](./zod.md)). The schemas guard the API, so they follow the public schema.
+
+- `Create<Model>InputSchema` and `Update<Model>InputSchema` have exactly the fields of `Create<Model>Input` and `Update<Model>Input`: no `@readOnly` or `@serverOnly` fields and no relation keys. Validate the client input, then add the values the server sets:
+
+  ```diff
+  - const data = validate(CreateCategoryInputSchema, { ...args.input, createdAt: now });
+  - await dsql.categories.create({ data });
+  + const input = validate(CreateCategoryInputSchema, args.input);
+  + await dsql.categories.create({ data: { ...input, createdAt: now } });
+  ```
+
+- A model gets a create or update schema only if it has that input, so `@model(operations: [...])` without `create` or `update` means no schema for it. Nested objects reference `<Type>InputSchema` instead of `<Type>Schema`.
+- `<Type>Schema` has no `@serverOnly` fields, and `@serverOnly` types get no schema. Parsing a database row with it drops those values; use the dsqlbase row types for rows.
+
 ## Related
 
 - [Install](./install.md)

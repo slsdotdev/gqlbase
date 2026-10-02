@@ -126,7 +126,7 @@ Update inputs are partial: an omitted field is left unchanged, and `null` sets a
 - Validate the update with the generated `Update<Model>InputSchema` ([Zod](./zod.md)). A required field is `.optional()`, so `null` is rejected with an error the client sees. A nullable field is `.nullable().optional()`, so `null` clears it.
 - Do not drop `null` values in the resolver. The resolver cannot tell "clear this" from "ignore this", and silently skipping a write hides a client bug.
 
-`Create<Model>InputSchema` describes the stored row, so validate the row the resolver is about to write: the client input plus server-set fields such as timestamps. This also enforces `@constraint`. `example/src/resolvers/category.ts` shows both.
+`Create<Model>InputSchema` has the fields of `Create<Model>Input`, so validate `args.input` with it, then add the values the server sets, such as timestamps. Validation also enforces `@constraint`. `example/src/resolvers/category.ts` shows both.
 
 ## Filter inputs
 
