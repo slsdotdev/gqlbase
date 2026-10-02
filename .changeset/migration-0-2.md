@@ -15,6 +15,6 @@
   });
 ```
 
-Then update imports of generated files: `models.typegen` → `schema.types`, `dsqlbase.schema` → `dsqlbase/schema`, `appsync/middy-appsync.typegen` → `appsync/middy-appsync.types`. The full list of changes is in the migration guide.
+Then update imports of generated files: `models.typegen` → `schema.types`, `dsqlbase.schema` → `dsqlbase/schema`, `appsync/middy-appsync.typegen` → `appsync/middy-appsync.types`. The Zod create/update schemas now match the GraphQL inputs, so resolvers validate `args.input` and add server-set values afterwards. The full list of changes is in the migration guide.
 
 Docs: docs/guide/configuration.md#migrating-from-01, docs/decisions/0003-core-plugins-and-transformer-options.md
