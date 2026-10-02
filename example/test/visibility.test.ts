@@ -177,9 +177,6 @@ describe("field visibility", () => {
     it("are not in the schema", async () => {
       const result = await execute(/* GraphQL */ `
         query Types {
-          sortDirection: __type(name: "SortDirection") {
-            name
-          }
           searchResult: __type(name: "SearchResult") {
             name
           }
@@ -191,7 +188,6 @@ describe("field visibility", () => {
 
       expect(result.errors).toBeUndefined();
       expect(result.data).toEqual({
-        sortDirection: null,
         searchResult: null,
         category: { name: "Category" },
       });

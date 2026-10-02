@@ -10,6 +10,7 @@ import {
   InputValueNode,
   InterfaceNode,
   isEnumNode,
+  isInputObjectNode,
   isInterfaceNode,
   isListTypeNode,
   isObjectNode,
@@ -33,15 +34,18 @@ import {
   FilterOperator,
   FilterOperators,
   shouldSkipFieldFromFilterInput,
+  SORT_DIRECTION,
 } from "./FilterPlugin.utils.js";
 
 /**
- * Adds the `filter` argument to every `@hasMany` field, whatever its parent type, including the `list<Models>` queries, and creates the
+ * Adds the `filter` and `orderBy` arguments to every `@hasMany` field, whatever its parent type, including the `list<Models>` queries, and creates the
  * filter inputs it references.
  *
  * - `<Type>FilterInput`: one entry per filterable field of the target, plus `and`, `or` and `not`.
  * - Shared per-scalar inputs (`StringFilterInput`, `IntFilterInput`, …), `<Enum>FilterInput` per enum, `<Type>ListFilterInput` per list.
  * - `<Type>FieldFilterInput` for object-like fields: `exists`, and `where: <Type>FilterInput` on the members.
+ *
+ * It also adds `orderBy: <Type>OrderByInput`, a `{ <field>: SortDirection }` map whose key order sets the sort priority.
  *
  * @example
  * ```graphql
@@ -52,7 +56,7 @@ import {
  *
  * # After
  * type Viewer {
- *   posts(filter: PostFilterInput): Post `@hasMany`
+ *   posts(filter: PostFilterInput, orderBy: PostOrderByInput): Post `@hasMany`
  * }
  * ```
  */
@@ -62,8 +66,59 @@ export class FilterPlugin extends TransformerPluginBase {
   }
 
   private _createSortDirection() {
-    const enumNode = EnumNode.create("SortDirection", undefined, undefined, ["ASC", "DESC"]);
-    return enumNode;
+    return EnumNode.create(SORT_DIRECTION, undefined, undefined, ["asc", "desc"]);
+  }
+
+  /**
+   * `<Type>OrderByInput`: one `SortDirection` entry per sortable field, a non-list scalar or enum the filter accepts. `null` when there is
+   * none. Clients list keys in priority order.
+   */
+  private _createOrderByInput(target: ObjectNode | InterfaceNode): InputObjectNode | null {
+    const inputName = pascalCase(target.name, "order", "by", "input");
+    const existing = this.context.document.getNode(inputName);
+
+    if (existing) {
+      if (!isInputObjectNode(existing)) {
+        throw new TransformerPluginExecutionError(
+          this.name,
+          `Type ${inputName} is not an input type`
+        );
+      }
+
+      return existing;
+    }
+
+    const input = InputObjectNode.create(inputName);
+
+    for (const field of target.fields ?? []) {
+      if (shouldSkipFieldFromFilterInput(field) || isListTypeNode(field.type)) {
+        continue;
+      }
+
+      const typeName = field.type.getTypeName();
+      const typeDef = this.context.document.getNode(typeName);
+
+      if (
+        isBuildInScalar(typeName) ||
+        (typeDef && (isScalarNode(typeDef) || isEnumNode(typeDef)))
+      ) {
+        input.addField(
+          InputValueNode.create(
+            field.name,
+            undefined,
+            undefined,
+            NamedTypeNode.create(SORT_DIRECTION)
+          )
+        );
+      }
+    }
+
+    if (!input.fields?.length) {
+      return null;
+    }
+
+    this.context.document.addNode(input);
+    return input;
   }
 
   /**
@@ -260,7 +315,7 @@ export class FilterPlugin extends TransformerPluginBase {
       }
     }
 
-    if (!this.context.document.hasNode("SortDirection")) {
+    if (!this.context.document.hasNode(SORT_DIRECTION)) {
       this.context.document.addNode(this._createSortDirection());
     }
   }
@@ -275,7 +330,7 @@ export class FilterPlugin extends TransformerPluginBase {
 
   public execute(definition: ObjectNode | InterfaceNode) {
     for (const field of definition.fields ?? []) {
-      if (!isManyRelationship(field) || field.hasArgument("filter")) {
+      if (!isManyRelationship(field)) {
         continue;
       }
 
@@ -285,16 +340,30 @@ export class FilterPlugin extends TransformerPluginBase {
         continue;
       }
 
-      const filterInput = this._createFilterInput(target);
+      if (!field.hasArgument("filter")) {
+        const filterInput = this._createFilterInput(target);
+        field.addArgument(
+          InputValueNode.create(
+            "filter",
+            undefined,
+            undefined,
+            NamedTypeNode.create(filterInput.name)
+          )
+        );
+      }
 
-      field.addArgument(
-        InputValueNode.create(
-          "filter",
-          undefined,
-          undefined,
-          NamedTypeNode.create(filterInput.name)
-        )
-      );
+      const orderByInput = field.hasArgument("orderBy") ? null : this._createOrderByInput(target);
+
+      if (orderByInput) {
+        field.addArgument(
+          InputValueNode.create(
+            "orderBy",
+            undefined,
+            undefined,
+            NamedTypeNode.create(orderByInput.name)
+          )
+        );
+      }
     }
   }
 }

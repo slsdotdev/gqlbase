@@ -70,3 +70,5 @@ export const FilterOperators: Record<FilterKind, readonly FilterOperatorName[]> 
   enum: [EQ, NEQ, IN, EXISTS],
   list: [CONTAINS, EXISTS],
 };
+
+export const SORT_DIRECTION = "SortDirection";

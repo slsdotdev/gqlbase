@@ -5,7 +5,7 @@ import {
 } from "@middy-appsync/graphql";
 import { dsql } from "../lib/dsql";
 import { allOf, toWhere } from "../lib/filter";
-import { DEFAULT_PAGE_SIZE, toConnection } from "../lib/connection";
+import { orderOf, pageOf, toConnection } from "../lib/connection";
 import { validate } from "../lib/validation";
 import { CreateLedgerEntryInputSchema } from "../../generated/zod/schema.validators";
 
@@ -21,17 +21,15 @@ const getLedgerEntry = createQueryResolver({
 const listLedgerEntries = createQueryResolver({
   fieldName: "listLedgerEntries",
   resolve: async ({ args }) => {
-    const first = args.first ?? DEFAULT_PAGE_SIZE;
+    const { first, offset, limit } = pageOf(args);
     const rows = await dsql.ledgerEntries.findMany({
-      where: allOf<LedgerEntryWhere>(
-        toWhere(args.filter),
-        args.after ? { id: { gt: args.after } } : null
-      ),
-      orderBy: { id: "asc" },
-      limit: first + 1,
+      where: allOf<LedgerEntryWhere>(toWhere(args.filter)),
+      orderBy: orderOf(args.orderBy),
+      limit,
+      offset,
     });
 
-    return toConnection(rows, first);
+    return toConnection(rows, first, offset);
   },
 });
 

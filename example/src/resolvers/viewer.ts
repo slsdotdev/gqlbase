@@ -1,7 +1,7 @@
 import { createQueryResolver, createResolver, defineResolvers } from "@middy-appsync/graphql";
 import { dsql } from "../lib/dsql";
 import { allOf, toWhere } from "../lib/filter";
-import { DEFAULT_PAGE_SIZE, toConnection } from "../lib/connection";
+import { orderOf, pageOf, toConnection } from "../lib/connection";
 
 type CategoryWhere = NonNullable<Parameters<typeof dsql.categories.findMany>[0]["where"]>;
 
@@ -16,18 +16,15 @@ const viewerCategories = createResolver({
   typeName: "Viewer",
   fieldName: "categories",
   resolve: async ({ args }) => {
-    const first = args.first ?? DEFAULT_PAGE_SIZE;
+    const { first, offset, limit } = pageOf(args);
     const rows = await dsql.categories.findMany({
-      where: allOf<CategoryWhere>(
-        { parentId: { exists: false } },
-        toWhere(args.filter),
-        args.after ? { id: { gt: args.after } } : null
-      ),
-      orderBy: { id: "asc" },
-      limit: first + 1,
+      where: allOf<CategoryWhere>({ parentId: { exists: false } }, toWhere(args.filter)),
+      orderBy: orderOf(args.orderBy),
+      limit,
+      offset,
     });
 
-    return toConnection(rows, first);
+    return toConnection(rows, first, offset);
   },
 });
 

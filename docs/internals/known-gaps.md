@@ -16,10 +16,6 @@ When a relation target is a union, `RelationsPlugin._setRelationKey` (`packages/
 
 `FilterPlugin._getFieldFilterInputName` (`packages/core/src/plugins/FilterPlugin/FilterPlugin.ts`) returns no filter for a list of objects, interfaces or unions (`tiers: [PricingModel!]`), so the field is left out of `<Type>FilterInput`. Object fields that are not lists are filtered through `<Type>FieldFilterInput`.
 
-### 6. `SortDirection` is generated but never used
-
-`ModelPlugin.before` adds `enum SortDirection { ASC DESC }` to every document. No generated field or input references it, and list queries have no sort argument (a `TODO: Handle sort input` sits beside `_createListQueryField`). Because nothing reaches it, `SchemaGeneratorPlugin` drops it from the output and the generators skip it, but it is still created on every run.
-
 ## Code generation
 
 ### 14. Drizzle emits `json`, not `jsonb`

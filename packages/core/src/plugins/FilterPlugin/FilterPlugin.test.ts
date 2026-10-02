@@ -107,7 +107,9 @@ describe("FilterPlugin filter inputs", () => {
   });
 
   it("adds filter to list<Models>", () => {
-    expect(schema).toContain("listUsers(filter: UserFilterInput): [User!]");
+    expect(schema).toContain(
+      "listUsers(filter: UserFilterInput, orderBy: UserOrderByInput): [User!]"
+    );
   });
 });
 
@@ -138,15 +140,21 @@ describe("FilterPlugin on @hasMany", () => {
   });
 
   it("adds filter on a @model parent", () => {
-    expect(schema).toContain("members(filter: EmployeeFilterInput): [Employee!]");
+    expect(schema).toContain(
+      "members(filter: EmployeeFilterInput, orderBy: EmployeeOrderByInput): [Employee!]"
+    );
   });
 
   it("adds filter on a parent that is not a model", () => {
-    expect(schema).toContain("employees(filter: EmployeeFilterInput): [Employee!]");
+    expect(schema).toContain(
+      "employees(filter: EmployeeFilterInput, orderBy: EmployeeOrderByInput): [Employee!]"
+    );
   });
 
   it("adds filter on a root field", () => {
-    expect(schema).toContain("staff(filter: EmployeeFilterInput): [Employee!]");
+    expect(schema).toContain(
+      "staff(filter: EmployeeFilterInput, orderBy: EmployeeOrderByInput): [Employee!]"
+    );
   });
 
   it("creates the target's filter input without a list operation", () => {
@@ -242,5 +250,72 @@ describe("FilterPlugin on dates", () => {
         )
       );
     }
+  });
+});
+
+describe("FilterPlugin orderBy", () => {
+  let schema: string;
+
+  beforeAll(() => {
+    ({ schema } = createTransformer({ relay: true }).transform(/* GraphQL */ `
+      enum Status {
+        ACTIVE
+        INACTIVE
+      }
+
+      type Address {
+        city: String
+      }
+
+      type Product @model {
+        id: ID!
+        name: String!
+        price: Float
+        status: Status
+        createdAt: DateTime @readOnly
+        tags: [String]
+        address: Address
+        secret: String @serverOnly
+        password: String @writeOnly
+        reviews: Review @hasMany
+      }
+
+      type Review @model {
+        id: ID!
+        rating: Int!
+      }
+
+      type Tag {
+        labels: [String]
+      }
+
+      type Query {
+        tags: Tag @hasMany
+      }
+    `));
+  });
+
+  it("adds a lower-case SortDirection", () => {
+    expect(schema).toMatch(/enum SortDirection \{\s+asc\s+desc\s+\}/);
+  });
+
+  it("maps every sortable field to SortDirection", () => {
+    expect(schema).toMatch(
+      /input ProductOrderByInput \{\s+id: SortDirection\s+name: SortDirection\s+price: SortDirection\s+status: SortDirection\s+createdAt: SortDirection\s+\}/
+    );
+  });
+
+  it("puts orderBy after filter and before the connection arguments", () => {
+    expect(schema).toContain(
+      "listProducts(filter: ProductFilterInput, orderBy: ProductOrderByInput, first: Int, after: String): ProductConnection!"
+    );
+    expect(schema).toContain(
+      "reviews(filter: ReviewFilterInput, orderBy: ReviewOrderByInput, first: Int, after: String): ReviewConnection!"
+    );
+  });
+
+  it("adds no orderBy when the target has no sortable field", () => {
+    expect(schema).not.toContain("TagOrderByInput");
+    expect(schema).toContain("tags(filter: TagFilterInput, first: Int, after: String)");
   });
 });

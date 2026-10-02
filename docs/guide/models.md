@@ -31,7 +31,7 @@ type Post {
 
 type Query {
   getPost(id: ID!): Post
-  listPosts(filter: PostFilterInput): [Post!]
+  listPosts(filter: PostFilterInput, orderBy: PostOrderByInput): [Post!]
 }
 
 type Mutation {
@@ -44,9 +44,20 @@ input PostFilterInput {
   id: IDFilterInput
   title: StringFilterInput
   content: StringFilterInput
-  and: [PostFilterInput]
-  or: [PostFilterInput]
+  and: [PostFilterInput!]
+  or: [PostFilterInput!]
   not: PostFilterInput
+}
+
+input PostOrderByInput {
+  id: SortDirection
+  title: SortDirection
+  content: SortDirection
+}
+
+enum SortDirection {
+  asc
+  desc
 }
 
 input CreatePostInput {
@@ -69,7 +80,7 @@ With the `relay` option on, `listPosts` returns `PostConnection!` and gains `fir
 | Operation | Generated field | Notes |
 | --- | --- | --- |
 | `get` | `Query.get<Model>(id: ID!): <Model>` | |
-| `list` | `Query.list<Models>(filter: <Model>FilterInput): [<Model>]` | Name is pluralized. The field is marked as a `@hasMany` relation internally, so Relay turns it into a connection. |
+| `list` | `Query.list<Models>(filter: <Model>FilterInput, orderBy: <Model>OrderByInput): [<Model>]` | Name is pluralized. The field is marked as a `@hasMany` relation internally, so Relay turns it into a connection. |
 | `create` | `Mutation.create<Model>(input: Create<Model>Input!): <Model>` | |
 | `update` | `Mutation.update<Model>(input: Update<Model>Input!): <Model>` | |
 | `upsert` | `Mutation.upsert<Model>(input: Upsert<Model>Input!): <Model>` | Opt-in only; not part of `write`. The input follows the update rules. |
@@ -203,13 +214,30 @@ input PricingModelFilterInput {
 
 ### Where the filter is accepted
 
-Every `@hasMany` field gets `filter: <Target>FilterInput`, whatever its parent type:
-- `list<Models>(filter:)` on `Query`;
+Every `@hasMany` field gets `filter: <Target>FilterInput` and `orderBy: <Target>OrderByInput`, whatever its parent type:
+- `list<Models>` on `Query`;
 - `@hasMany` fields on models;
 - `@hasMany` fields on types that are not stored, such as a `Viewer` (see [Relations → Keys only between stored types](./relations.md#keys-only-between-stored-types));
 - `@hasMany` fields declared on `Query`.
 
-Sorting is not generated: there is no `orderBy` argument.
+## Ordering
+
+`<Type>OrderByInput` maps each sortable field to `enum SortDirection { asc desc }`:
+
+```graphql
+input ProductOrderByInput {
+  name: SortDirection
+  price: SortDirection
+  createdAt: SortDirection
+}
+
+products(filter: ProductFilterInput, orderBy: ProductOrderByInput, first: Int, after: String)
+```
+
+- **Sortable fields** are the non-list scalar and enum fields the filter accepts (see [Filter inputs](#filter-inputs)): `@readOnly` fields such as `createdAt` included, `@serverOnly`, `@clientOnly` and unreadable `@writeOnly` fields excluded. There is no opt-out. A target with no sortable field gets no `orderBy`.
+- **Priority follows the input type, not the client.** GraphQL does not keep the key order of an input object: graphql-js, for one, rebuilds it in the order the type declares its fields. With `{ price: desc, name: asc }`, `name` (declared first) decides first, and `price` breaks ties. Declare fields in the order they should take priority, or sort by one key.
+- The value passes to dsqlbase's `orderBy` unchanged, apart from explicit `null`s. Add a unique key (`id`) last for a stable order across pages.
+- An `orderBy` argument declared in the source is kept as is.
 
 ## Referencing generated types
 
