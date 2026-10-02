@@ -72,6 +72,7 @@ describe("TransformerContext", () => {
       relay: false,
       semanticNullability: false,
       operations: ["read", "write"],
+      tenancy: {},
     });
   });
 
@@ -80,12 +81,14 @@ describe("TransformerContext", () => {
       relay: true,
       semanticNullability: true,
       operations: ["read"],
+      tenancy: { workspace: { claims: { workspaceId: "ID" } } },
     });
 
     expect(context.options).toEqual({
       relay: true,
       semanticNullability: true,
       operations: ["read"],
+      tenancy: { workspace: { claims: { workspaceId: "ID" } } },
     });
   });
 

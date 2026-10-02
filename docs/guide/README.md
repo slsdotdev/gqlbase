@@ -17,6 +17,7 @@ These pages describe what the library does **today**. Planned behaviour is not d
 - [Relations](./relations.md) — `@hasOne`, `@hasMany`, `@belongsTo`, relation keys
 - [Field visibility](./field-visibility.md) — `@readOnly`, `@writeOnly`, `@serverOnly`, `@clientOnly`, `@createOnly`, `@updateOnly`, `@filterOnly`, `@constraint`, and how each generator treats them
 - [Scalars](./scalars.md) — built-in scalars, `@gqlbase_typehint`, adding your own
+- [Tenancy](./tenancy.md) — `@scope`, tenancy scopes and their claim fields
 
 ## Plugins and generators
 
@@ -24,6 +25,7 @@ These pages describe what the library does **today**. Planned behaviour is not d
 | --- | --- | --- |
 | [Models](./models.md), [Relations](./relations.md) | core plugins, always registered | `schema.graphql`, `schema.types.ts` |
 | [Relay](./relay.md) | core plugins, `transform.relay` | connections, `Node` |
+| [Tenancy](./tenancy.md) | core plugin, `transform.tenancy` | claim fields |
 | [AppSync](./appsync.md) | `@gqlbase/plugins` → `appsyncPreset` | `appsync/schema.graphql`, `appsync/middy-appsync.types.ts` |
 | [Zod](./zod.md) | `@gqlbase/plugins/zod` | `zod/schema.validators.ts` |
 | [dsqlbase](./dsqlbase.md) | `@gqlbase/plugins/dsql` | `dsqlbase/schema.ts` |
@@ -42,6 +44,7 @@ These pages describe what the library does **today**. Planned behaviour is not d
 | `@createOnly` `@updateOnly` `@filterOnly` | FIELD_DEFINITION | [Field visibility](./field-visibility.md) |
 | `@constraint(min: Float, max: Float, pattern: String)` | FIELD_DEFINITION, INPUT_FIELD_DEFINITION, ARGUMENT_DEFINITION | [Field visibility](./field-visibility.md) |
 | `@semanticNonNull(levels: [Int!]! = [0])` | FIELD_DEFINITION | [Models](./models.md#nullability-and-semanticnonnull) |
+| `@scope(name: TenancyScope!)` | OBJECT | [Tenancy](./tenancy.md) |
 | `@gqlbase_typehint(type: …)` | SCALAR | [Scalars](./scalars.md) |
 | `@gqlbase_internal` | most locations | [Scalars](./scalars.md#internal-definitions) |
 | `@aws_*` | OBJECT, FIELD_DEFINITION | [AppSync](./appsync.md) |

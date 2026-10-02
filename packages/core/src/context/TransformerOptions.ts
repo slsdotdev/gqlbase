@@ -23,6 +23,19 @@ export const ModelOperation = {
 export type OperationType = (typeof ModelOperation)[keyof typeof ModelOperation];
 
 /**
+ * One tenancy scope: the claims a scoped model carries. `claims` maps a claim field name to its scalar type; `null` is a
+ * scope without claims (a global model).
+ */
+
+export interface TenancyScopeOptions {
+  /** Applies the scope to every stored model without `@scope`. At most one scope is the default. */
+  default?: boolean;
+
+  /** Claim field name → scalar type name, for example `{ workspaceId: "ID" }`. */
+  claims: Record<string, string> | null;
+}
+
+/**
  * Options that shape the generated schema. They are frozen onto `context.options`, so every plugin reads the same values instead of probing the document.
  */
 
@@ -44,12 +57,20 @@ export interface TransformerOptions {
    * @default ["read", "write"]
    */
   operations: OperationType[];
+
+  /**
+   * Tenancy scopes by name. A scoped model gets each claim as a `@serverOnly` field, which the ORM fills from the caller's
+   * identity. Registers `TenancyPlugin` when it declares any scope.
+   * @default {}
+   */
+  tenancy: Record<string, TenancyScopeOptions>;
 }
 
 export const DEFAULT_TRANSFORMER_OPTIONS = Object.freeze<TransformerOptions>({
   relay: false,
   semanticNullability: false,
   operations: ["read", "write"],
+  tenancy: {},
 });
 
 export function resolveTransformerOptions(
@@ -62,5 +83,6 @@ export function resolveTransformerOptions(
     operations: Object.freeze([
       ...(options.operations ?? DEFAULT_TRANSFORMER_OPTIONS.operations),
     ]) as OperationType[],
+    tenancy: Object.freeze({ ...(options.tenancy ?? DEFAULT_TRANSFORMER_OPTIONS.tenancy) }),
   });
 }

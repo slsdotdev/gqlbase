@@ -29,6 +29,7 @@ describe("createTransformer", () => {
       relay: true,
       semanticNullability: true,
       operations: ["read", "write"],
+      tenancy: {},
     });
   });
 
@@ -58,6 +59,26 @@ describe("createTransformer", () => {
       "ModelTypesGeneratorPlugin",
       "ProbePlugin",
     ]);
+  });
+
+  it("registers TenancyPlugin after ModelPlugin when tenancy declares a scope", () => {
+    let context: ITransformerContext | undefined;
+
+    createTransformer({
+      tenancy: { global: { claims: null } },
+      plugins: [
+        {
+          create: (ctx) => {
+            context = ctx;
+            return { name: "ProbePlugin", context: ctx, init: () => undefined, match: () => false };
+          },
+        },
+      ],
+    });
+
+    const names = context?.plugins.map((plugin) => plugin.name) ?? [];
+
+    expect(names.indexOf("TenancyPlugin")).toBe(names.indexOf("ModelPlugin") + 1);
   });
 
   it("transforms a schema with no configured plugins", () => {

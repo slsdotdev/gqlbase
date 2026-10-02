@@ -5,5 +5,6 @@ export {
   DEFAULT_TRANSFORMER_OPTIONS,
   resolveTransformerOptions,
   type OperationType,
+  type TenancyScopeOptions,
   type TransformerOptions,
 } from "./TransformerOptions.js";

@@ -20,17 +20,11 @@
 # ------------------------------------------------------------------------------
 
 """
-Ephemeral shopping cart. Carts are unauthenticated-friendly (linked to a
-session token) and merged into the user's cart on login. Carts expire after
-`CART_TTL_HOURS` of inactivity (configurable per environment).
+Ephemeral shopping cart, owned by a signed-in user (the `user` tenancy scope).
+Carts expire after `CART_TTL_HOURS` of inactivity (configurable per environment).
 """
-type Cart implements Node & Timestamped @model @scope(allow: [SHOP]) {
+type Cart implements Node & Timestamped @model @scope(name: user) @access(allow: [SHOP]) {
   id: UUID!
-
-  """
-  Null for guest carts; set on login or registration.
-  """
-  userId: UUID @serverOnly
   sessionToken: String! @serverOnly
 
   items: [CartItem!]! @hasMany
@@ -57,7 +51,7 @@ type Cart implements Node & Timestamped @model @scope(allow: [SHOP]) {
   updatedAt: DateTime! @readOnly
 }
 
-type CartItem implements Node & Timestamped @model @scope(allow: [SHOP]) {
+type CartItem implements Node & Timestamped @model @access(allow: [SHOP]) {
   id: UUID!
   cartId: UUID! @serverOnly
   variantId: UUID!
@@ -91,10 +85,12 @@ Top-level order placed by a customer. Contains one or more `VendorOrder`
 groups. Payment is captured at this level; disbursement to vendors happens
 at the `VendorOrder` level after fulfillment.
 """
-type Order implements Node & Timestamped & Versioned @model @scope(allow: [ADMIN, SHOP]) {
+type Order implements Node & Timestamped & Versioned
+  @model
+  @scope(name: user)
+  @access(allow: [ADMIN, SHOP]) {
   id: UUID!
   version: Int! @readOnly
-  userId: UUID! @serverOnly
 
   """
   Human-readable order number with a prefix and sequence.
@@ -227,11 +223,13 @@ enum OrderCancellationReason {
 The portion of an `Order` that belongs to a single vendor.
 Vendors only see and manage their own VendorOrders.
 """
-type VendorOrder implements Node & Timestamped & Versioned @model @scope(allow: [ADMIN, VENDOR]) {
+type VendorOrder implements Node & Timestamped & Versioned
+  @model
+  @scope(name: vendor)
+  @access(allow: [ADMIN, VENDOR]) {
   id: UUID!
   version: Int! @readOnly
   orderId: UUID! @serverOnly
-  vendorId: UUID! @serverOnly
 
   """
   Vendor-facing reference number. Format: `VO-<vendorShortCode>-XXXXX`.
@@ -240,13 +238,13 @@ type VendorOrder implements Node & Timestamped & Versioned @model @scope(allow: 
 
   status: VendorOrderStatus!
   subtotal: Money!
-  commissionAmount: Money! @readOnly @scope(allow: [ADMIN])
-  vendorNetAmount: Money! @readOnly @scope(allow: [ADMIN, VENDOR])
+  commissionAmount: Money! @readOnly @access(allow: [ADMIN])
+  vendorNetAmount: Money! @readOnly @access(allow: [ADMIN, VENDOR])
 
   lineItems: [LineItem!]! @hasMany
   fulfillment: Fulfillment @hasOne(key: "vendorOrderId")
 
-  vendorNotes: String @constraint(max: 1000) @scope(allow: [ADMIN, VENDOR])
+  vendorNotes: String @constraint(max: 1000) @access(allow: [ADMIN, VENDOR])
   acknowledgedAt: DateTime @readOnly
   estimatedReadyAt: DateTime
 
@@ -276,7 +274,7 @@ enum VendorOrderStatus {
 Individual item within a vendor order. All monetary fields are snapshot values
 captured at checkout time and are immutable.
 """
-type LineItem implements Node & Timestamped @model @scope(allow: [ADMIN, VENDOR, SHOP]) {
+type LineItem implements Node & Timestamped @model @access(allow: [ADMIN, VENDOR, SHOP]) {
   id: UUID!
   vendorOrderId: UUID! @serverOnly
   variantId: UUID!
@@ -286,7 +284,7 @@ type LineItem implements Node & Timestamped @model @scope(allow: [ADMIN, VENDOR,
   """
   productName: String!
   variantName: String!
-  sku: String @scope(allow: [ADMIN, VENDOR])
+  sku: String @access(allow: [ADMIN, VENDOR])
 
   quantity: Int! @constraint(min: 1)
   unitPrice: Money!
@@ -303,8 +301,8 @@ type LineItem implements Node & Timestamped @model @scope(allow: [ADMIN, VENDOR,
   """
   For weight-based products: actual measured weight at fulfillment.
   """
-  actualWeight: Float @scope(allow: [ADMIN, VENDOR])
-  actualWeightUnit: WeightUnit @scope(allow: [ADMIN, VENDOR])
+  actualWeight: Float @access(allow: [ADMIN, VENDOR])
+  actualWeightUnit: WeightUnit @access(allow: [ADMIN, VENDOR])
 
   notes: String @constraint(max: 300)
 
@@ -336,7 +334,7 @@ enum LineItemFulfillmentStatus {
 Physical fulfillment record for a VendorOrder. One fulfillment per
 VendorOrder. Contains tracking info and delivery confirmation.
 """
-type Fulfillment implements Node & Timestamped @model @scope(allow: [ADMIN, VENDOR]) {
+type Fulfillment implements Node & Timestamped @model @access(allow: [ADMIN, VENDOR]) {
   id: UUID!
   vendorOrderId: UUID! @serverOnly
 
@@ -397,7 +395,7 @@ Append-only audit log of significant events on an order.
 Rendered as a customer-visible timeline in the shop scope and a
 detailed internal log in admin/vendor scopes.
 """
-type OrderTimelineEvent implements Node & Timestamped @model @scope(allow: [ADMIN, VENDOR, SHOP]) {
+type OrderTimelineEvent implements Node & Timestamped @model @access(allow: [ADMIN, VENDOR, SHOP]) {
   id: UUID!
   orderId: UUID! @serverOnly
   vendorOrderId: UUID @serverOnly
@@ -413,11 +411,11 @@ type OrderTimelineEvent implements Node & Timestamped @model @scope(allow: [ADMI
   """
   Detailed internal note for staff.
   """
-  internalMessage: String @constraint(max: 1000) @scope(allow: [ADMIN, VENDOR])
+  internalMessage: String @constraint(max: 1000) @access(allow: [ADMIN, VENDOR])
   """
   Machine-readable metadata (e.g. tracking info, status transition).
   """
-  metadata: JSON @scope(allow: [ADMIN, VENDOR])
+  metadata: JSON @access(allow: [ADMIN, VENDOR])
 
   createdAt: DateTime! @readOnly
   updatedAt: DateTime! @readOnly

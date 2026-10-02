@@ -14,9 +14,11 @@ Tokenized payment method stored via the payment processor.
 The platform never stores raw card numbers — only processor tokens and
 display-safe metadata.
 """
-type PaymentMethod implements Node & Timestamped @model @scope(allow: [ADMIN, SHOP]) {
+type PaymentMethod implements Node & Timestamped
+  @model
+  @scope(name: user)
+  @access(allow: [ADMIN, SHOP]) {
   id: UUID!
-  userId: UUID! @serverOnly
 
   type: PaymentMethodType!
   """
@@ -73,7 +75,7 @@ Records every payment operation against an Order.
 The lifecycle is: PENDING → (AUTHORIZED → CAPTURED | VOIDED) or FAILED.
 Refunds produce new Transaction records with type REFUND.
 """
-type PaymentTransaction implements Node & Timestamped @model @scope(allow: [ADMIN, SHOP]) {
+type PaymentTransaction implements Node & Timestamped @model @access(allow: [ADMIN, SHOP]) {
   id: UUID!
   orderId: UUID! @serverOnly
   paymentMethodId: UUID @serverOnly
@@ -137,9 +139,11 @@ enum TransactionStatus {
 Scheduled or completed disbursement to a vendor. Payouts aggregate earnings
 from one or more fulfilled VendorOrders minus platform commission.
 """
-type VendorPayout implements Node & Timestamped @model @scope(allow: [ADMIN, VENDOR]) {
+type VendorPayout implements Node & Timestamped
+  @model
+  @scope(name: vendor)
+  @access(allow: [ADMIN, VENDOR]) {
   id: UUID!
-  vendorId: UUID! @serverOnly
 
   status: PayoutStatus!
   grossAmount: Money!
@@ -202,7 +206,7 @@ enum PayoutStatus {
 Tracks refund decisions, which may be partial (specific line items)
 or full (entire order). Generates a REFUND PaymentTransaction on approval.
 """
-type Refund implements Node & Timestamped & Auditable @model @scope(allow: [ADMIN, VENDOR]) {
+type Refund implements Node & Timestamped & Auditable @model @access(allow: [ADMIN, VENDOR]) {
   id: UUID!
   orderId: UUID! @serverOnly
   vendorOrderId: UUID @serverOnly
@@ -211,7 +215,7 @@ type Refund implements Node & Timestamped & Auditable @model @scope(allow: [ADMI
   type: RefundType!
   reason: RefundReason!
   customerNote: String @constraint(max: 1000)
-  internalNote: String @constraint(max: 1000) @scope(allow: [ADMIN])
+  internalNote: String @constraint(max: 1000) @access(allow: [ADMIN])
 
   requestedAmount: Money!
   approvedAmount: Money @readOnly
@@ -270,7 +274,7 @@ free-delivery discounts with flexible targeting rules.
 """
 type Coupon implements Node & Timestamped & Auditable & SoftDeletable
   @model
-  @scope(allow: [ADMIN]) {
+  @access(allow: [ADMIN]) {
   id: UUID!
 
   code: String! @constraint(pattern: "^[A-Z0-9-]{3,30}$")
@@ -312,7 +316,7 @@ type Coupon implements Node & Timestamped & Auditable & SoftDeletable
   """
   firstTimeCustomerOnly: Boolean!
 
-  redemptions: [CouponRedemption!]! @hasMany @scope(allow: [ADMIN])
+  redemptions: [CouponRedemption!]! @hasMany @access(allow: [ADMIN])
 
   createdAt: DateTime! @readOnly
   updatedAt: DateTime! @readOnly
@@ -328,11 +332,13 @@ enum DiscountType {
   FREE_DELIVERY
 }
 
-type CouponRedemption implements Node & Timestamped @model @scope(allow: [ADMIN]) {
+type CouponRedemption implements Node & Timestamped
+  @model
+  @scope(name: user)
+  @access(allow: [ADMIN]) {
   id: UUID!
   couponId: UUID! @serverOnly
   orderId: UUID! @serverOnly
-  userId: UUID! @serverOnly
 
   discountApplied: Money!
 

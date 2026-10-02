@@ -14,12 +14,12 @@ a fulfilled order containing the product. One review per user per product.
 """
 type Review implements Node & Timestamped & SoftDeletable & Versioned
   @model
-  @scope(allow: [ADMIN, VENDOR, SHOP]) {
+  @scope(name: user)
+  @access(allow: [ADMIN, VENDOR, SHOP]) {
   id: UUID!
   version: Int! @readOnly
 
   productId: UUID! @serverOnly
-  userId: UUID! @serverOnly
   """
   The order that entitles this review. Used for verified-purchase badge.
   """
@@ -35,9 +35,9 @@ type Review implements Node & Timestamped & SoftDeletable & Versioned
   """
   isVerifiedPurchase: Boolean! @readOnly
 
-  moderationStatus: ModerationStatus! @readOnly @scope(allow: [ADMIN])
-  moderatedAt: DateTime @readOnly @scope(allow: [ADMIN])
-  moderatorNotes: String @scope(allow: [ADMIN]) @constraint(max: 1000)
+  moderationStatus: ModerationStatus! @readOnly @access(allow: [ADMIN])
+  moderatedAt: DateTime @readOnly @access(allow: [ADMIN])
+  moderatorNotes: String @access(allow: [ADMIN]) @constraint(max: 1000)
 
   """
   Number of "helpful" votes from other customers.
@@ -46,7 +46,7 @@ type Review implements Node & Timestamped & SoftDeletable & Versioned
   """
   Number of "report" flags submitted against this review.
   """
-  reportCount: Int! @readOnly @scope(allow: [ADMIN])
+  reportCount: Int! @readOnly @access(allow: [ADMIN])
 
   response: ReviewResponse @hasOne(key: "reviewId")
   product: Product! @hasOne
@@ -75,16 +75,16 @@ One response per review; the vendor may edit but not delete.
 """
 type ReviewResponse implements Node & Timestamped & Versioned
   @model
-  @scope(allow: [ADMIN, VENDOR, SHOP]) {
+  @scope(name: vendor)
+  @access(allow: [ADMIN, VENDOR, SHOP]) {
   id: UUID!
   version: Int! @readOnly
   reviewId: UUID! @serverOnly
-  vendorId: UUID! @serverOnly
   respondedByUserId: UUID! @serverOnly
 
   body: String! @constraint(min: 1, max: 2000)
 
-  moderationStatus: ModerationStatus! @readOnly @scope(allow: [ADMIN])
+  moderationStatus: ModerationStatus! @readOnly @access(allow: [ADMIN])
 
   review: Review! @hasOne
   vendor: Vendor! @hasOne
@@ -101,10 +101,9 @@ type ReviewResponse implements Node & Timestamped & Versioned
 Tracks per-user votes on review helpfulness. Used to rank reviews.
 One vote per user per review, enforced by unique constraint.
 """
-type ReviewVote implements Node & Timestamped @model @scope(allow: [SHOP]) {
+type ReviewVote implements Node & Timestamped @model @scope(name: user) @access(allow: [SHOP]) {
   id: UUID!
   reviewId: UUID! @serverOnly
-  userId: UUID! @serverOnly
 
   vote: ReviewVoteType!
 
@@ -128,7 +127,7 @@ enum ReviewVoteType {
 Customer-submitted flag indicating a review may violate community guidelines.
 Triggers moderation queue entry.
 """
-type ReviewReport implements Node & Timestamped @model @scope(allow: [ADMIN]) {
+type ReviewReport implements Node & Timestamped @model @access(allow: [ADMIN]) {
   id: UUID!
   reviewId: UUID! @serverOnly
   reporterUserId: UUID! @serverOnly

@@ -40,6 +40,7 @@ The entries were checked by running the transformer.
 | `@updateOnly` | ✓ | — | ✓ | — ² | ✓ | ✓ | — / ✓ | ✓ |
 | `@filterOnly` | ✓ | — ² | — ² | ✓ | ✓ | ✓ | — / — ² | ✓ |
 | relation field (`@hasOne`…) | ✓ | — | — | — | ✓ (optional) | — | — / — | relation, not a column |
+| tenancy claim (added, `@serverOnly`, see [Tenancy](./tenancy.md)) | — | — | — | — | — | — | — / — | ✓ |
 | relation key (added, `@serverOnly @writeOnly`) | — | — | — | — | — | — | — / — | ✓ |
 
 1. Clients cannot filter on a value they cannot read. Add `@filterOnly` to a `@writeOnly` field to filter on it anyway.

@@ -15,7 +15,7 @@ and driven by the access token's active scope.
 """
 type User implements Timestamped & SoftDeletable & Versioned
   @model(operations: [UPDATE])
-  @scope(allow: [ADMIN, VENDOR, SHOP]) {
+  @access(allow: [ADMIN, VENDOR, SHOP]) {
   id: UUID!
   version: Int @readOnly @semanticNonNull
 
@@ -31,12 +31,12 @@ type User implements Timestamped & SoftDeletable & Versioned
   fullName: String @clientOnly
 
   avatarUrl: URL
-  # roles: [Role] @semanticNonNull(levels: [0, 1]) @readOnly @scope(allow: [ADMIN])
+  # roles: [Role] @semanticNonNull(levels: [0, 1]) @readOnly @access(allow: [ADMIN])
 
   emailVerifiedAt: DateTime @readOnly
   phoneVerifiedAt: DateTime @readOnly
   lastLoginAt: DateTime @serverOnly
-  loginCount: Int @serverOnly @scope(allow: [ADMIN])
+  loginCount: Int @serverOnly @access(allow: [ADMIN])
 
   locale: Locale
   timezone: String @constraint(max: 64)
@@ -47,7 +47,7 @@ type User implements Timestamped & SoftDeletable & Versioned
   """
   Active vendor membership, if any. Null for pure customers.
   """
-  vendorMembership: VendorMember @hasOne @scope(allow: [ADMIN, VENDOR])
+  vendorMembership: VendorMember @hasOne @access(allow: [ADMIN, VENDOR])
 
   createdAt: DateTime @semanticNonNull @readOnly
   updatedAt: DateTime @semanticNonNull @readOnly
@@ -70,9 +70,11 @@ enum Locale {
 Postal address attached to a user. Addresses are soft-referenced by orders
 at snapshot time so edits here do not retroactively change historical records.
 """
-type Address implements Node & Timestamped @model @scope(allow: [ADMIN, VENDOR, SHOP]) {
+type Address implements Node & Timestamped
+  @model
+  @scope(name: user)
+  @access(allow: [ADMIN, VENDOR, SHOP]) {
   id: UUID!
-  userId: UUID! @serverOnly
 
   label: AddressLabel @semanticNonNull
   recipientName: String @constraint(max: 200)
@@ -105,7 +107,10 @@ enum AddressLabel {
 Per-user settings and preference flags. One-to-one with User.
 Split from User to keep the core record lean.
 """
-type UserPreferences implements Node @model(operations: [UPDATE]) @scope(allow: [ADMIN, SHOP]) {
+type UserPreferences implements Node
+  @model(operations: [UPDATE])
+  @scope(name: user)
+  @access(allow: [ADMIN, SHOP]) {
   id: UUID!
 
   emailNotifications: Boolean @semanticNonNull
@@ -144,9 +149,11 @@ enum DietaryTag {
 Refresh token family for token rotation. Stored server-side;
 the client only ever holds the opaque token string.
 """
-type RefreshTokenFamily implements Node & Timestamped @model @scope(allow: [ADMIN]) {
+type RefreshTokenFamily implements Node & Timestamped
+  @model
+  @scope(name: user)
+  @access(allow: [ADMIN]) {
   id: UUID!
-  userId: UUID! @serverOnly
 
   tokenHash: String! @serverOnly
   familyId: UUID! @serverOnly
@@ -168,9 +175,11 @@ type RefreshTokenFamily implements Node & Timestamped @model @scope(allow: [ADMI
 Tracks password-reset and email-verification tokens.
 Single-use; consumed flag prevents replay.
 """
-type VerificationToken implements Node & Timestamped @model @scope(allow: [ADMIN]) {
+type VerificationToken implements Node & Timestamped
+  @model
+  @scope(name: user)
+  @access(allow: [ADMIN]) {
   id: UUID!
-  userId: UUID! @serverOnly
 
   tokenHash: String! @serverOnly
   purpose: VerificationPurpose!
@@ -193,5 +202,5 @@ extend type Query {
   """
   Fetch the currently authenticated user's account.
   """
-  me: User @scope(allow: [ADMIN, VENDOR, SHOP])
+  me: User @access(allow: [ADMIN, VENDOR, SHOP])
 }
