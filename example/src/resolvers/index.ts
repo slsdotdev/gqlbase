@@ -1,6 +1,7 @@
 import { defineResolvers } from "@middy-appsync/graphql";
 import category from "./category";
 import exchangeRate from "./exchangeRate";
+import integration from "./integration";
 import ledgerEntry from "./ledgerEntry";
 import operatingSchedule from "./operatingSchedule";
 import product from "./product";
@@ -13,6 +14,7 @@ import viewer from "./viewer";
 export const resolvers = defineResolvers(
   category,
   exchangeRate,
+  integration,
   ledgerEntry,
   operatingSchedule,
   product,

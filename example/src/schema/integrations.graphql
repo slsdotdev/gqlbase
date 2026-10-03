@@ -1,0 +1,32 @@
+# ------------------------------------------------------------------------------
+# Integrations: a model in another data source
+# ------------------------------------------------------------------------------
+
+"""
+A vendor's connection to an external accounting or shipping provider. Integrations are owned by
+the integrations service, not the database (`@dataSource(name: integrations)`): they get the same
+operations, tenancy claim and relation keys as any model, but no table.
+"""
+type Integration
+  @model(operations: [READ, CREATE])
+  @dataSource(name: integrations)
+  @scope(name: vendor)
+  @access(allow: [VENDOR]) {
+  id: UUID!
+  provider: IntegrationProvider!
+  externalAccountId: String! @constraint(min: 1, max: 200)
+}
+
+extend type LedgerEntry {
+  """
+  The integration that synced the entry, if any: a relation across data sources. The key is a
+  column of the ledger table; the integration is fetched from the service.
+  """
+  integration: Integration @belongsTo
+}
+
+enum IntegrationProvider {
+  QUICKBOOKS
+  XERO
+  SHIPPO
+}

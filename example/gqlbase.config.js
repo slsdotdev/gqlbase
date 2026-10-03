@@ -16,6 +16,11 @@ export default defineConfig({
       vendor: { claims: { vendorId: "UUID" } },
       user: { claims: { userId: "UUID" } },
     },
+    // Most models are dsqlbase tables. Integrations live in an external service: they get an API, no table.
+    dataSources: {
+      db: { type: "dsqlbase", default: true },
+      integrations: { type: "service" },
+    },
   },
   plugins: [
     appsyncPreset({
