@@ -13,7 +13,7 @@ plugins: [drizzleSchemaGeneratorPlugin({ scalarMap: { Decimal: "numeric" } })];
 The plugin is `DrizzleSchemaGeneratorPlugin` (`packages/plugins/src/drizzle/DrizzleSchemaGeneratorPlugin/DrizzleSchemaGeneratorPlugin.ts`). It writes `drizzle/<fileName>`, which imports:
 - `relations` from `drizzle-orm`;
 - column builders from `drizzle-orm/pg-core`;
-- object types from `../schema.types.js`.
+- object types from `../schema.types.js`, as `<Type>OwnFields`.
 
 | Option | Default | Description |
 | --- | --- | --- |

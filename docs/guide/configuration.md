@@ -97,7 +97,7 @@ The core plugins and their helpers (`isModel`, `isRelationField`, `isSemanticNul
 | File (relative to `output`) | Written by |
 | --- | --- |
 | `schema.graphql` | `SchemaGeneratorPlugin` |
-| `schema.types.ts` | `ModelTypesGeneratorPlugin`: types that match `schema.graphql`. Capability plugins import from it and re-export what they use. |
+| `schema.types.ts` | `ModelTypesGeneratorPlugin`: support types that match `schema.graphql` (see [Schema types](#schema-types)). Capability plugins build on them. |
 | `appsync/schema.graphql` | `AppSyncSchemaGeneratorPlugin` |
 | `appsync/middy-appsync.types.ts` | `MiddyAppSyncGraphQLPlugin` |
 | `zod/schema.validators.ts` | `ZodSchemaGeneratorPlugin` (`fileName` option) |
@@ -117,6 +117,34 @@ const output = transformer.transform(sdlString);
 output.schema; // printed schema.graphql
 output.files; // [{ type, path, filename, content }]
 ```
+
+### Schema types
+
+`schema.types.ts` holds support types for every generator and application to build on. It matches `schema.graphql`: only public fields and definitions.
+
+```ts
+export type Scalars = {
+  ID: { input: string; output: string };
+  AWSJSON: { input: string; output: Record<string, unknown> };
+};
+export type PostOwnFields = { id: Scalars["ID"]["output"]; title: Scalars["String"]["output"]; price: MoneyFull };
+export type PostRelations = { author?: Maybe<AuthorFull> };
+export type PostFull = PostOwnFields & PostRelations;
+export type FeedItem = AuthorFull | PostFull;
+```
+
+- **Every object and interface has three parts:**
+  - `<Type>OwnFields`: its fields, without relations;
+  - `<Type>Relations`: its relations, all optional, since each has its own resolver;
+  - `<Type>Full`: both.
+
+  Types without relations get the same three parts (an empty `<Type>Relations`). There is no type under the bare name. Fields reference the `Full` part of other types.
+- **`Scalars`** maps every built-in and public scalar to its `input` and `output` type, from its [type hint](./scalars.md#type-hints). Fields read `output` and input fields read `input`.
+- Unions, inputs and enums keep their name. A union is a union of its members' `Full` parts.
+- **There is no `__typename`.** It is a resolver concern (see [AppSync types](./appsync.md#appsync-types)).
+- A schema type named like a generated one (`PostFull`, `Scalars`, `Maybe`) throws.
+
+The stored outputs reference `<Type>OwnFields`: an object column in dsqlbase or Drizzle holds the stored shape, without relations.
 
 `createTransformer` takes the [transformer options](#transformer-options) at the top level, next to `plugins`, with the same defaults. `transform()` returns `{ schema, files }` merged with whatever each plugin's `output()` returns (`schemaTypes` holds the content of `schema.types.ts`). Nothing is written to disk; the CLI does that.
 
@@ -158,6 +186,9 @@ output.files; // [{ type, path, filename, content }]
 **Output changes to check.**
 
 - `schema.types.ts` matches `schema.graphql`: it no longer has `@serverOnly` or `@writeOnly` fields, relation keys or unused definitions. Resolver code that reads those from a parent uses the AppSync `<Type>Source` type, which its `source` now has.
+- `appsyncPreset({ middyAppSync: { relationsOnly } })` is replaced by `resolvers`: `relationsOnly: true` → `resolvers: "declared"` (the default), `relationsOnly: false` → `resolvers: "all"`. `"declared"` also types [`@computed`](./appsync.md#computed-fields) fields.
+- `appsync/middy-appsync.types.ts` declares an [AppSync version](./appsync.md#appsync-types) of each object, interface and union under its schema name, and re-exports only enums, inputs and `Scalars`. Import resolver types from it rather than from `schema.types`.
+- `schema.types.ts` splits each object and interface into `<Type>OwnFields`, `<Type>Relations` and `<Type>Full`, and the bare name is gone: `Post` → `PostFull` (or `PostOwnFields` for a stored shape). Scalars are typed through `Scalars["<Name>"]["input" | "output"]`. `__typename` and `RequiredTypename` are gone. See [Schema types](#schema-types).
 - Unused enums, inputs, unions and scalars are no longer printed in `schema.graphql` or the AppSync schema.
 - Without Relay, `@hasMany` fields and list queries return `[T!]` (was `[T]`), or `[T!]!` for a non-null field. `relationPlugin({ usePaginationTypes })` and its `{ items, nextToken }` shape are removed.
 

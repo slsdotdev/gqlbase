@@ -29,7 +29,7 @@ import { InternalDirective, TypeHintValue } from "./InternalUtilsPlugin.utils.js
  *
  * directive `@gqlbase_internal` on ARGUMENT_DEFINITION | ENUM | ENUM_VALUE | FIELD_DEFINITION | INPUT_FIELD_DEFINITION | INTERFACE | OBJECT | SCALAR | UNION
  *
- * directive `@gqlbase_typehint(type: TypeHint!)` on SCALAR
+ * directive `@gqlbase_typehint(type: TypeHint!, input: TypeHint)` on SCALAR
  *
  * directive `@gqlbase_tuple(size: Int!)` on INPUT_FIELD_DEFINITION
  *
@@ -82,7 +82,10 @@ export class InternalUtilsPlugin implements ITransformerPlugin {
           InternalDirective.TYPE_HINT,
           undefined,
           ["SCALAR"],
-          InputValueNode.create("type", undefined, undefined, NonNullTypeNode.create("TypeHint"))
+          [
+            InputValueNode.create("type", undefined, undefined, NonNullTypeNode.create("TypeHint")),
+            InputValueNode.create("input", undefined, undefined, "TypeHint"),
+          ]
         )
       )
       .addNode(
@@ -115,19 +118,22 @@ export class InternalUtilsPlugin implements ITransformerPlugin {
       return;
     }
 
-    const argument = definition.getDirective(InternalDirective.TYPE_HINT)?.getArgument("type");
-
-    if (!argument) {
-      return;
-    }
-
+    const directive = definition.getDirective(InternalDirective.TYPE_HINT);
     const allowed = Object.values(TypeHintValue) as string[];
 
-    if (argument.value.kind !== Kind.ENUM || !allowed.includes(argument.value.value)) {
-      throw new TransformerPluginExecutionError(
-        this.name,
-        `Invalid @${InternalDirective.TYPE_HINT} on scalar ${definition.name}: "type" must be one of the enum values ${allowed.join(", ")} (for example \`type: string\`, not \`type: "string"\`).`
-      );
+    for (const name of ["type", "input"]) {
+      const argument = directive?.getArgument(name);
+
+      if (!argument) {
+        continue;
+      }
+
+      if (argument.value.kind !== Kind.ENUM || !allowed.includes(argument.value.value)) {
+        throw new TransformerPluginExecutionError(
+          this.name,
+          `Invalid @${InternalDirective.TYPE_HINT} on scalar ${definition.name}: "${name}" must be one of the enum values ${allowed.join(", ")} (for example \`${name}: string\`, not \`${name}: "string"\`).`
+        );
+      }
     }
   }
 

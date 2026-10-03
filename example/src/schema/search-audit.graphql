@@ -15,6 +15,13 @@ Clients use inline fragments to handle each result type.
 """
 union SearchResult = ProductSearchHit | VendorSearchHit | MarketLocationSearchHit
 
+extend type Query {
+  """
+  Products and market locations whose name contains the query.
+  """
+  search(query: String!): [SearchResult!]!
+}
+
 type ProductSearchHit {
   product: Product!
   """

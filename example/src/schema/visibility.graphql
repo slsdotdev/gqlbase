@@ -4,8 +4,15 @@
 type ImportJob @model @serverOnly {
   id: UUID!
   source: String!
-  status: String!
+  status: ImportJobStatus!
   startedAt: DateTime!
+}
+
+# Reached only through ImportJob, so nothing public uses it: left out of the schema.
+enum ImportJobStatus {
+  RUNNING
+  SUCCEEDED
+  FAILED
 }
 
 # Resolved at runtime and never stored: read operations only, no table.

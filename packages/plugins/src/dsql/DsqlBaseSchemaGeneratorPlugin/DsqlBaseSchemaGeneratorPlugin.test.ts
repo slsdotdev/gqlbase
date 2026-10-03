@@ -76,8 +76,12 @@ describe("type-level visibility in stored outputs", () => {
   });
 
   it("imports and re-exports public column types from the schema types", () => {
-    expect(tables).toMatch(/import \{[^}]*type Address[^}]*\} from "\.\.\/schema\.types\.js";/);
-    expect(tables).toMatch(/export type \{[^}]*\bAddress\b[^}]*\} from "\.\.\/schema\.types\.js";/);
+    expect(tables).toMatch(
+      /import \{[^}]*type AddressOwnFields[^}]*\} from "\.\.\/schema\.types\.js";/
+    );
+    expect(tables).toMatch(
+      /export type \{[^}]*\bAddressOwnFields\b[^}]*\} from "\.\.\/schema\.types\.js";/
+    );
   });
 
   it("declares a column type locally when the schema types do not export it", () => {

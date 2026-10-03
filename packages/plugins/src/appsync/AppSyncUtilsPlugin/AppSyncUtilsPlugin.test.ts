@@ -38,11 +38,11 @@ describe("AppSyncUtilsPlugin", () => {
       expect(hint?.getArgumentsJSON()).toEqual({ type: "number" });
     });
 
-    it("maps AWSJSON to object type hint", () => {
+    it("maps AWSJSON to an object, read from a string on input", () => {
       const node = context.document.getNode("AWSJSON") as ScalarNode;
       const hint = node.getDirective("gqlbase_typehint");
       expect(hint).toBeDefined();
-      expect(hint?.getArgumentsJSON()).toEqual({ type: "object" });
+      expect(hint?.getArgumentsJSON()).toEqual({ type: "object", input: "string" });
     });
 
     it("maps string-based scalars to string type hint", () => {

@@ -15,6 +15,8 @@ The utility directives are declared by `UtilitiesPlugin` (`packages/core/src/plu
 | `@filterOnly` | Accepted only in filters. |
 | `@constraint(min, max, pattern)` | Validation rule consumed by generators (Zod today). |
 
+`@computed`, declared by the AppSync capability, is not a visibility directive: it marks a field with its own resolver, and combines with any of these. `@computed @clientOnly` is computed on every read; `@computed` alone is a column that a resolver may compute while it is unset. See [AppSync → Computed fields](./appsync.md#computed-fields).
+
 ## What each generator does
 
 One core rule decides what reaches the client schema: `isPublicSchemaField(field, parent)` (`packages/core/src/plugins/SchemaGeneratorPlugin/SchemaGeneratorPlugin.utils.ts`). A field is public unless it is `@serverOnly`, `@writeOnly` or internal. The public SDL, the TS schema types, the AppSync resolver types and the Zod object schemas all use it. The inputs apply their own rules, and the Zod create/update schemas follow the inputs. The database and the AppSync `<Type>Source` types describe the stored row. The table was derived from the code:
@@ -39,7 +41,7 @@ The entries were checked by running the transformer.
 | `@createOnly` | ✓ | ✓ | — | — ² | ✓ | ✓ | ✓ / — | ✓ |
 | `@updateOnly` | ✓ | — | ✓ | — ² | ✓ | ✓ | — / ✓ | ✓ |
 | `@filterOnly` | ✓ | — ² | — ² | ✓ | ✓ | ✓ | — / — ² | ✓ |
-| relation field (`@hasOne`…) | ✓ | — | — | — | ✓ (optional) | — | — / — | relation, not a column |
+| relation field (`@hasOne`…) | ✓ | — | — | — | ✓ (optional, in `<Type>Relations`) | — | — / — | relation, not a column |
 | tenancy claim (added, `@serverOnly`, see [Tenancy](./tenancy.md)) | — | — | — | — | — | — | — / — | ✓ |
 | relation key (added, `@serverOnly @writeOnly`) | — | — | — | — | — | — | — / — | ✓ |
 

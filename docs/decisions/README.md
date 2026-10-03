@@ -13,6 +13,7 @@ These are accepted design decisions, numbered in the order they were accepted. A
 | [0003](./0003-core-plugins-and-transformer-options.md) | Core plugins, transformer options, and a schema that matches its types | 2026-09-30 | accepted |
 | [0004](./0004-filters-ordering-and-relation-keys.md) | One filter vocabulary, `orderBy` maps, and relation keys only between stored types | 2026-10-02 | accepted |
 | [0005](./0005-tenancy-scopes.md) | Tenancy scopes in config, claims as `@serverOnly` fields | 2026-10-02 | accepted |
+| [0006](./0006-resolver-typings.md) | Schema types as parts; AppSync types under the API's names; `@computed` | 2026-10-03 | accepted |
 
 ## Template
 

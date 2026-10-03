@@ -114,13 +114,13 @@ type Product implements Auditable & SoftDeletable & Versioned
   """
   Aggregated rating. Computed at read-time from reviews.
   """
-  averageRating: Float @clientOnly @readOnly
-  reviewCount: Int @clientOnly @readOnly @semanticNonNull
+  averageRating: Float @clientOnly @readOnly @computed
+  reviewCount: Int @clientOnly @readOnly @semanticNonNull @computed
 
   """
   Lowest current variant price, for display in listing cards.
   """
-  startingPrice: Money @clientOnly @readOnly @semanticNonNull
+  startingPrice: Money @clientOnly @readOnly @semanticNonNull @computed
 }
 
 enum ProductStatus {

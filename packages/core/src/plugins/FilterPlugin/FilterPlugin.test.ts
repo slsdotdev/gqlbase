@@ -343,7 +343,7 @@ describe("FilterPlugin between", () => {
 
   it("is a [low, high] pair in the TS types", () => {
     expect(types).toMatch(
-      /export type IntFilterInput = \{[^}]*between\?: Maybe<\[number, number\]>;/
+      /export type IntFilterInput = \{[^}]*between\?: Maybe<\[\s*Scalars\["Int"\]\["input"\],\s*Scalars\["Int"\]\["input"\]\s*\]>;/
     );
   });
 });

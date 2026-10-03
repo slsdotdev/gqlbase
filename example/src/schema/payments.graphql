@@ -169,7 +169,10 @@ type VendorPayout implements Node & Timestamped
   VendorOrders included in this payout batch.
   """
   vendorOrderIds: [UUID!]! @serverOnly
-  lineItemSummary: [PayoutLineItemSummary!]! @readOnly
+  """
+  Computed from the vendor orders until the payout completes, then stored and returned as is.
+  """
+  lineItemSummary: [PayoutLineItemSummary!]! @readOnly @computed
 
   vendor: Vendor! @hasOne
 

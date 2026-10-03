@@ -54,6 +54,8 @@ scalar Decimal @gqlbase_typehint(type: string)
 
 The argument is declared `type: TypeHint!`, so the value is a bare **enum literal** (`string`, not `"string"`). The allowed values are `id`, `string`, `number`, `boolean`, `object` and `unknown` (`TypeHintValue` in `packages/core/src/plugins/InternalUtilsPlugin/InternalUtilsPlugin.utils.ts`). A quoted string or any other value fails the transform with an error naming the scalar. A scalar without a hint is `unknown`.
 
+A scalar that arrives in a different form than it is returned takes an `input` hint as well, used for arguments and input fields: `scalar AWSJSON @gqlbase_typehint(type: object, input: string)` is a JSON string on input and an object on output. Without it, `input` is `type`. The schema types expose both sides in `Scalars` (see [Configuration → Schema types](./configuration.md#schema-types)).
+
 | Hint | TS | Zod | Filter input | dsqlbase column | Drizzle column | AppSync |
 | --- | --- | --- | --- | --- | --- | --- |
 | `id` | `string` | `z.string()` | ID-like | `uuid` | `uuid` | `ID` |

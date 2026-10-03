@@ -28,6 +28,7 @@ import {
   isObjectNode,
   isOperationNode,
   isScalarNode,
+  isUnionNode,
   ObjectNode,
 } from "@gqlbase/core/definition";
 import { TransformerPluginExecutionError } from "@gqlbase/shared/errors";
@@ -274,11 +275,14 @@ export class DrizzleSchemaGeneratorPlugin extends TransformerPluginBase {
     }
 
     if (isObjectLike(typeDef) && !isModel(typeDef) && !isOperationNode(typeDef)) {
+      // An object column holds the schema types' `<Type>OwnFields`: the stored shape, without relations.
+      const typeName = isUnionNode(typeDef) ? fieldTypeName : `${fieldTypeName}OwnFields`;
+
       this.drizzleImports.add("json");
-      this.typeImports.add(fieldTypeName);
+      this.typeImports.add(typeName);
 
       const columnType = this._callExp("json", [ts.factory.createStringLiteral(columnDbName)]);
-      const typeRef = ts.factory.createTypeReferenceNode(fieldTypeName);
+      const typeRef = ts.factory.createTypeReferenceNode(typeName);
 
       return this._applyColumnContraints(
         this._chainCallExp(columnType, "$type", [], [typeRef]),
