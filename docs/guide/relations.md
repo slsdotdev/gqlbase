@@ -107,7 +107,7 @@ type Viewer {
 
 ### In the generated types
 
-A relation is resolved by its own resolver, so it is optional in every generated type, even when the schema field is non-null. The schema types keep relations apart from the type's own fields: `children: CategoryConnection!` is `children?: CategoryConnectionFull` in `CategoryRelations`, not in `CategoryOwnFields` (see [Configuration → Schema types](./configuration.md#schema-types)).
+A relation is resolved by its own resolver, so it is optional in every generated type, even when the schema field is non-null. The schema types keep relations apart from the type's own fields: `children: CategoryConnection!` is `children?: CategoryConnectionFull` in `CategoryRelations`, not in `CategoryOwnFields` (see [Configuration → Schema types](./configuration.md#schema-types)). The AppSync types keep them optional too (see [AppSync types](./appsync.md#appsync-types)).
 
 ## List shape
 
