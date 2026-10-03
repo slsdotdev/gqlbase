@@ -304,16 +304,60 @@ export class RelationsPlugin implements ITransformerPlugin {
     return false;
   }
 
+  /**
+   * Without a table at both ends there is no row to key on: a resolver serves the relation, and no key field is added.
+   */
+  private _isKeyed(
+    definition: ObjectNode | InterfaceNode,
+    field: FieldNode,
+    target: RelationTarget
+  ) {
+    return !isClientOnly(field) && this._isStored(definition) && this._isStored(target);
+  }
+
+  /**
+   * A relation that gets no key can still declare one: the field its resolver queries by. It is not added (a plain parent has no id to type it
+   * with), so it must exist, on the type that would hold the key.
+   */
+  private _checkDeclaredKey(
+    definition: ObjectNode | InterfaceNode,
+    field: FieldNode,
+    relation: FieldRelationship
+  ) {
+    const directive = [
+      RelationDirective.HAS_ONE,
+      RelationDirective.HAS_MANY,
+      RelationDirective.BELONGS_TO,
+    ]
+      .map((name) => field.getDirective(name))
+      .find(Boolean);
+
+    const key = directive?.getArgumentsJSON<{ key?: string }>()?.key;
+
+    if (!key || this._isKeyed(definition, field, relation.target)) {
+      return;
+    }
+
+    const holder = isBelongsToRelationship(field) ? definition : relation.target;
+    const holders = isUnionNode(holder)
+      ? (holder.types ?? []).map((type) => this.context.document.getNode(type.getTypeName()))
+      : [holder];
+
+    for (const node of holders) {
+      if (node && (isObjectNode(node) || isInterfaceNode(node)) && !node.hasField(key)) {
+        throw new TransformerPluginExecutionError(
+          this.name,
+          `${definition.name}.${field.name} declares key "${key}", but ${node.name} has no field ${key}. A relation that is not between two stored models gets no key field, so declare it.`
+        );
+      }
+    }
+  }
+
   public normalize(definition: ObjectNode | InterfaceNode): void {
     for (const field of definition.fields ?? []) {
       const relation = this._getFieldRelation(definition, field);
 
-      if (!relation?.key || isClientOnly(field)) {
-        continue;
-      }
-
-      // Without a table at both ends there is no row to key on: a resolver serves the relation.
-      if (!this._isStored(definition) || !this._isStored(relation.target)) {
+      if (!relation?.key || !this._isKeyed(definition, field, relation.target)) {
         continue;
       }
 
@@ -342,7 +386,14 @@ export class RelationsPlugin implements ITransformerPlugin {
     for (const field of definition.fields ?? []) {
       const relation = this._getFieldRelation(definition, field);
 
-      if (!relation || relation.type === "oneToOne") {
+      if (!relation) {
+        continue;
+      }
+
+      // In execute, so keys that other types add while normalizing are there.
+      this._checkDeclaredKey(definition, field, relation);
+
+      if (relation.type === "oneToOne") {
         continue;
       }
 

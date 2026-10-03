@@ -95,6 +95,16 @@ Without one the transform throws, naming the relation and the type ("Relation Lo
 
 A relation field marked `@clientOnly` gets no key field, whatever its ends. It is still reshaped (list or connection), and still counts as a relation for resolver generation.
 
+### `key:` on a relation without a key
+
+A relation that gets no key field (not between two stored types, or `@clientOnly`) can still declare `key:`: the field its resolver queries by. It is not added, since a plain parent has no `id` to type it with, so **it must exist** on the type that would hold it: the target for `@hasOne`/`@hasMany`, every member of a union target, or the type declaring a `@belongsTo`. Otherwise the transform throws ("Viewer.orders declares key "userId", but Order has no field userId."). The check runs after every type is normalized, so a key another relation adds counts.
+
+```graphql
+type Viewer {
+  orders: Order @hasMany(key: "userId") # Order must have userId, declared or added by User.orders
+}
+```
+
 ### In the generated types
 
 A relation is resolved by its own resolver, so it is optional in every generated type, even when the schema field is non-null. The schema types keep relations apart from the type's own fields: `children: CategoryConnection!` is `children?: CategoryConnectionFull` in `CategoryRelations`, not in `CategoryOwnFields` (see [Configuration → Schema types](./configuration.md#schema-types)).

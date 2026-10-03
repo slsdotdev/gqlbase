@@ -3,6 +3,7 @@ import { print } from "graphql";
 import { TransformerContext } from "../../context/index.js";
 import { DocumentNode, InterfaceNode, ListTypeNode, ObjectNode } from "../../definition/index.js";
 import { RelationsPlugin } from "./RelationsPlugin.js";
+import { createTransformer } from "../../transformer/index.js";
 
 const document = DocumentNode.fromSource(/* GraphQL */ `
   type User @model {
@@ -300,5 +301,100 @@ describe("RelationsPlugin list shape", () => {
       const drafts = user.getField("drafts")?.type;
       expect(drafts && print(drafts.serialize())).toBe("Post!");
     });
+  });
+});
+
+describe("RelationsPlugin declared key on a relation without one", () => {
+  it("accepts a key the target declares", () => {
+    expect(() =>
+      createTransformer().transform(/* GraphQL */ `
+        type Order @model {
+          id: ID!
+          userId: ID!
+        }
+
+        type Viewer {
+          orders: Order @hasMany(key: "userId")
+        }
+
+        type Query {
+          viewer: Viewer!
+        }
+      `)
+    ).not.toThrow();
+  });
+
+  it("accepts a key that another relation adds", () => {
+    expect(() =>
+      createTransformer().transform(/* GraphQL */ `
+        type Viewer {
+          orders: Order @hasMany(key: "userId")
+        }
+
+        type Order @model {
+          id: ID!
+        }
+
+        type User @model {
+          id: ID!
+          orders: Order @hasMany
+        }
+
+        type Query {
+          viewer: Viewer!
+        }
+      `)
+    ).not.toThrow();
+  });
+
+  it("throws when the target of a @hasMany has no such field", () => {
+    expect(() =>
+      createTransformer().transform(/* GraphQL */ `
+        type Order @model {
+          id: ID!
+        }
+
+        type Viewer {
+          orders: Order @hasMany(key: "userId")
+        }
+
+        type Query {
+          viewer: Viewer!
+        }
+      `)
+    ).toThrow(/Viewer.orders declares key "userId", but Order has no field userId/);
+  });
+
+  it("throws when the parent of a @belongsTo has no such field", () => {
+    expect(() =>
+      createTransformer().transform(/* GraphQL */ `
+        type Invoice @model {
+          id: ID!
+        }
+
+        type Settlement {
+          invoice: Invoice @belongsTo(key: "invoiceId")
+        }
+
+        type Query {
+          settlement: Settlement
+        }
+      `)
+    ).toThrow(/Settlement.invoice declares key "invoiceId", but Settlement has no field invoiceId/);
+  });
+
+  it("checks a @clientOnly relation field too", () => {
+    expect(() =>
+      createTransformer().transform(/* GraphQL */ `
+        type Order @model {
+          id: ID!
+        }
+
+        type User @model {
+          id: ID!
+          recent: Order @hasMany(key: "buyerId") @clientOnly
+        }
+      `)
+    ).toThrow(/User.recent declares key "buyerId", but Order has no field buyerId/);
   });
 });
