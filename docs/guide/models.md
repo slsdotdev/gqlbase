@@ -194,7 +194,7 @@ input PricingModelFilterInput {
 - `where` follows the same rules as a model's filter, with its own `and`, `or` and `not`, to any depth. A type that refers to itself reuses its filter.
 - A union field gets `exists` only: its members share no fields.
 - Lists of objects are not filterable. See [Known gaps](../internals/known-gaps.md).
-- dsqlbase 0.1.6 cannot run a nested `where` yet (see [dsqlbase](./dsqlbase.md)), and AppSync DynamoDB resolvers drop it (see [AppSync](./appsync.md#dynamodb-filters)).
+- dsqlbase cannot run a nested `where` on a `json` column yet (see [dsqlbase](./dsqlbase.md)), and AppSync DynamoDB resolvers drop it (see [AppSync](./appsync.md#dynamodb-filters)).
 
 #### Migrating from the 0.1 operators
 

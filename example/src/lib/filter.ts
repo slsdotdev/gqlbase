@@ -11,7 +11,7 @@ export type WithoutNulls<T> = T extends readonly unknown[]
  * Generated filters use dsqlbase's operators, so a filter is a dsqlbase `where` as it is (see
  * `test/where.types.ts`). The only difference is GraphQL's explicit `null`: an omitted operand is
  * absent, an explicit one is `null`, which dsqlbase would read as a value. Drop them, and the
- * conditions they leave empty: dsqlbase 0.1.6 prints invalid SQL for an empty condition.
+ * conditions they leave empty: dsqlbase refuses a field condition that names no operator.
  */
 export const withoutNulls = <T>(value: T): WithoutNulls<T> => {
   if (Array.isArray(value)) {
@@ -42,17 +42,3 @@ const isEmptyObject = (value: unknown) =>
   value !== null &&
   !Array.isArray(value) &&
   Object.keys(value).length === 0;
-
-/**
- * Combines `where` conditions, dropping empty ones. dsqlbase 0.1.6 prints invalid SQL for an
- * empty `where` (`{}` or `{ and: [{}] }`), so no condition means no `where` at all.
- */
-export const allOf = <TWhere extends object>(
-  ...conditions: (TWhere | null | undefined)[]
-): TWhere | undefined => {
-  const present = conditions.filter(
-    (condition): condition is TWhere => !!condition && Object.keys(condition).length > 0
-  );
-
-  return present.length ? ({ and: present } as TWhere) : undefined;
-};

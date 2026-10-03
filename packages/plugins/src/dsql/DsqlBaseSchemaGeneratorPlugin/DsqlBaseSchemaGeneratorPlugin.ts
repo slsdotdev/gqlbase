@@ -508,10 +508,6 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
   private _indexColumnRef(column: DsqlIndexColumn): ts.Expression {
     let expression = this._columnRef(column.field);
 
-    if (column.sort === "DESC") {
-      expression = this._chainCallExp(expression, "sort", [ts.factory.createStringLiteral("DESC")]);
-    }
-
     if (column.nulls) {
       expression = this._chainCallExp(
         expression,

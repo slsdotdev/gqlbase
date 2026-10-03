@@ -22,12 +22,10 @@ export const DsqlBaseDirective = {
 } as const;
 
 export const DSQL_INDEX_COLUMN = "DsqlIndexColumn";
-export const DSQL_SORT_ORDER = "DsqlSortOrder";
 export const DSQL_NULLS_ORDER = "DsqlNullsOrder";
 
 export interface DsqlIndexColumn {
   field: string;
-  sort?: "ASC" | "DESC";
   nulls?: "FIRST" | "LAST";
 }
 

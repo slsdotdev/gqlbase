@@ -28,7 +28,6 @@ import { TransformerPluginExecutionError } from "@gqlbase/shared/errors";
 import {
   DSQL_INDEX_COLUMN,
   DSQL_NULLS_ORDER,
-  DSQL_SORT_ORDER,
   DSQLBASE_DATA_SOURCE_TYPE,
   DsqlBaseDirective,
   getIndexes,
@@ -41,9 +40,8 @@ import {
  *
  * @definition
  * ```graphql
- * enum DsqlSortOrder { ASC DESC }
  * enum DsqlNullsOrder { FIRST LAST }
- * input DsqlIndexColumn { field: String!, sort: DsqlSortOrder = ASC, nulls: DsqlNullsOrder }
+ * input DsqlIndexColumn { field: String!, nulls: DsqlNullsOrder }
  *
  * directive `@index(name: String!, columns: [DsqlIndexColumn!]!, unique: Boolean = false, include: [String!], distinctNulls: Boolean)` repeatable on OBJECT
  * directive `@unique(fields: [String!])` repeatable on OBJECT | FIELD_DEFINITION
@@ -78,18 +76,10 @@ export class DsqlBaseUtilsPlugin extends TransformerPluginBase {
     const internal = () => [DirectiveNode.create(InternalDirective.INTERNAL)];
 
     this.context.base
-      .addNode(EnumNode.create(DSQL_SORT_ORDER, undefined, internal(), ["ASC", "DESC"]))
       .addNode(EnumNode.create(DSQL_NULLS_ORDER, undefined, internal(), ["FIRST", "LAST"]))
       .addNode(
         InputObjectNode.create(DSQL_INDEX_COLUMN, undefined, undefined, [
           InputValueNode.create("field", undefined, undefined, NonNullTypeNode.create("String")),
-          InputValueNode.create(
-            "sort",
-            undefined,
-            undefined,
-            NamedTypeNode.create(DSQL_SORT_ORDER),
-            ValueNode.enum("ASC")
-          ),
           InputValueNode.create(
             "nulls",
             undefined,
@@ -297,7 +287,6 @@ export class DsqlBaseUtilsPlugin extends TransformerPluginBase {
       .removeNode(DsqlBaseDirective.INDEX)
       .removeNode(DsqlBaseDirective.UNIQUE)
       .removeNode(DSQL_INDEX_COLUMN)
-      .removeNode(DSQL_SORT_ORDER)
       .removeNode(DSQL_NULLS_ORDER);
   }
 }

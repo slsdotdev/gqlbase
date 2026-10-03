@@ -4,12 +4,10 @@ import {
   defineResolvers,
 } from "@middy-appsync/graphql";
 import { dsql } from "../lib/dsql";
-import { allOf, withoutNulls } from "../lib/filter";
+import { withoutNulls } from "../lib/filter";
 import { orderOf, pageOf, toConnection } from "../lib/connection";
 import { validate } from "../lib/validation";
 import { CreateLedgerEntryInputSchema } from "../../generated/zod/schema.validators";
-
-type LedgerEntryWhere = NonNullable<Parameters<typeof dsql.ledgerEntries.findMany>[0]["where"]>;
 
 const getLedgerEntry = createQueryResolver({
   fieldName: "getLedgerEntry",
@@ -23,7 +21,7 @@ const listLedgerEntries = createQueryResolver({
   resolve: async ({ args }) => {
     const { first, offset, limit } = pageOf(args);
     const rows = await dsql.ledgerEntries.findMany({
-      where: allOf<LedgerEntryWhere>(withoutNulls(args.filter)),
+      where: withoutNulls(args.filter) ?? undefined,
       orderBy: orderOf(args.orderBy),
       limit,
       offset,
