@@ -22,7 +22,8 @@ describe("ScalarsPlugin SafeInt", () => {
   });
 
   it("types SafeInt as number", () => {
-    expect(types).toMatch(/amount: number;/);
+    expect(types).toMatch(/SafeInt: \{\s+input: number;\s+output: number;\s+\};/);
+    expect(types).toContain('amount: Scalars["SafeInt"]["output"];');
   });
 
   it("filters SafeInt like a number", () => {

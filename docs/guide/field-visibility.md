@@ -39,7 +39,7 @@ The entries were checked by running the transformer.
 | `@createOnly` | ✓ | ✓ | — | — ² | ✓ | ✓ | ✓ / — | ✓ |
 | `@updateOnly` | ✓ | — | ✓ | — ² | ✓ | ✓ | — / ✓ | ✓ |
 | `@filterOnly` | ✓ | — ² | — ² | ✓ | ✓ | ✓ | — / — ² | ✓ |
-| relation field (`@hasOne`…) | ✓ | — | — | — | ✓ (optional) | — | — / — | relation, not a column |
+| relation field (`@hasOne`…) | ✓ | — | — | — | ✓ (optional, in `<Type>Relations`) | — | — / — | relation, not a column |
 | tenancy claim (added, `@serverOnly`, see [Tenancy](./tenancy.md)) | — | — | — | — | — | — | — / — | ✓ |
 | relation key (added, `@serverOnly @writeOnly`) | — | — | — | — | — | — | — / — | ✓ |
 

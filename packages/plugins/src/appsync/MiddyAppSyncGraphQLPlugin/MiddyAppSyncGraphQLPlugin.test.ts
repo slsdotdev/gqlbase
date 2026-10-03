@@ -44,7 +44,7 @@ describe("MiddyAppSyncGraphQLPlugin", () => {
   });
 
   it("types source as <Type>Source when the type has hidden stored fields", () => {
-    expect(content).toMatch(/export type CategorySource = Category & \{/);
+    expect(content).toMatch(/export type CategorySource = CategoryFull & \{/);
     expect(content).toMatch(/parentId\?: Maybe<string>;/);
     expect(content).toMatch(/importRef\?: Maybe<string>;/);
     expect(content).toMatch(/deletedAt\?: Maybe<string>;/);
@@ -52,7 +52,8 @@ describe("MiddyAppSyncGraphQLPlugin", () => {
   });
 
   it("leaves hidden relation fields out of <Type>Source", () => {
-    const source = content.match(/export type CategorySource = Category & \{[^}]*\}/)?.[0] ?? "";
+    const source =
+      content.match(/export type CategorySource = CategoryFull & \{[^}]*\}/)?.[0] ?? "";
 
     expect(source).toContain("parentId");
     expect(source).not.toMatch(/\bparent\??:/);
@@ -65,8 +66,12 @@ describe("MiddyAppSyncGraphQLPlugin", () => {
   });
 
   it("imports and re-exports the schema types it uses", () => {
-    expect(content).toMatch(/import type \{[^}]*\bCategory\b[^}]*\} from "\.\.\/schema\.types";/);
-    expect(content).toMatch(/export type \{[^}]*\bCategory\b[^}]*\} from "\.\.\/schema\.types";/);
+    expect(content).toMatch(
+      /import type \{[^}]*\bCategoryFull\b[^}]*\} from "\.\.\/schema\.types";/
+    );
+    expect(content).toMatch(
+      /export type \{[^}]*\bCategoryFull\b[^}]*\} from "\.\.\/schema\.types";/
+    );
   });
 
   describe("tenancy claims", () => {
@@ -94,7 +99,7 @@ describe("MiddyAppSyncGraphQLPlugin", () => {
 
     it("puts a claim on the resolver's <Type>Source", () => {
       expect(resolverTypes).toMatch(
-        /export type ProductSource = Product & \{[^}]*vendorId: string/
+        /export type ProductSource = ProductFull & \{[^}]*vendorId: string/
       );
     });
   });

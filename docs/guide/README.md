@@ -45,7 +45,7 @@ These pages describe what the library does **today**. Planned behaviour is not d
 | `@constraint(min: Float, max: Float, pattern: String)` | FIELD_DEFINITION, INPUT_FIELD_DEFINITION, ARGUMENT_DEFINITION | [Field visibility](./field-visibility.md) |
 | `@semanticNonNull(levels: [Int!]! = [0])` | FIELD_DEFINITION | [Models](./models.md#nullability-and-semanticnonnull) |
 | `@scope(name: TenancyScope!)` | OBJECT | [Tenancy](./tenancy.md) |
-| `@gqlbase_typehint(type: …)` | SCALAR | [Scalars](./scalars.md) |
+| `@gqlbase_typehint(type: …, input: …)` | SCALAR | [Scalars](./scalars.md) |
 | `@gqlbase_internal` | most locations | [Scalars](./scalars.md#internal-definitions) |
 | `@aws_*` | OBJECT, FIELD_DEFINITION | [AppSync](./appsync.md) |
 

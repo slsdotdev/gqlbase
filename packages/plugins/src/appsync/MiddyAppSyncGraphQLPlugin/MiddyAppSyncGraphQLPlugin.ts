@@ -91,6 +91,25 @@ export class MiddyAppSyncGraphQLPlugin extends TypesGeneratorBase {
     };
   }
 
+  protected _getObjectTypeName(name: string) {
+    return this.publicDefinitions?.has(name) ? `${name}Full` : name;
+  }
+
+  /**
+   * The schema types name of a public definition: `<Type>Full` for an object or interface.
+   */
+  private _importType(name: string) {
+    const node = this.context.document.getNode(name);
+
+    if (!node || isScalarNode(node)) {
+      return;
+    }
+
+    this.refs.imports.add(
+      isObjectNode(node) || isInterfaceNode(node) ? this._getObjectTypeName(name) : name
+    );
+  }
+
   private _createModuleDeclaration() {
     const statements = [
       ts.factory.createInterfaceDeclaration(
@@ -259,7 +278,7 @@ export class MiddyAppSyncGraphQLPlugin extends TypesGeneratorBase {
     );
 
     if (!hidden.length) {
-      return parent.name;
+      return this._getObjectTypeName(parent.name);
     }
 
     const name = `${parent.name}Source`;
@@ -283,7 +302,7 @@ export class MiddyAppSyncGraphQLPlugin extends TypesGeneratorBase {
           ts.factory.createIdentifier(name),
           undefined,
           ts.factory.createIntersectionTypeNode([
-            ts.factory.createTypeReferenceNode(parent.name, undefined),
+            ts.factory.createTypeReferenceNode(this._getObjectTypeName(parent.name), undefined),
             ts.factory.createTypeLiteralNode(members),
           ])
         )
@@ -295,7 +314,7 @@ export class MiddyAppSyncGraphQLPlugin extends TypesGeneratorBase {
 
   private _createFieldSource(parent: ObjectNode) {
     if (!isOperationNode(parent)) {
-      this.refs.imports.add(parent.name);
+      this._importType(parent.name);
     }
 
     return ts.factory.createPropertySignature(
@@ -327,7 +346,7 @@ export class MiddyAppSyncGraphQLPlugin extends TypesGeneratorBase {
       const maybeNode = this.context.document.getNode(arg.type.getTypeName());
 
       if (maybeNode && !isScalarNode(maybeNode)) {
-        this.refs.imports.add(arg.type.getTypeName());
+        this._importType(arg.type.getTypeName());
       }
 
       const typeNode = this._createInputValueTypeReference(arg, arg.type);
@@ -357,7 +376,7 @@ export class MiddyAppSyncGraphQLPlugin extends TypesGeneratorBase {
     const maybeNode = this.context.document.getNode(field.type.getTypeName());
 
     if (maybeNode && !isScalarNode(maybeNode)) {
-      this.refs.imports.add(field.type.getTypeName());
+      this._importType(field.type.getTypeName());
     }
 
     return ts.factory.createPropertySignature(

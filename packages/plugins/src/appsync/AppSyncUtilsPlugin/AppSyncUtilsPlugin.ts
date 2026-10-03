@@ -83,8 +83,10 @@ export class AppSyncUtilsPlugin extends TransformerPluginBase {
       )
       .addNode(
         ScalarNode.create("AWSJSON", undefined, [
+          // A JSON string on input, parsed on output.
           DirectiveNode.create(InternalDirective.TYPE_HINT, [
             ArgumentNode.create("type", ValueNode.enum("object")),
+            ArgumentNode.create("input", ValueNode.enum("string")),
           ]),
         ])
       )

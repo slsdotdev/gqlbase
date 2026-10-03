@@ -256,9 +256,7 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
       );
 
       const column = this._callExp("json", [ts.factory.createStringLiteral(columnName)]);
-      const columnType = ts.factory.createArrayTypeNode(
-        ts.factory.createTypeReferenceNode(fieldTypeName)
-      );
+      const columnType = ts.factory.createArrayTypeNode(this._createNamedTypeNode(fieldTypeName));
 
       return this._chainCallExp(
         this._applyColumnConstraints(column, field),
@@ -303,7 +301,7 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
       );
 
       const column = this._callExp("json", [ts.factory.createStringLiteral(columnName)]);
-      const columnType = ts.factory.createTypeReferenceNode(fieldTypeName);
+      const columnType = this._createNamedTypeNode(fieldTypeName);
 
       return this._chainCallExp(
         this._applyColumnConstraints(column, field),

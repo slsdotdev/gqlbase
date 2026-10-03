@@ -550,7 +550,7 @@ describe("DrizzleSchemaGeneratorPlugin", () => {
         ["Money", "Product"]
       );
 
-      expect(output).toContain('price: json("price").$type<Money>().notNull()');
+      expect(output).toContain('price: json("price").$type<MoneyOwnFields>().notNull()');
     });
 
     it("does not generate a table for non-@model object types", () => {

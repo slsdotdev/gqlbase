@@ -74,3 +74,22 @@ export const getTupleSize = (node: InputValueNode): number | null => {
 
   return null;
 };
+
+/**
+ * The type hint of a scalar on the input side: the `input` argument of _@gqlbase_typehint_ when present, the `type` otherwise.
+ *
+ * @example
+ *
+ * ```graphql
+ * scalar AWSJSON \@gqlbase_typehint(type: object, input: string)
+ * ```
+ */
+export const getInputTypeHint = (node: ScalarNode): TypeHintValueType => {
+  const input = node.getDirective(InternalDirective.TYPE_HINT)?.getArgument("input");
+
+  if (input && input.value.kind === Kind.ENUM) {
+    return input.value.value as TypeHintValueType;
+  }
+
+  return getTypeHint(node);
+};
