@@ -1,3 +1,4 @@
+import { Kind } from "graphql";
 import { isBuildInScalar } from "@gqlbase/shared/definition";
 import { TransformerPluginExecutionError } from "@gqlbase/shared/errors";
 import { type ITransformerContext } from "../../context/index.js";
@@ -149,6 +150,16 @@ export class TenancyPlugin extends TransformerPluginBase {
     for (const definition of this.context.document.definitions.values()) {
       if (!isObjectNode(definition)) {
         continue;
+      }
+
+      const value = definition.getDirective(TenancyDirective.SCOPE)?.getArgument("name")?.value;
+
+      // SDL validation does not check argument values, so an undeclared name would be accepted as an enum value.
+      if (value?.kind === Kind.ENUM && !(value.value in this.context.options.tenancy)) {
+        throw new TransformerPluginExecutionError(
+          this.name,
+          `${definition.name} has @scope(name: ${value.value}), which is not a tenancy scope. Declared: ${Object.keys(this.context.options.tenancy).join(", ")}.`
+        );
       }
 
       if (definition.hasDirective(TenancyDirective.SCOPE) && !isScopeable(definition)) {

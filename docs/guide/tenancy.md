@@ -45,7 +45,7 @@ type Invoice @model { … }                         # the default scope: gets wo
 type Currency @model @scope(name: global) { … }   # no claims
 ```
 
-- `@scope` goes on stored models: a `@model` that is not `@clientOnly`. A `@serverOnly` model can be scoped. On any other type it throws.
+- `@scope` goes on stored models: a `@model` that is not `@clientOnly`. A `@serverOnly` model can be scoped. On any other type it throws, and so does a name that is not a declared scope.
 - A model is in one scope. A scope can declare several claims.
 - `@scope` and `TenancyScope` are removed from the output schema.
 
