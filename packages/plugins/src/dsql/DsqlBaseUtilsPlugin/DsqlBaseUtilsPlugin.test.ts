@@ -27,7 +27,7 @@ describe("DsqlBaseUtilsPlugin", () => {
           )
           @index(
             name: "products_created_idx"
-            columns: [{ field: "createdAt", sort: DESC, nulls: LAST }]
+            columns: [{ field: "createdAt", nulls: LAST }]
             include: ["status"]
             distinctNulls: false
           )
@@ -53,7 +53,7 @@ describe("DsqlBaseUtilsPlugin", () => {
 
     it("leaves the directives and their types out of the output", () => {
       expect(schema).not.toMatch(/@index|@unique/);
-      expect(schema).not.toMatch(/DsqlIndexColumn|DsqlSortOrder|DsqlNullsOrder/);
+      expect(schema).not.toMatch(/DsqlIndexColumn|DsqlNullsOrder/);
     });
   });
 

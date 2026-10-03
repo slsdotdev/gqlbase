@@ -89,8 +89,8 @@ export const postRelations = relations(posts, {
 - **Not null.** `.notNull()` when the field is non-null or `@semanticNonNull`.
 - **Scalars.** Mapped as in [Scalars](./scalars.md): `ID` → `uuid`, `String` → `text`, `Int` → `int`, `Float` → `real`, `Boolean` → `bool`, `DateTime` → `timestamp(…, { mode: "iso" })`, `SafeInt` → `safeint` (see below), … Custom scalars use `scalarMap`, then their type hint.
 - **Enums.** An enum becomes `$enum("<snake>_enum", [...])` only when a non-list column of a stored model uses it; the column is `<camel>Enum.column("<col>")`. A list of enums is a `json` column typed with the enum's TS type.
-- **Lists.** Every list field, scalar or not, becomes a single `json(...)` column typed `.$type<T[]>()`. dsqlbase 0.1.6 has no array operators: its `contains` is a `LIKE` on text, so a `<Type>ListFilterInput` cannot be passed to `where` for these columns yet.
-- **Non-model object, interface or union fields.** A single `json(...)` column typed `.$type<Type>()`. There is no nesting and no validation. The generated filter has a nested `where` for these fields, but dsqlbase 0.1.6 cannot run it: its `where` has no operators on `json` members.
+- **Lists.** Every list field, scalar or not, becomes a single `json(...)` column typed `.$type<T[]>()`. dsqlbase filters a `json` column by `exists` only, so a `<Type>ListFilterInput` cannot be passed to `where` for these columns yet.
+- **Non-model object, interface or union fields.** A single `json(...)` column typed `.$type<Type>()`. There is no nesting and no validation. The generated filter has a nested `where` for these fields, but dsqlbase cannot run it: it filters a `json` column by `exists` only.
 - **A field typed as another `@model` without a relation directive** throws "Unsupported field type".
 - **Relations.** One `relations(table, {...})` per model, exported as `<camel>Relations`. A relation to a model in another data source keeps its key column but gets no relation, since there is no table to relate to:
   - `@belongsTo` → `belongsTo(target, { from: [source.key], to: [target.id] })`;
@@ -131,9 +131,8 @@ Nothing below is emitted:
 The dsqlbase plugins declare two table directives. They mirror the dsqlbase schema builders, so every option dsqlbase supports is available, and what dsqlbase requires (an index name) is required. Without `dsqlbase()`, the directives are not declared, and a schema that uses them fails validation.
 
 ```graphql
-enum DsqlSortOrder { ASC DESC }
 enum DsqlNullsOrder { FIRST LAST }
-input DsqlIndexColumn { field: String!, sort: DsqlSortOrder = ASC, nulls: DsqlNullsOrder }
+input DsqlIndexColumn { field: String!, nulls: DsqlNullsOrder }
 
 directive @index(
   name: String!
@@ -149,7 +148,7 @@ directive @unique(fields: [String!]) repeatable on OBJECT | FIELD_DEFINITION
 ```graphql
 type Product @model
   @index(name: "products_vendor_slug_idx", unique: true, columns: [{ field: "vendorId" }, { field: "slug" }])
-  @index(name: "products_created_idx", columns: [{ field: "createdAt", sort: DESC }], include: ["status"])
+  @index(name: "products_created_idx", columns: [{ field: "createdAt", nulls: LAST }], include: ["status"])
   @unique(fields: ["vendorId", "sku"]) {
   id: ID!
   code: String! @unique
@@ -178,13 +177,11 @@ export const products = table("products", {
   …
 });
 products.index("products_vendor_slug_idx", { unique: true }).columns(c => [c.vendorId, c.slug]);
-products.index("products_created_idx").columns(c => [c.createdAt.sort("DESC")]).include(c => [c.status]);
+products.index("products_created_idx").columns(c => [c.createdAt.nullsLast()]).include(c => [c.status]);
 products.unique(c => [c.vendorId, c.sku]);
 ```
 
-A column's default order (`ASC`, nulls as Postgres orders them) emits nothing; `distinctNulls` is emitted only when given.
-
-> **dsqlbase 0.1.6 and `sort: DESC`.** Its migration runner creates a `DESC` index column, but on the next run against the same database it reports the index as changed (`IMMUTABLE_INDEX`) and stops. Avoid `sort: DESC` until dsqlbase fixes this. The directives and their types are removed from the output schema.
+An index column has no sort direction, since DSQL refuses `ASC` / `DESC` on index keys. A column without `nulls` (nulls as Postgres orders them) emits nothing; `distinctNulls` is emitted only when given. The directives and their types are removed from the output schema.
 
 ## Filters and `orderBy`
 
@@ -199,7 +196,7 @@ const rows = await dsql.categories.findMany({
 
 - **Explicit `null`s.** GraphQL passes an omitted operand as absent and an explicit one as `null`; dsqlbase reads `null` as a value. Drop explicit `null`s, and the conditions they leave empty, before the call. The example's `withoutNulls` (`example/src/lib/filter.ts`) does this, and `example/test/where.types.ts` checks at compile time that the result is assignable to `where` and `orderBy`.
 - **`between`** is typed `[low, high]` in the generated TS types and Zod schemas, matching dsqlbase.
-- **Not supported by dsqlbase 0.1.6:** list filters on `json` columns and nested `where` on object fields (see [Rules](#rules)).
+- **Not supported by dsqlbase on `json` columns:** list filters and nested `where` on object fields (see [Rules](#rules)).
 
 ## Related
 

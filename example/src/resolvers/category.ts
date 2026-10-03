@@ -5,15 +5,13 @@ import {
   defineResolvers,
 } from "@middy-appsync/graphql";
 import { dsql } from "../lib/dsql";
-import { allOf, withoutNulls } from "../lib/filter";
+import { withoutNulls } from "../lib/filter";
 import { orderOf, pageOf, toConnection } from "../lib/connection";
 import { validate } from "../lib/validation";
 import {
   CreateCategoryInputSchema,
   UpdateCategoryInputSchema,
 } from "../../generated/zod/schema.validators";
-
-type CategoryWhere = NonNullable<Parameters<typeof dsql.categories.findMany>[0]["where"]>;
 
 const getCategory = createQueryResolver({
   fieldName: "getCategory",
@@ -27,7 +25,7 @@ const listCategories = createQueryResolver({
   resolve: async ({ args }) => {
     const { first, offset, limit } = pageOf(args);
     const rows = await dsql.categories.findMany({
-      where: allOf<CategoryWhere>(withoutNulls(args.filter)),
+      where: withoutNulls(args.filter) ?? undefined,
       orderBy: orderOf(args.orderBy),
       limit,
       offset,
@@ -43,7 +41,7 @@ const searchCategories = createQueryResolver({
   resolve: async ({ args }) => {
     const { first, offset, limit } = pageOf(args);
     const rows = await dsql.categories.findMany({
-      where: allOf<CategoryWhere>(withoutNulls({ name: args.name })),
+      where: withoutNulls({ name: args.name }),
       orderBy: { id: "asc" },
       limit,
       offset,
@@ -107,7 +105,7 @@ const categoryChildren = createResolver({
   resolve: async ({ source, args }) => {
     const { first, offset, limit } = pageOf(args);
     const rows = await dsql.categories.findMany({
-      where: allOf<CategoryWhere>({ parentId: source.id }, withoutNulls(args.filter)),
+      where: { and: [{ parentId: source.id }, withoutNulls(args.filter) ?? {}] },
       orderBy: orderOf(args.orderBy),
       limit,
       offset,

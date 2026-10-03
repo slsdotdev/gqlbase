@@ -136,7 +136,7 @@ describe("indexes and unique constraints", () => {
         )
         @index(
           name: "products_created_idx"
-          columns: [{ field: "createdAt", sort: DESC, nulls: LAST }]
+          columns: [{ field: "createdAt", nulls: LAST }]
           include: ["status"]
           distinctNulls: false
         )
@@ -165,7 +165,7 @@ describe("indexes and unique constraints", () => {
 
   it("emits per-column order, include and distinctNulls", () => {
     expect(tables).toContain(
-      'products.index("products_created_idx").columns(c => [c.createdAt.sort("DESC").nullsLast()]).include(c => [c.status]).distinctNulls(false);'
+      'products.index("products_created_idx").columns(c => [c.createdAt.nullsLast()]).include(c => [c.status]).distinctNulls(false);'
     );
   });
 

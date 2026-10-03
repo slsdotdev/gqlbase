@@ -16,5 +16,5 @@ export const migrate = async () => {
   const runner = createMigrationRunner(session);
   const definitions = getSerializedSchemaObjects(Object.values(schema));
 
-  await runner.run(definitions, { asyncIndexes: false, destructive: true, safeOperations: true });
+  await runner.run(definitions, { asyncIndexes: false, allow: { destructive: true } });
 };
