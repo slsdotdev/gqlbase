@@ -101,7 +101,11 @@ type ReviewResponse implements Node & Timestamped & Versioned
 Tracks per-user votes on review helpfulness. Used to rank reviews.
 One vote per user per review, enforced by unique constraint.
 """
-type ReviewVote implements Node & Timestamped @model @scope(name: user) @access(allow: [SHOP]) {
+type ReviewVote implements Node & Timestamped
+  @model
+  @scope(name: user)
+  @access(allow: [SHOP])
+  @unique(fields: ["reviewId", "userId"]) {
   id: UUID!
   reviewId: UUID! @serverOnly
 

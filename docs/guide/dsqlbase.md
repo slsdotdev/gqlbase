@@ -8,7 +8,7 @@ import { dsqlbase } from "@gqlbase/plugins/dsql";
 plugins: [dsqlbase()];
 ```
 
-`dsqlbase(options)` returns `[dsqlbaseSchemaGeneratorPlugin(options)]`. The plugin is `DsqlBaseSchemaGeneratorPlugin` (`packages/plugins/src/dsql/DsqlBaseSchemaGeneratorPlugin/DsqlBaseSchemaGeneratorPlugin.ts`). It writes `dsqlbase/schema.ts`, which imports builders from `dsqlbase/schema` and the types of object and list columns from `../schema.types.js`, and re-exports those types. A column type the schema types do not export, such as a `@serverOnly` object, is declared in the file itself.
+`dsqlbase(options)` returns `[dsqlBaseUtilsPlugin(), dsqlbaseSchemaGeneratorPlugin(options)]`. `DsqlBaseUtilsPlugin` (`packages/plugins/src/dsql/DsqlBaseUtilsPlugin/DsqlBaseUtilsPlugin.ts`) declares the [table directives](#indexes-and-unique-constraints). The generator is `DsqlBaseSchemaGeneratorPlugin` (`packages/plugins/src/dsql/DsqlBaseSchemaGeneratorPlugin/DsqlBaseSchemaGeneratorPlugin.ts`). It writes `dsqlbase/schema.ts`, which imports builders from `dsqlbase/schema` and the types of object and list columns from `../schema.types.js`, and re-exports those types. A column type the schema types do not export, such as a `@serverOnly` object, is declared in the file itself.
 
 ## Options
 
@@ -120,12 +120,71 @@ The builder and the `@dsqlbase/core` import are emitted only when a column uses 
 ### Not generated
 
 Nothing below is emitted:
-- indexes or unique constraints;
 - tenancy / scoped columns;
 - `guid()` global-id columns;
 - `numeric` columns (unless through `scalarMap`);
 - check constraints (from `@constraint`);
 - polymorphic relations.
+
+## Indexes and unique constraints
+
+The dsqlbase plugins declare two table directives. They mirror the dsqlbase schema builders, so every option dsqlbase supports is available, and what dsqlbase requires (an index name) is required. Without `dsqlbase()`, the directives are not declared, and a schema that uses them fails validation.
+
+```graphql
+enum DsqlSortOrder { ASC DESC }
+enum DsqlNullsOrder { FIRST LAST }
+input DsqlIndexColumn { field: String!, sort: DsqlSortOrder = ASC, nulls: DsqlNullsOrder }
+
+directive @index(
+  name: String!
+  columns: [DsqlIndexColumn!]!
+  unique: Boolean = false
+  include: [String!]
+  distinctNulls: Boolean
+) repeatable on OBJECT
+
+directive @unique(fields: [String!]) repeatable on OBJECT | FIELD_DEFINITION
+```
+
+```graphql
+type Product @model
+  @index(name: "products_vendor_slug_idx", unique: true, columns: [{ field: "vendorId" }, { field: "slug" }])
+  @index(name: "products_created_idx", columns: [{ field: "createdAt", sort: DESC }], include: ["status"])
+  @unique(fields: ["vendorId", "sku"]) {
+  id: ID!
+  code: String! @unique
+  …
+}
+```
+
+| Directive | dsqlbase |
+| --- | --- |
+| `@index(name, columns, …)` on a type | `table.index(name, { unique })`, with `.columns(...)`, `.include(...)` and `.distinctNulls(...)` |
+| `@unique(fields: [...])` on a type | `table.unique((c) => [...])`, a composite unique constraint |
+| `@unique` on a field | `column.unique()` |
+
+Rules, checked once relation keys and tenancy claims exist (`execute`):
+- every name in `columns`, `include` and `fields`, and every `@unique` field, is a column of the table: a field of the type that is not a relation, not `@clientOnly`, and not a `json` column (lists and objects), which DSQL cannot index. Name a relation by its key field (`vendorId`). Tenancy claims are columns too, and are not added to indexes for you;
+- paths into embedded objects (`price.amount`) are rejected until embedded objects are supported;
+- index names are unique across the schema;
+- `@unique` on a type needs `fields`; on a field it takes none;
+- the type is a stored model (a `@model` that is not `@clientOnly`).
+
+The generator emits a `@unique` field as `.unique()` on its column, and each `@index` and type-level `@unique` as its own statement after the table, since the builders return the index or constraint rather than the table:
+
+```ts
+export const products = table("products", {
+  code: text("code").notNull().unique(),
+  …
+});
+products.index("products_vendor_slug_idx", { unique: true }).columns(c => [c.vendorId, c.slug]);
+products.index("products_created_idx").columns(c => [c.createdAt.sort("DESC")]).include(c => [c.status]);
+products.unique(c => [c.vendorId, c.sku]);
+```
+
+A column's default order (`ASC`, nulls as Postgres orders them) emits nothing; `distinctNulls` is emitted only when given.
+
+> **dsqlbase 0.1.6 and `sort: DESC`.** Its migration runner creates a `DESC` index column, but on the next run against the same database it reports the index as changed (`IMMUTABLE_INDEX`) and stops. Avoid `sort: DESC` until dsqlbase fixes this. The directives and their types are removed from the output schema.
 
 ## Filters and `orderBy`
 
