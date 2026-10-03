@@ -1,3 +1,5 @@
+import { type FieldNode } from "@gqlbase/core/definition";
+
 export type AppSyncAuthorizationMode = "cognito" | "iam" | "oidc" | "apiKey" | "lambda";
 
 export interface MiddyAppSyncGraphQLPluginOptions {
@@ -8,12 +10,24 @@ export interface MiddyAppSyncGraphQLPluginOptions {
   authorizationModes?: AppSyncAuthorizationMode[];
 
   /**
-   * Whether to generate definitions only for operations and relations (fields that reference other models) without generating definitions for regular fields.
-   * This can be useful to avoid verbosity in the type suggestions.
-   * @default true
+   * Which fields get a resolver typing in `Definition`:
+   * - `"declared"`: fields that have their own resolver: operation fields, relation fields and `@computed` fields;
+   * - `"all"`: every public field.
+   *
+   * A typing only lets a resolver be written. The fields a parent's resolver may leave out are the same in both modes.
+   * @default "declared"
    */
-  relationsOnly?: boolean;
+  resolvers?: "declared" | "all";
 }
+
+export enum MiddyAppSyncDirective {
+  COMPUTED = "computed",
+}
+
+/**
+ * A `@computed` field has its own resolver, so the parent's resolver may leave it out.
+ */
+export const isComputed = (field: FieldNode) => field.hasDirective(MiddyAppSyncDirective.COMPUTED);
 
 export const getAuthModeIdentityType = (mode: AppSyncAuthorizationMode): string => {
   switch (mode) {

@@ -141,7 +141,7 @@ export type FeedItem = AuthorFull | PostFull;
   Types without relations get the same three parts (an empty `<Type>Relations`). There is no type under the bare name. Fields reference the `Full` part of other types.
 - **`Scalars`** maps every built-in and public scalar to its `input` and `output` type, from its [type hint](./scalars.md#type-hints). Fields read `output` and input fields read `input`.
 - Unions, inputs and enums keep their name. A union is a union of its members' `Full` parts.
-- **There is no `__typename`.** It is a resolver concern (see [AppSync](./appsync.md#resolver-types)).
+- **There is no `__typename`.** It is a resolver concern (see [AppSync types](./appsync.md#appsync-types)).
 - A schema type named like a generated one (`PostFull`, `Scalars`, `Maybe`) throws.
 
 The stored outputs reference `<Type>OwnFields`: an object column in dsqlbase or Drizzle holds the stored shape, without relations.
@@ -186,6 +186,8 @@ The stored outputs reference `<Type>OwnFields`: an object column in dsqlbase or 
 **Output changes to check.**
 
 - `schema.types.ts` matches `schema.graphql`: it no longer has `@serverOnly` or `@writeOnly` fields, relation keys or unused definitions. Resolver code that reads those from a parent uses the AppSync `<Type>Source` type, which its `source` now has.
+- `appsyncPreset({ middyAppSync: { relationsOnly } })` is replaced by `resolvers`: `relationsOnly: true` → `resolvers: "declared"` (the default), `relationsOnly: false` → `resolvers: "all"`. `"declared"` also types [`@computed`](./appsync.md#computed-fields) fields.
+- `appsync/middy-appsync.types.ts` declares an [AppSync version](./appsync.md#appsync-types) of each object, interface and union under its schema name, and re-exports only enums, inputs and `Scalars`. Import resolver types from it rather than from `schema.types`.
 - `schema.types.ts` splits each object and interface into `<Type>OwnFields`, `<Type>Relations` and `<Type>Full`, and the bare name is gone: `Post` → `PostFull` (or `PostOwnFields` for a stored shape). Scalars are typed through `Scalars["<Name>"]["input" | "output"]`. `__typename` and `RequiredTypename` are gone. See [Schema types](#schema-types).
 - Unused enums, inputs, unions and scalars are no longer printed in `schema.graphql` or the AppSync schema.
 - Without Relay, `@hasMany` fields and list queries return `[T!]` (was `[T]`), or `[T!]!` for a non-null field. `relationPlugin({ usePaginationTypes })` and its `{ items, nextToken }` shape are removed.

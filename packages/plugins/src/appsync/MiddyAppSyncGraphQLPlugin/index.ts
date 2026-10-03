@@ -2,7 +2,9 @@ export {
   MiddyAppSyncGraphQLPlugin,
   middyAppSyncGraphQLPlugin,
 } from "./MiddyAppSyncGraphQLPlugin.js";
-export type {
-  AppSyncAuthorizationMode,
-  MiddyAppSyncGraphQLPluginOptions,
+export {
+  isComputed,
+  MiddyAppSyncDirective,
+  type AppSyncAuthorizationMode,
+  type MiddyAppSyncGraphQLPluginOptions,
 } from "./MiddyAppSyncGraphQLPlugin.utils.js";
