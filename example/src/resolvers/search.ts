@@ -1,0 +1,28 @@
+import { createQueryResolver, defineResolvers } from "@middy-appsync/graphql";
+import { dsql } from "../lib/dsql";
+
+// SearchResult is a union: each hit says which member it is with __typename, which the result type requires.
+const search = createQueryResolver({
+  fieldName: "search",
+  resolve: async ({ args }) => {
+    const [products, locations] = await Promise.all([
+      dsql.products.findMany({ where: { name: { contains: args.query } } }),
+      dsql.marketLocations.findMany({ where: { name: { contains: args.query } } }),
+    ]);
+
+    return [
+      ...products.map((product) => ({
+        __typename: "ProductSearchHit" as const,
+        product,
+        score: 1,
+      })),
+      ...locations.map((marketLocation) => ({
+        __typename: "MarketLocationSearchHit" as const,
+        marketLocation,
+        score: 1,
+      })),
+    ];
+  },
+});
+
+export default defineResolvers(search);

@@ -177,7 +177,7 @@ describe("field visibility", () => {
     it("are not in the schema", async () => {
       const result = await execute(/* GraphQL */ `
         query Types {
-          searchResult: __type(name: "SearchResult") {
+          importJobStatus: __type(name: "ImportJobStatus") {
             name
           }
           category: __type(name: "Category") {
@@ -188,7 +188,7 @@ describe("field visibility", () => {
 
       expect(result.errors).toBeUndefined();
       expect(result.data).toEqual({
-        searchResult: null,
+        importJobStatus: null,
         category: { name: "Category" },
       });
     });
@@ -226,7 +226,7 @@ describe("field visibility", () => {
 
     it("is stored and linked by the server", async () => {
       const job = await dsql.importJobs.create({
-        data: { source: "legacy-csv", status: "done", startedAt: new Date().toISOString() },
+        data: { source: "legacy-csv", status: "SUCCEEDED", startedAt: new Date().toISOString() },
         return: true as const,
       });
 
