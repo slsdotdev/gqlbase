@@ -30,6 +30,7 @@ describe("createTransformer", () => {
       semanticNullability: true,
       operations: ["read", "write"],
       tenancy: {},
+      dataSources: {},
     });
   });
 
@@ -79,6 +80,26 @@ describe("createTransformer", () => {
     const names = context?.plugins.map((plugin) => plugin.name) ?? [];
 
     expect(names.indexOf("TenancyPlugin")).toBe(names.indexOf("ModelPlugin") + 1);
+  });
+
+  it("registers DataSourcesPlugin after ModelPlugin when dataSources declares a source", () => {
+    let context: ITransformerContext | undefined;
+
+    createTransformer({
+      dataSources: { db: { type: "dsqlbase", default: true } },
+      plugins: [
+        {
+          create: (ctx) => {
+            context = ctx;
+            return { name: "ProbePlugin", context: ctx, init: () => undefined, match: () => false };
+          },
+        },
+      ],
+    });
+
+    const names = context?.plugins.map((plugin) => plugin.name) ?? [];
+
+    expect(names.indexOf("DataSourcesPlugin")).toBe(names.indexOf("ModelPlugin") + 1);
   });
 
   it("transforms a schema with no configured plugins", () => {

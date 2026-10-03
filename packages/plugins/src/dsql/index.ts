@@ -9,6 +9,8 @@ export type {
 
 export {
   DsqlBaseDirective,
+  DSQLBASE_DATA_SOURCE_TYPE,
+  isDsqlBaseTable,
   getIndexes,
   getUniqueConstraints,
   isUnique,

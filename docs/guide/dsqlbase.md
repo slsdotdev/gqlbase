@@ -83,7 +83,7 @@ export const postRelations = relations(posts, {
 
 ### Rules
 
-- **Tables.** Every `@model` object becomes `table("<snake_plural>", {...})`, exported as `<camelPlural>`, except `@clientOnly` models, which are never stored. Non-model types produce no table. A `@serverOnly` model keeps its table.
+- **Tables.** Every `@model` object becomes `table("<snake_plural>", {...})`, exported as `<camelPlural>`, except `@clientOnly` models, which are never stored. Non-model types produce no table. A `@serverOnly` model keeps its table. With [data sources](./data-sources.md), only the models of the source with `type: "dsqlbase"` become tables; at most one source can have that type.
 - **Columns.** Every field except `@gqlbase_internal`, `@clientOnly` and relation fields. `@serverOnly`, `@writeOnly` and `@readOnly` fields, and relation keys, are all columns. Column names are `snake_case` of the field name.
 - **`id`.** Always `.primaryKey().defaultRandom()`, whatever its type.
 - **Not null.** `.notNull()` when the field is non-null or `@semanticNonNull`.
@@ -92,7 +92,7 @@ export const postRelations = relations(posts, {
 - **Lists.** Every list field, scalar or not, becomes a single `json(...)` column typed `.$type<T[]>()`. dsqlbase 0.1.6 has no array operators: its `contains` is a `LIKE` on text, so a `<Type>ListFilterInput` cannot be passed to `where` for these columns yet.
 - **Non-model object, interface or union fields.** A single `json(...)` column typed `.$type<Type>()`. There is no nesting and no validation. The generated filter has a nested `where` for these fields, but dsqlbase 0.1.6 cannot run it: its `where` has no operators on `json` members.
 - **A field typed as another `@model` without a relation directive** throws "Unsupported field type".
-- **Relations.** One `relations(table, {...})` per model, exported as `<camel>Relations`:
+- **Relations.** One `relations(table, {...})` per model, exported as `<camel>Relations`. A relation to a model in another data source keeps its key column but gets no relation, since there is no table to relate to:
   - `@belongsTo` → `belongsTo(target, { from: [source.key], to: [target.id] })`;
   - `@hasOne` / `@hasMany` → `hasOne` / `hasMany(target, { from: [source.id], to: [target.key] })`.
   - Relay connections and `{ items }` connections are resolved back to the node type.
@@ -168,7 +168,7 @@ Rules, checked once relation keys and tenancy claims exist (`execute`):
 - paths into embedded objects (`price.amount`) are rejected until embedded objects are supported;
 - index names are unique across the schema;
 - `@unique` on a type needs `fields`; on a field it takes none;
-- the type is a stored model (a `@model` that is not `@clientOnly`).
+- the type is a dsqlbase table: a stored model (a `@model` that is not `@clientOnly`), in the `"dsqlbase"` data source when [data sources](./data-sources.md) are declared.
 
 The generator emits a `@unique` field as `.unique()` on its column, and each `@index` and type-level `@unique` as its own statement after the table, since the builders return the index or constraint rather than the table:
 
@@ -206,5 +206,6 @@ const rows = await dsql.categories.findMany({
 - [Scalars](./scalars.md)
 - [Relations](./relations.md)
 - [Field visibility](./field-visibility.md)
+- [Data sources](./data-sources.md)
 - [Drizzle](./drizzle.md) — the equivalent Drizzle generator
 - [Known gaps](../internals/known-gaps.md)

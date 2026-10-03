@@ -6,5 +6,6 @@ export {
   resolveTransformerOptions,
   type OperationType,
   type TenancyScopeOptions,
+  type DataSourceOptions,
   type TransformerOptions,
 } from "./TransformerOptions.js";

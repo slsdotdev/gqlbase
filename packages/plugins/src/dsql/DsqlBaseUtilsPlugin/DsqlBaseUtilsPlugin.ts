@@ -21,7 +21,6 @@ import {
   InternalDirective,
   isClientOnly,
   isInternal,
-  isModel,
   isRelationField,
 } from "@gqlbase/core/plugins";
 import { isBuildInScalar } from "@gqlbase/shared/definition";
@@ -30,8 +29,10 @@ import {
   DSQL_INDEX_COLUMN,
   DSQL_NULLS_ORDER,
   DSQL_SORT_ORDER,
+  DSQLBASE_DATA_SOURCE_TYPE,
   DsqlBaseDirective,
   getIndexes,
+  isDsqlBaseTable,
   getUniqueConstraints,
 } from "./DsqlBaseUtilsPlugin.utils.js";
 
@@ -60,6 +61,17 @@ export class DsqlBaseUtilsPlugin extends TransformerPluginBase {
 
   constructor(context: ITransformerContext) {
     super("DsqlBaseUtilsPlugin", context);
+
+    const sources = Object.entries(context.options.dataSources)
+      .filter(([, source]) => source.type === DSQLBASE_DATA_SOURCE_TYPE)
+      .map(([name]) => name);
+
+    if (sources.length > 1) {
+      throw new TransformerPluginExecutionError(
+        this.name,
+        `Only one data source can have type "${DSQLBASE_DATA_SOURCE_TYPE}"; ${sources.join(", ")} do.`
+      );
+    }
   }
 
   public init() {
@@ -262,10 +274,10 @@ export class DsqlBaseUtilsPlugin extends TransformerPluginBase {
    * Checks the table directives once relation keys (added in normalize) and tenancy claims (added before it) exist.
    */
   public execute(definition: ObjectNode) {
-    if (!isModel(definition) || isClientOnly(definition)) {
+    if (!isDsqlBaseTable(definition, this.context.options)) {
       throw new TransformerPluginExecutionError(
         this.name,
-        `@index and @unique apply to stored models, a @model that is not @clientOnly. ${definition.name} is not one.`
+        `@index and @unique apply to dsqlbase tables: a @model that is not @clientOnly, in a "${DSQLBASE_DATA_SOURCE_TYPE}" data source. ${definition.name} is not one.`
       );
     }
 

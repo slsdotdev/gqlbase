@@ -1,4 +1,20 @@
+import type { TransformerOptions } from "@gqlbase/core";
 import { FieldNode, ObjectNode } from "@gqlbase/core/definition";
+import { isInDataSourceType } from "@gqlbase/core/plugins";
+
+/** The data source type dsqlbase handles: `transform.dataSources: { db: { type: "dsqlbase" } }`. */
+export const DSQLBASE_DATA_SOURCE_TYPE = "dsqlbase";
+
+/**
+ * Whether a type is a dsqlbase table: a stored model in a data source of type `"dsqlbase"`, or any stored model when no
+ * data source is declared. Reads `@dataSource`, so call it before `cleanup`.
+ */
+export const isDsqlBaseTable = (
+  node: ObjectNode,
+  options: Readonly<Pick<TransformerOptions, "dataSources">>
+): boolean => {
+  return isInDataSourceType(node, options, DSQLBASE_DATA_SOURCE_TYPE);
+};
 
 export const DsqlBaseDirective = {
   INDEX: "index",

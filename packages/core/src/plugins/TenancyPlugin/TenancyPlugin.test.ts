@@ -197,6 +197,18 @@ describe("TenancyPlugin", () => {
       ).toThrow(/@scope applies to stored models.*Rate is not one/);
     });
 
+    it("rejects an unknown scope name", () => {
+      expect(() =>
+        createTransformer({ tenancy }).transform(/* GraphQL */ `
+          type Invoice @model @scope(name: team) {
+            id: ID!
+          }
+        `)
+      ).toThrow(
+        /Invoice has @scope\(name: team\), which is not a tenancy scope. Declared: workspace, global/
+      );
+    });
+
     it("rejects a declared claim field with the wrong type or nullability", () => {
       expect(() =>
         createTransformer({ tenancy }).transform(/* GraphQL */ `

@@ -8,7 +8,7 @@ _Audience: people defining `@model` types and using the generated operations, in
 directive @model(operations: [ModelOperation!]) on OBJECT
 ```
 
-A model is an object type backed by a record store. For each model the plugin adds root operations, mutation inputs and a filter input. The directive and the `ModelOperation` enum are removed from the output schema.
+A model is an object type backed by a record store: by default the database, or the store its [data source](./data-sources.md) names. For each model the plugin adds root operations, mutation inputs and a filter input. The directive and the `ModelOperation` enum are removed from the output schema.
 
 ## Example
 

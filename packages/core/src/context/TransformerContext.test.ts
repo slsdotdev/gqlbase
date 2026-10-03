@@ -73,6 +73,7 @@ describe("TransformerContext", () => {
       semanticNullability: false,
       operations: ["read", "write"],
       tenancy: {},
+      dataSources: {},
     });
   });
 
@@ -82,6 +83,7 @@ describe("TransformerContext", () => {
       semanticNullability: true,
       operations: ["read"],
       tenancy: { workspace: { claims: { workspaceId: "ID" } } },
+      dataSources: { db: { type: "dsqlbase", default: true } },
     });
 
     expect(context.options).toEqual({
@@ -89,6 +91,7 @@ describe("TransformerContext", () => {
       semanticNullability: true,
       operations: ["read"],
       tenancy: { workspace: { claims: { workspaceId: "ID" } } },
+      dataSources: { db: { type: "dsqlbase", default: true } },
     });
   });
 

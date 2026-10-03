@@ -8,6 +8,7 @@ export {
   type OperationType,
   type TransformerOptions,
   type TenancyScopeOptions,
+  type DataSourceOptions,
 } from "./context/index.js";
 export {
   TransformerPluginBase,
