@@ -58,6 +58,7 @@ import {
   getUniqueConstraints,
   isUnique,
   type DsqlIndexColumn,
+  isDsqlBaseTable,
 } from "../DsqlBaseUtilsPlugin/index.js";
 
 /**
@@ -120,7 +121,7 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
     const enums = new Set<string>();
 
     for (const node of this.context.document.definitions.values()) {
-      if (!isObjectNode(node) || !isModel(node) || isClientOnly(node)) continue;
+      if (!isObjectNode(node) || !isDsqlBaseTable(node, this.context.options)) continue;
 
       for (const field of node.fields ?? []) {
         if (this._shouldSkipField(field) || isListTypeNode(field.type)) continue;
@@ -407,6 +408,11 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
         );
       }
 
+      // Keyed as usual, but the target is stored in another data source: there is no table to relate to.
+      if (!isDsqlBaseTable(target, this.context.options)) {
+        continue;
+      }
+
       const relation = parseFieldRelation(node, field, target);
       const targetTableVarName = pluralize(camelCase(target.name));
 
@@ -619,8 +625,8 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
       return this._columnEnums.has(definition.name) ? this._generateEnum(definition) : undefined;
     }
 
-    // A client-only model is never stored.
-    if (isObjectNode(definition) && isModel(definition) && !isClientOnly(definition)) {
+    // A client-only model is never stored, and a model in another data source is stored elsewhere.
+    if (isObjectNode(definition) && isDsqlBaseTable(definition, this.context.options)) {
       return this._generateTable(definition);
     }
   }

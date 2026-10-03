@@ -179,3 +179,84 @@ describe("indexes and unique constraints", () => {
     );
   });
 });
+
+describe("data sources", () => {
+  let tables: string;
+
+  beforeAll(() => {
+    const output = createTransformer({
+      dataSources: {
+        db: { type: "dsqlbase", default: true },
+        integrations: { type: "service" },
+      },
+      plugins: [dsqlbase()],
+    }).transform(/* GraphQL */ `
+      enum IntegrationKind {
+        ACCOUNTING
+      }
+
+      type Vendor @model {
+        id: ID!
+        integrations: [Integration!]! @hasMany
+        primaryIntegration: Integration @belongsTo
+      }
+
+      type Integration @model @dataSource(name: integrations) {
+        id: ID!
+        kind: IntegrationKind!
+        vendor: Vendor @belongsTo
+      }
+    `);
+
+    tables = output.files.find((file) => file.path === "dsqlbase/schema.ts")?.content ?? "";
+  });
+
+  it("emits a table only for the models of a dsqlbase source", () => {
+    expect(tables).toContain('export const vendors = table("vendors"');
+    expect(tables).not.toContain("integrations = table(");
+  });
+
+  it("keeps the key column of a relation into another source, without the relation", () => {
+    expect(tables).toMatch(/primaryIntegrationId: \w+\("primary_integration_id"\)/);
+    expect(tables).not.toMatch(/primaryIntegration: belongsTo/);
+    expect(tables).not.toMatch(/integrations: hasMany/);
+  });
+
+  it("emits only the enums its own tables use", () => {
+    expect(tables).not.toContain("IntegrationKind");
+  });
+});
+
+describe("data sources: errors", () => {
+  it("rejects two dsqlbase sources", () => {
+    expect(() =>
+      createTransformer({
+        dataSources: {
+          a: { type: "dsqlbase", default: true },
+          b: { type: "dsqlbase" },
+        },
+        plugins: [dsqlbase()],
+      })
+    ).toThrow(/Only one data source can have type "dsqlbase"; a, b do/);
+  });
+
+  it("rejects table directives on a model in another source", () => {
+    expect(() =>
+      createTransformer({
+        dataSources: {
+          db: { type: "dsqlbase", default: true },
+          integrations: { type: "service" },
+        },
+        plugins: [dsqlbase()],
+      }).transform(/* GraphQL */ `
+        type Integration
+          @model
+          @dataSource(name: integrations)
+          @index(name: "by_kind", columns: [{ field: "kind" }]) {
+          id: ID!
+          kind: String!
+        }
+      `)
+    ).toThrow(/@index and @unique apply to dsqlbase tables.*Integration is not one/);
+  });
+});

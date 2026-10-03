@@ -152,7 +152,7 @@ describe("DsqlBaseUtilsPlugin", () => {
             code: String! @unique
           }
         `)
-      ).toThrow(/@index and @unique apply to stored models.*Rate is not one/);
+      ).toThrow(/@index and @unique apply to dsqlbase tables.*Rate is not one/);
     });
 
     it("does not declare the directives without the dsqlbase plugin", () => {
