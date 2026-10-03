@@ -1,5 +1,101 @@
 # gqlbase
 
+## 0.2.0
+
+### Minor Changes
+
+- af89b97: The base plugins move into `@gqlbase/core` and are registered by every transformer, in a fixed order, before the configured plugins. `basePreset()` and the `@gqlbase/plugins/base` / `gqlbase/plugins/base` subpaths are removed; the plugins and their helpers are exported from `@gqlbase/core/plugins`. `isRelayConnection` and `isRelayEdge` also move there. `createTransformer` no longer requires `plugins`.
+
+  Migration: remove `basePreset()` from `plugins`, and move `basePreset({ operations })` to `transform: { operations }`.
+
+  ```diff
+  - import { basePreset, relayPreset } from "gqlbase/plugins";
+  + import { relayPreset } from "gqlbase/plugins";
+
+    export default defineConfig({
+  -   plugins: [basePreset({ operations: ["read"] }), relayPreset()],
+  +   transform: { operations: ["read"] },
+  +   plugins: [relayPreset()],
+    });
+  ```
+
+  Docs: docs/guide/configuration.md, docs/internals/architecture.md, docs/internals/plugin-api.md, docs/guide/models.md, docs/guide/relations.md, docs/guide/install.md
+
+- af89b97: 0.2.0 moves the base and Relay plugins into core, adds transformer options under `transform`, and changes the generated file layout. Migrate a config like this:
+
+  ```diff
+  - import { basePreset, relayPreset, appsyncPreset } from "gqlbase/plugins";
+  + import { appsyncPreset } from "gqlbase/plugins";
+
+    export default defineConfig({
+  +   transform: { relay: true, semanticNullability: true, operations: ["read"] },
+  -   plugins: [basePreset({ operations: ["read"] }), relayPreset(), appsyncPreset()],
+  +   plugins: [appsyncPreset()],
+    });
+  ```
+
+  Then update imports of generated files: `models.typegen` → `schema.types`, `dsqlbase.schema` → `dsqlbase/schema`, `appsync/middy-appsync.typegen` → `appsync/middy-appsync.types`. The Zod create/update schemas now match the GraphQL inputs, so resolvers validate `args.input` and add server-set values afterwards. The full list of changes is in the migration guide.
+
+  Docs: docs/guide/configuration.md#migrating-from-01, docs/decisions/0003-core-plugins-and-transformer-options.md
+
+- af89b97: Relay is a transformer option. `NodeInterfacePlugin` and `ConnectionPlugin` move into `@gqlbase/core` and are registered right after `RelationsPlugin` when `transform.relay` is on. `relayPreset()` and the `@gqlbase/plugins/relay` / `gqlbase/plugins/relay` subpaths are removed.
+
+  `ConnectionPlugin` reads `semanticNullability` from the options instead of probing the document. With it on, `edges` and `XEdge.node` carry `@semanticNonNull`; with it off, they are plain non-null (`edges: [XEdge!]!`, `node: X!`). Previously `node` was always nullable.
+
+  Migration: replace `relayPreset()` with `transform: { relay: true }`.
+
+  Docs: docs/guide/relay.md, docs/guide/configuration.md, docs/internals/architecture.md, docs/internals/known-gaps.md
+
+### Patch Changes
+
+- 42ba5e5: Fix the `gqlbase` meta-package: add the `"."` export, the `gqlbase/config` and `gqlbase/plugins[/<name>]` re-exports documented in its README, and the `gqlbase` binary.
+
+  Docs: `docs/guide/install.md` now recommends `gqlbase`; the gap is removed from `docs/internals/known-gaps.md`.
+
+- Updated dependencies [5328484]
+- Updated dependencies [226e3b2]
+- Updated dependencies [512c76e]
+- Updated dependencies [5328484]
+- Updated dependencies [c186041]
+- Updated dependencies [af89b97]
+- Updated dependencies [e656207]
+- Updated dependencies [5328484]
+- Updated dependencies [e656207]
+- Updated dependencies [917368b]
+- Updated dependencies [400be01]
+- Updated dependencies [226e3b2]
+- Updated dependencies [c186041]
+- Updated dependencies [c186041]
+- Updated dependencies [5328484]
+- Updated dependencies [5328484]
+- Updated dependencies [5328484]
+- Updated dependencies [5328484]
+- Updated dependencies [af89b97]
+- Updated dependencies [af89b97]
+- Updated dependencies [5328484]
+- Updated dependencies [512c76e]
+- Updated dependencies [5328484]
+- Updated dependencies [c186041]
+- Updated dependencies [af89b97]
+- Updated dependencies [226e3b2]
+- Updated dependencies [af89b97]
+- Updated dependencies [512c76e]
+- Updated dependencies [e656207]
+- Updated dependencies [5328484]
+- Updated dependencies [c186041]
+- Updated dependencies [a34bc19]
+- Updated dependencies [af89b97]
+- Updated dependencies [af89b97]
+- Updated dependencies [c186041]
+- Updated dependencies [c186041]
+- Updated dependencies [2a90a30]
+- Updated dependencies [2a90a30]
+- Updated dependencies [226e3b2]
+  - @gqlbase/plugins@0.2.0
+  - @gqlbase/core@0.2.0
+  - @gqlbase/cli@0.2.0
+  - @gqlbase/shared@0.2.0
+
 ## 0.1.11
 
 ### Patch Changes

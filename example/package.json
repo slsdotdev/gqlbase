@@ -23,8 +23,8 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@gqlbase/cli": "^0.1.11",
-    "@gqlbase/plugins": "^0.1.11",
+    "@gqlbase/cli": "^0.2.0",
+    "@gqlbase/plugins": "^0.2.0",
     "@types/aws-lambda": "^8.10.161",
     "graphql": "^16.14.0",
     "tsx": "^4.22.1",
