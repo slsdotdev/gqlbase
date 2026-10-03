@@ -10,6 +10,7 @@ export * from "./ScalarsPlugin/index.js";
 export * from "./RfcFeaturesPlugin/index.js";
 export * from "./ModelPlugin/index.js";
 export * from "./TenancyPlugin/index.js";
+export * from "./DataSourcesPlugin/index.js";
 export * from "./FilterPlugin/index.js";
 export * from "./RelationsPlugin/index.js";
 export * from "./NodeInterfacePlugin/index.js";

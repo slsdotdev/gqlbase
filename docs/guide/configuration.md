@@ -54,6 +54,7 @@ Defined in `packages/cli/src/config/config.ts`.
 | `semanticNullability` | `boolean` | `false` | Declares `@semanticNonNull`. When off, a schema that uses the directive fails validation. See [Models](./models.md#nullability-and-semanticnonnull). |
 | `operations` | `OperationType[]` | `["read", "write"]` | Operations generated for every `@model` that does not list its own. See [Models](./models.md#operations). |
 | `tenancy` | `Record<string, { default?, claims }>` | `{}` | Tenancy scopes and their claims. Registers `TenancyPlugin` and declares `@scope` when it declares a scope. See [Tenancy](./tenancy.md). |
+| `dataSources` | `Record<string, { type, default? }>` | `{}` | Data sources and the store type of each. Registers `DataSourcesPlugin` and declares `@dataSource` when it declares a source. See [Data sources](./data-sources.md). |
 
 All matching files are read and joined into one document, separated by a newline, before parsing (`packages/shared/src/files/definitionFromFiles.ts`), so types can be split across files and extended with `extend`.
 

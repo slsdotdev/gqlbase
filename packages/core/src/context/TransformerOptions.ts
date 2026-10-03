@@ -36,6 +36,19 @@ export interface TenancyScopeOptions {
 }
 
 /**
+ * One data source: a store that holds models. `type` names what the store is (`"dsqlbase"`, `"service"`); core never
+ * reads it, and each capability plugin emits only the models of the types it handles.
+ */
+
+export interface DataSourceOptions {
+  /** The store kind, matched by capability plugins. A type no plugin handles is valid: nothing is generated for it. */
+  type: string;
+
+  /** Holds every stored model without `@dataSource`. At most one source is the default. */
+  default?: boolean;
+}
+
+/**
  * Options that shape the generated schema. They are frozen onto `context.options`, so every plugin reads the same values instead of probing the document.
  */
 
@@ -64,6 +77,14 @@ export interface TransformerOptions {
    * @default {}
    */
   tenancy: Record<string, TenancyScopeOptions>;
+
+  /**
+   * Data sources by name. A stored model is in the default source, or in the one its `@dataSource` names. Registers
+   * `DataSourcesPlugin` when it declares any source; without one, every stored model is handled by every capability
+   * plugin.
+   * @default {}
+   */
+  dataSources: Record<string, DataSourceOptions>;
 }
 
 export const DEFAULT_TRANSFORMER_OPTIONS = Object.freeze<TransformerOptions>({
@@ -71,6 +92,7 @@ export const DEFAULT_TRANSFORMER_OPTIONS = Object.freeze<TransformerOptions>({
   semanticNullability: false,
   operations: ["read", "write"],
   tenancy: {},
+  dataSources: {},
 });
 
 export function resolveTransformerOptions(
@@ -84,5 +106,8 @@ export function resolveTransformerOptions(
       ...(options.operations ?? DEFAULT_TRANSFORMER_OPTIONS.operations),
     ]) as OperationType[],
     tenancy: Object.freeze({ ...(options.tenancy ?? DEFAULT_TRANSFORMER_OPTIONS.tenancy) }),
+    dataSources: Object.freeze({
+      ...(options.dataSources ?? DEFAULT_TRANSFORMER_OPTIONS.dataSources),
+    }),
   });
 }
