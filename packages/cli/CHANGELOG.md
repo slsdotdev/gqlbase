@@ -1,5 +1,50 @@
 # @gqlbase/cli
 
+## 0.2.0
+
+### Minor Changes
+
+- af89b97: Add transformer options `relay`, `semanticNullability` and `operations`, set under `transform` in the config (next to `plugins`) or at the top level of `createTransformer`, and frozen onto `context.options`. `ModelPlugin` reads `operations` from the context. `RfcFeaturesPlugin`, which declares `@semanticNonNull`, is registered only when `semanticNullability: true`; the default is `false`, so a config whose schema uses the directive must set it.
+
+  Docs: docs/guide/configuration.md, docs/guide/models.md, docs/guide/relay.md, docs/internals/plugin-api.md
+
+### Patch Changes
+
+- c186041: Without `--watch`, a failed transform now exits with code 1. Previously the run went through the watch-mode debouncer, which logged the error and exited 0, so CI and scripts carried on with stale output.
+
+  Docs: docs/guide/configuration.md
+
+- Updated dependencies [5328484]
+- Updated dependencies [af89b97]
+- Updated dependencies [e656207]
+- Updated dependencies [5328484]
+- Updated dependencies [c186041]
+- Updated dependencies [c186041]
+- Updated dependencies [5328484]
+- Updated dependencies [5328484]
+- Updated dependencies [5328484]
+- Updated dependencies [5328484]
+- Updated dependencies [af89b97]
+- Updated dependencies [af89b97]
+- Updated dependencies [5328484]
+- Updated dependencies [512c76e]
+- Updated dependencies [5328484]
+- Updated dependencies [c186041]
+- Updated dependencies [af89b97]
+- Updated dependencies [226e3b2]
+- Updated dependencies [af89b97]
+- Updated dependencies [512c76e]
+- Updated dependencies [e656207]
+- Updated dependencies [5328484]
+- Updated dependencies [c186041]
+- Updated dependencies [a34bc19]
+- Updated dependencies [af89b97]
+- Updated dependencies [af89b97]
+- Updated dependencies [c186041]
+- Updated dependencies [c186041]
+  - @gqlbase/core@0.2.0
+  - @gqlbase/shared@0.2.0
+
 ## 0.1.11
 
 ### Patch Changes
