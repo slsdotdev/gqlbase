@@ -37,6 +37,9 @@ const NODE = /* GraphQL */ `
       ... on OperatingSchedule {
         dayOfWeek
       }
+      ... on Integration {
+        provider
+      }
     }
   }
 `;
@@ -49,7 +52,17 @@ const CREATE_SCHEDULE = /* GraphQL */ `
   }
 `;
 
-interface NodeResult { node: { __typename: string; id: string; name?: string; dayOfWeek?: string } }
+const CREATE_INTEGRATION = /* GraphQL */ `
+  mutation Create($input: CreateIntegrationInput!) {
+    createIntegration(input: $input) {
+      id
+    }
+  }
+`;
+
+interface NodeResult {
+  node: { __typename: string; id: string; name?: string; dayOfWeek?: string; provider?: string };
+}
 
 describe("global ids", () => {
   let rootId: string;
@@ -171,6 +184,21 @@ describe("global ids", () => {
 
       expect(result.errors).toBeUndefined();
       expect(result.data?.node).toBeNull();
+    });
+
+    it("reads a node of another data source through its service", async () => {
+      const identity = cognitoIdentity(randomUUID(), [], { "custom:vendor_id": farm });
+      const created = await execute<{ createIntegration: { id: string } }>(CREATE_INTEGRATION, {
+        variables: { input: { provider: "XERO", externalAccountId: "acct-1" } },
+        identity,
+      });
+      const id = created.data?.createIntegration.id ?? "";
+
+      const result = await execute<NodeResult>(NODE, { variables: { id }, identity });
+
+      expect(created.errors).toBeUndefined();
+      expect(result.errors).toBeUndefined();
+      expect(result.data?.node).toEqual({ __typename: "Integration", id, provider: "XERO" });
     });
 
     it("rejects a caller without the scope's claim", async () => {

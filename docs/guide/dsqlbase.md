@@ -162,7 +162,8 @@ export const products = table("products", {
 ```
 
 - **Relation keys** that hold a node's ids are `guid("<col>", "<alias>")`, so `product.vendorId === product.vendor.id`. dsqlbase requires both sides of a relation to agree, and they do by construction. A [tenancy claim](./tenancy.md) that is the key becomes the same `guid()` column, whatever type its scope declares.
-- **Other keys** keep their own column. A `GUID` key to a model that is not a dsqlbase table (another [data source](./data-sources.md)) or to a union is a plain `uuid()`, since `guid()` can only name a node in this schema.
+- **A key to a `GUID` model in another [data source](./data-sources.md)** is `text()`. `guid()` can only name a node in this schema, and the other source owns its ids, so the column stores one exactly as it is given (wrapped, as `node` needs it). Filter it with the same form.
+- **Other keys** keep their own column. A `GUID` key to a union is a plain `uuid()` for now.
 - **Any other `GUID` field throws**: `GUID` identifies a model. Use `UUID` or `ID`.
 - **Reading by id.** `dsql.$findByGlobalId({ id })` reads the row an id names, through the table's model client, so the tenant predicate applies. Its rows carry `$$key`, the schema alias, and `$$meta.__typename`, the GraphQL type. A `Query.node` resolver returns `{ ...row, __typename: row.$$meta.__typename }` (see [Relay](./relay.md#node-interface)).
 - **Raw uuids are accepted** wherever a `guid()` column is, on writes and in filters. An id naming another node throws `GlobalIdError("key_mismatch")`.

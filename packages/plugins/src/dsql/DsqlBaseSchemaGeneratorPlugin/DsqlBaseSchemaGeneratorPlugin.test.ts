@@ -314,8 +314,8 @@ describe("global ids", () => {
     expect(tables).toContain('categoryId: uuid("category_id")');
   });
 
-  it("emits a GUID key to another data source as a uuid", () => {
-    expect(tables).toContain('integrationId: uuid("integration_id")');
+  it("emits a key to a GUID model in another data source as text, the id as that source gives it", () => {
+    expect(tables).toContain('integrationId: text("integration_id")');
   });
 
   it("puts __typename in every table's meta", () => {

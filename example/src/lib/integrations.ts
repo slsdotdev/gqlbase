@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { encodeGlobalId, isGlobalId } from "dsqlbase";
 import type { Integration } from "../../generated/appsync/middy-appsync.types";
 
 // A record as the service stores it: the API type plus the vendorId claim.
@@ -10,9 +11,15 @@ type IntegrationRecord = Integration & { vendorId: string };
  */
 const records = new Map<string, IntegrationRecord>();
 
+// The node key its ids carry: `Integration.id` is a GUID, and the service, not dsqlbase, hands the ids out.
+export const INTEGRATION_NODE_KEY = "integrations";
+
+const globalId = (id?: string | null) =>
+  id && isGlobalId(id) ? id : encodeGlobalId(INTEGRATION_NODE_KEY, { id: id ?? randomUUID() });
+
 export const integrationsService = {
   create: async (data: Omit<IntegrationRecord, "id"> & { id?: string | null }) => {
-    const record = { ...data, id: data.id ?? randomUUID() };
+    const record = { ...data, id: globalId(data.id) };
 
     records.set(record.id, record);
 

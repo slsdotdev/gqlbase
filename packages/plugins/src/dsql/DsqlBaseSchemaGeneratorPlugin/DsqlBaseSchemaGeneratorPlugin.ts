@@ -219,9 +219,10 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
 
   /**
    * The column for a relation key or a `GUID` field, or `null` to resolve it as usual. A key holding a node's ids is
-   * `guid(col, "<alias>")` whatever its own type (a tenancy claim keeps its declared one), so the pair agrees. A `GUID`
-   * key to anything else (another data source, a union) is a plain `uuid`. `GUID` identifies models, so any other
-   * `GUID` field throws.
+   * `guid(col, "<alias>")` whatever its own type (a tenancy claim keeps its declared one), so the pair agrees. A key to
+   * a `GUID` model in another data source is `text`: that source owns its ids, so the column keeps one as it is given.
+   * A `GUID` key to a union is a plain `uuid` until polymorphic relations. `GUID` identifies models, so any other `GUID`
+   * field throws.
    */
   private _keyColumn(node: ObjectNode, field: FieldNode, columnName: string): ts.Expression | null {
     const isGuid = field.type.getTypeName() === BaseScalar.GUID;
@@ -237,6 +238,15 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
           ts.factory.createStringLiteral(columnName),
           ts.factory.createStringLiteral(pluralize(camelCase(target.name))),
         ]);
+      }
+
+      if (
+        target &&
+        !isDsqlBaseTable(target, this.context.options) &&
+        target.getField("id")?.type.getTypeName() === BaseScalar.GUID
+      ) {
+        this._imports.add("text");
+        return this._callExp("text", [ts.factory.createStringLiteral(columnName)]);
       }
 
       if (isGuid) {
