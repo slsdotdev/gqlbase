@@ -696,9 +696,13 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
       "meta",
       [
         ts.factory.createObjectLiteralExpression([
+          // `as const`: `meta()` does not keep literal types, and the typename narrows the row.
           ts.factory.createPropertyAssignment(
             "__typename",
-            ts.factory.createStringLiteral(node.name)
+            ts.factory.createAsExpression(
+              ts.factory.createStringLiteral(node.name),
+              ts.factory.createTypeReferenceNode("const")
+            )
           ),
         ]),
       ]

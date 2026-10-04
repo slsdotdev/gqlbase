@@ -319,8 +319,8 @@ describe("global ids", () => {
   });
 
   it("puts __typename in every table's meta", () => {
-    expect(tables).toMatch(/table\("products", \{[^;]*\}\)\.meta\(\{ __typename: "Product" \}\)/);
-    expect(tables).toMatch(/table\("categories", \{[^;]*\}\)\.meta\(\{ __typename: "Category" \}\)/);
+    expect(tables).toMatch(/table\("products", \{[^;]*\}\)\.meta\(\{ __typename: "Product" as const \}\)/);
+    expect(tables).toMatch(/table\("categories", \{[^;]*\}\)\.meta\(\{ __typename: "Category" as const \}\)/);
   });
 });
 

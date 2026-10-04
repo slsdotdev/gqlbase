@@ -63,14 +63,14 @@ export const users = table("users", {
   status: statusEnum.column("status"),
   tags: json("tags").$type<string[]>(),
   address: json("address").$type<AddressOwnFields>(),
-}).meta({ __typename: "User" });
+}).meta({ __typename: "User" as const });
 
 export const posts = table("posts", {
   id: uuid("id").primaryKey().defaultRandom(),
   title: text("title").notNull(),
   userId: uuid("user_id"),
   authorId: uuid("author_id"),
-}).meta({ __typename: "Post" });
+}).meta({ __typename: "Post" as const });
 
 export const userRelations = relations(users, {
   posts: hasMany(posts, { from: [users.columns.id], to: [posts.columns.userId] }),
@@ -86,7 +86,7 @@ export const postRelations = relations(posts, {
 - **Tables.** Every `@model` object becomes `table("<snake_plural>", {...})`, exported as `<camelPlural>`, except `@clientOnly` models, which are never stored. Non-model types produce no table. A `@serverOnly` model keeps its table. With [data sources](./data-sources.md), only the models of the source with `type: "dsqlbase"` become tables; at most one source can have that type.
 - **Columns.** Every field except `@gqlbase_internal`, `@clientOnly` and relation fields. `@serverOnly`, `@writeOnly` and `@readOnly` fields, and relation keys, are all columns. Column names are `snake_case` of the field name.
 - **`id`.** Always `.primaryKey().defaultRandom()`, whatever its type. A `GUID` id is a `guid()` column; see [Global ids](#global-ids).
-- **`$$meta`.** Every table carries `.meta({ __typename: "<Type>" })`, so every row dsqlbase returns has `row.$$meta.__typename`.
+- **`$$meta`.** Every table carries `.meta({ __typename: "<Type>" as const })`, so every row dsqlbase returns has `row.$$meta.__typename`.
 - **Not null.** `.notNull()` when the field is non-null or `@semanticNonNull`.
 - **Scalars.** Mapped as in [Scalars](./scalars.md): `ID` → `uuid`, `String` → `text`, `Int` → `int`, `Float` → `real`, `Boolean` → `bool`, `DateTime` → `timestamp(…, { mode: "iso" })`, `SafeInt` → `safeint` (see below), … Custom scalars use `scalarMap`, then their type hint.
 - **Enums.** An enum becomes `$enum("<snake>_enum", [...])` only when a non-list column of a stored model uses it; the column is `<camel>Enum.column("<col>")`. A list of enums is a `json` column typed with the enum's TS type.
@@ -151,14 +151,14 @@ type Category @model {
 ```ts
 export const vendors = table("vendors", {
   id: guid("id").primaryKey().defaultRandom(),
-}).meta({ __typename: "Vendor" });
+}).meta({ __typename: "Vendor" as const });
 
 export const products = table("products", {
   id: guid("id").primaryKey().defaultRandom(),
   vendorId: guid("vendor_id", "vendors").notNull(),
   parentId: guid("parent_id", "products"),
   categoryId: uuid("category_id"),
-}).meta({ __typename: "Product" });
+}).meta({ __typename: "Product" as const });
 ```
 
 - **Relation keys** that hold a node's ids are `guid("<col>", "<alias>")`, so `product.vendorId === product.vendor.id`. dsqlbase requires both sides of a relation to agree, and they do by construction. A [tenancy claim](./tenancy.md) that is the key becomes the same `guid()` column, whatever type its scope declares.
