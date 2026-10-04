@@ -212,3 +212,114 @@ describe("DsqlBaseUtilsPlugin", () => {
     });
   });
 });
+
+describe("DsqlBaseUtilsPlugin @embedded", () => {
+  it("keeps an embedded type as an object type, without the directive", () => {
+    const { schema } = createTransformer({ plugins: [dsqlbase()] }).transform(/* GraphQL */ `
+      type Money @embedded {
+        amount: Float!
+        currency: String!
+      }
+
+      type Product @model {
+        id: ID!
+        price: Money
+      }
+    `);
+
+    expect(schema).toMatch(/type Money \{\s+amount: Float!\s+currency: String!\s+\}/);
+    expect(schema).toMatch(/input MoneyInput \{\s+amount: Float!\s+currency: String!\s+\}/);
+    expect(schema).not.toContain("embedded");
+    expect(schema).not.toContain("gqlbase_sortable");
+  });
+
+  it("orders by an embedded field's members", () => {
+    const { schema } = createTransformer({ plugins: [dsqlbase()] }).transform(/* GraphQL */ `
+      type Money @embedded {
+        amount: Float!
+      }
+
+      type Product @model {
+        id: ID!
+        price: Money
+      }
+    `);
+
+    expect(schema).toMatch(
+      /input ProductOrderByInput \{\s+id: SortDirection\s+price: MoneyOrderByInput\s+\}/
+    );
+  });
+
+  it("is not declared without the dsqlbase plugin", () => {
+    expect(() =>
+      createTransformer().transform(/* GraphQL */ `
+        type Money @embedded {
+          amount: Float!
+        }
+      `)
+    ).toThrow(/embedded/);
+  });
+
+  it("rejects a type that is both a model and embedded", () => {
+    expect(() =>
+      createTransformer({ plugins: [dsqlbase()] }).transform(/* GraphQL */ `
+        type Money @model @embedded {
+          id: ID!
+          amount: Float!
+        }
+      `)
+    ).toThrow(/cannot be both @model and @embedded/);
+  });
+
+  it("rejects an id on an embedded type", () => {
+    expect(() =>
+      createTransformer({ plugins: [dsqlbase()] }).transform(/* GraphQL */ `
+        type Money @embedded {
+          id: ID!
+          amount: Float!
+        }
+      `)
+    ).toThrow(/Money.id cannot be on an @embedded type/);
+  });
+
+  it("rejects a relation on an embedded type", () => {
+    expect(() =>
+      createTransformer({ plugins: [dsqlbase()] }).transform(/* GraphQL */ `
+        type Vendor @model {
+          id: ID!
+        }
+
+        type Money @embedded {
+          amount: Float!
+          vendor: Vendor @belongsTo
+        }
+      `)
+    ).toThrow(/Money.vendor cannot be on an @embedded type/);
+  });
+
+  it("rejects an embedded type that contains itself", () => {
+    expect(() =>
+      createTransformer({ plugins: [dsqlbase()] }).transform(/* GraphQL */ `
+        type Link @embedded {
+          value: Int
+          next: Inner
+        }
+
+        type Inner @embedded {
+          back: Link
+        }
+      `)
+    ).toThrow(/Link > Inner > Link/);
+  });
+
+  it("allows a list of itself, which is a document", () => {
+    expect(() =>
+      createTransformer({ plugins: [dsqlbase()] }).transform(/* GraphQL */ `
+        type Part @embedded {
+          name: String
+          parts: [Part]
+        }
+      `)
+    ).not.toThrow();
+  });
+});

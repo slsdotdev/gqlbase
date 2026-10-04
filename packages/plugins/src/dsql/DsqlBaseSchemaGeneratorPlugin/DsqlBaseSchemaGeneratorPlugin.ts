@@ -23,7 +23,6 @@ import {
   getTypeHint,
   isInternal,
   isClientOnly,
-  isEmbedded,
   isModel,
   isRelationField,
   getRelationMembers,
@@ -67,6 +66,7 @@ import {
   isUnique,
   type DsqlIndexColumn,
   isDsqlBaseTable,
+  isEmbedded,
 } from "../DsqlBaseUtilsPlugin/index.js";
 
 /**

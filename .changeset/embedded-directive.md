@@ -2,6 +2,6 @@
 "@gqlbase/core": minor
 ---
 
-`@embedded` on an object type marks a value object stored as columns of each model that uses it. It cannot be a `@model`, have an `id` or relations, or contain itself through non-list members. `<Type>OrderByInput` nests an `@embedded` field's own input (`orderBy: { price: { amount: desc } }`). A list's `contains` filter takes `[T!]`, every item given; a single value still works through GraphQL's list coercion.
+A list's `contains` filter takes `[T!]`, every item given; a single value still works through GraphQL's list coercion. New internal `@gqlbase_sortable` on an object: a field of that type orders by its members, through the object's own `<Type>OrderByInput` (`orderBy: { price: { amount: desc } }`). A backend that stores the members as columns sets it; it is removed from the output.
 
-Docs: docs/guide/embedded-objects.md, docs/guide/models.md#filter-inputs, docs/decisions/0009-embedded-objects.md
+Docs: docs/guide/models.md#ordering, docs/internals/plugin-api.md

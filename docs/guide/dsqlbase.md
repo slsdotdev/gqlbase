@@ -8,7 +8,7 @@ import { dsqlbase } from "@gqlbase/plugins/dsql";
 plugins: [dsqlbase()];
 ```
 
-`dsqlbase(options)` returns `[dsqlBaseUtilsPlugin(), dsqlbaseSchemaGeneratorPlugin(options)]`. `DsqlBaseUtilsPlugin` (`packages/plugins/src/dsql/DsqlBaseUtilsPlugin/DsqlBaseUtilsPlugin.ts`) declares the [table directives](#indexes-and-unique-constraints). The generator is `DsqlBaseSchemaGeneratorPlugin` (`packages/plugins/src/dsql/DsqlBaseSchemaGeneratorPlugin/DsqlBaseSchemaGeneratorPlugin.ts`). It writes `dsqlbase/schema.ts`, which imports builders from `dsqlbase/schema` and the types of object and list columns from `../schema.types.js` (`<Type>OwnFields`, the stored shape without relations), and re-exports those types. A column type the schema types do not export, such as a `@serverOnly` object, is declared in the file itself.
+`dsqlbase(options)` returns `[dsqlBaseUtilsPlugin(), dsqlbaseSchemaGeneratorPlugin(options)]`. `DsqlBaseUtilsPlugin` (`packages/plugins/src/dsql/DsqlBaseUtilsPlugin/DsqlBaseUtilsPlugin.ts`) declares the [table directives](#indexes-and-unique-constraints) and [`@embedded`](#embedded-objects). The generator is `DsqlBaseSchemaGeneratorPlugin` (`packages/plugins/src/dsql/DsqlBaseSchemaGeneratorPlugin/DsqlBaseSchemaGeneratorPlugin.ts`). It writes `dsqlbase/schema.ts`, which imports builders from `dsqlbase/schema` and the types of object and list columns from `../schema.types.js` (`<Type>OwnFields`, the stored shape without relations), and re-exports those types. A column type the schema types do not export, such as a `@serverOnly` object, is declared in the file itself.
 
 ## Options
 

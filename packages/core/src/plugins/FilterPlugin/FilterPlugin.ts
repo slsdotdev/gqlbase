@@ -29,9 +29,8 @@ import {
 } from "../../definition/index.js";
 import { createPluginFactory } from "../createPluginFactory.js";
 import { TransformerPluginBase } from "../TransformerPluginBase.js";
-import { getTypeHint, InternalDirective } from "../InternalUtilsPlugin/index.js";
+import { getTypeHint, InternalDirective, isSortable } from "../InternalUtilsPlugin/index.js";
 import { isManyRelationship } from "../RelationsPlugin/RelationsPlugin.utils.js";
-import { isEmbedded } from "../ModelPlugin/ModelPlugin.utils.js";
 import {
   DATE_SCALARS,
   FilterKind,
@@ -49,8 +48,8 @@ import {
  * - Shared per-scalar inputs (`StringFilterInput`, `IntFilterInput`, …), `<Enum>FilterInput` per enum, `<Type>ListFilterInput` per list.
  * - `<Type>FieldFilterInput` for object-like fields: `exists`, and `where: <Type>FilterInput` on the members.
  *
- * It also adds `orderBy: <Type>OrderByInput`, a `{ <field>: SortDirection }` map whose key order sets the sort priority. An `@embedded` field
- * orders by its members, through a nested `<Type>OrderByInput`.
+ * It also adds `orderBy: <Type>OrderByInput`, a `{ <field>: SortDirection }` map whose key order sets the sort priority. A field of an
+ * `@gqlbase_sortable` object (dsqlbase's `@embedded`) orders by its members, through a nested `<Type>OrderByInput`.
  *
  * @example
  * ```graphql
@@ -76,7 +75,7 @@ export class FilterPlugin extends TransformerPluginBase {
 
   /**
    * `<Type>OrderByInput`: one `SortDirection` entry per sortable field, a non-list scalar or enum the filter accepts, and a nested
-   * `<Type>OrderByInput` per `@embedded` field. `null` when there is none. Clients list keys in priority order.
+   * `<Type>OrderByInput` per field of a `@gqlbase_sortable` object. `null` when there is none. Clients list keys in priority order.
    */
   private _createOrderByInput(target: ObjectNode | InterfaceNode): InputObjectNode | null {
     const inputName = pascalCase(target.name, "order", "by", "input");
@@ -118,8 +117,11 @@ export class FilterPlugin extends TransformerPluginBase {
         continue;
       }
 
-      // An embedded group's members are columns, so it orders by them, through its own input.
-      const nested = typeDef && isEmbedded(typeDef) ? this._createOrderByInput(typeDef) : null;
+      // A backend that stores the object's members as columns marks it sortable: it orders by them, through its own input.
+      const nested =
+        typeDef && isObjectNode(typeDef) && isSortable(typeDef)
+          ? this._createOrderByInput(typeDef)
+          : null;
 
       if (nested) {
         input.addField(

@@ -154,7 +154,7 @@ The built-in inputs are added in `before()`: `IDFilterInput`, `StringFilterInput
 | List | every list of scalars or enums, as `<Type>ListFilterInput` (`[String]` → `StringListFilterInput`) | `contains` `exists` |
 
 - `in`, `between` and a list's `contains` take `[T!]`. `contains` matches a list holding every item given, in any order: `{ tags: { contains: ["local", "organic"] } }`. GraphQL coerces a single value to a one-item list, so `{ contains: "local" }` still works.
-- `between` `between` takes two values, low then high, both included. The generated TS types and Zod schemas type `between` as the pair `[T, T]` (`@gqlbase_tuple(size: 2)`, stripped from the output schema). A month is `{ between: ["2026-09-01", "2026-09-30"] }` on a `Date`.
+- `between` takes two values, low then high, both included. The generated TS types and Zod schemas type `between` as the pair `[T, T]` (`@gqlbase_tuple(size: 2)`, stripped from the output schema). A month is `{ between: ["2026-09-01", "2026-09-30"] }` on a `Date`.
 - `exists: true` matches a set value, `exists: false` a missing or `null` one.
 - `and` and `or` take `[<Type>FilterInput!]`; `not` takes `<Type>FilterInput`. Conditions on several fields of one filter are combined with `and`.
 - To exclude a substring, use `not`: `{ not: { name: { contains: "p" } } }`.
@@ -195,7 +195,7 @@ input PricingModelFilterInput {
 - `where` follows the same rules as a model's filter, with its own `and`, `or` and `not`, to any depth. A type that refers to itself reuses its filter.
 - A union field gets `exists` only: its members share no fields.
 - Lists of objects are not filterable. See [Known gaps](../internals/known-gaps.md).
-- dsqlbase runs a nested `where` only on an [`@embedded`](./embedded-objects.md) field, whose members are columns; on any other object it is a `jsonb` document filtered by `exists` (see [dsqlbase](./dsqlbase.md)). AppSync DynamoDB resolvers drop it (see [AppSync](./appsync.md#dynamodb-filters)).
+- dsqlbase runs a nested `where` only on an [`@embedded`](./embedded-objects.md) field (a dsqlbase plugin directive), whose members are columns; on any other object it is a `jsonb` document filtered by `exists` (see [dsqlbase](./dsqlbase.md)). AppSync DynamoDB resolvers drop it (see [AppSync](./appsync.md#dynamodb-filters)).
 
 #### Migrating from the 0.1 operators
 
@@ -236,7 +236,7 @@ products(filter: ProductFilterInput, orderBy: ProductOrderByInput, first: Int, a
 ```
 
 - **Sortable fields** are the non-list scalar and enum fields the filter accepts (see [Filter inputs](#filter-inputs)): `@readOnly` fields such as `createdAt` included, `@serverOnly`, `@clientOnly` and unreadable `@writeOnly` fields excluded. There is no opt-out. A target with no sortable field gets no `orderBy`.
-- **An [`@embedded`](./embedded-objects.md) field** orders by its members, through its own `<Type>OrderByInput`: `orderBy: { price: { amount: desc } }`. A field of any other object type cannot be sorted.
+- **A field of a `@gqlbase_sortable` object** orders by its members, through the object's own `<Type>OrderByInput`: `orderBy: { price: { amount: desc } }`. A backend that stores the members as columns sets the marker: the dsqlbase plugin sets it on [`@embedded`](./embedded-objects.md) types. A field of any other object type cannot be sorted.
 - **Priority follows the input type, not the client.** GraphQL does not keep the key order of an input object: graphql-js, for one, rebuilds it in the order the type declares its fields. With `{ price: desc, name: asc }`, `name` (declared first) decides first, and `price` breaks ties. Declare fields in the order they should take priority, or sort by one key.
 - The value passes to dsqlbase's `orderBy` unchanged, apart from explicit `null`s. Add a unique key (`id`) last for a stable order across pages.
 - An `orderBy` argument declared in the source is kept as is.

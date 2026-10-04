@@ -12,7 +12,6 @@ import { isRelationField } from "../RelationsPlugin/index.js";
 
 export const ModelDirective = {
   MODEL: "model",
-  EMBEDDED: "embedded",
 } as const;
 
 export { ModelOperation, type OperationType };
@@ -26,13 +25,6 @@ export const DEFAULT_WRITE_OPERATIONS = [
 
 export const isModel = (node: DefinitionNode): node is ObjectNode => {
   return isObjectNode(node) && node.hasDirective(ModelDirective.MODEL);
-};
-
-/**
- * An object type stored as a group of columns of each model that uses it, rather than as one document.
- */
-export const isEmbedded = (node: DefinitionNode): node is ObjectNode => {
-  return isObjectNode(node) && node.hasDirective(ModelDirective.EMBEDDED);
 };
 
 export const isPrimaryKeyField = (field: FieldNode): boolean => {

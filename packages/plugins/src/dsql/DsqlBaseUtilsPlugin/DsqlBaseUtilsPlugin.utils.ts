@@ -1,5 +1,5 @@
 import type { TransformerOptions } from "@gqlbase/core";
-import { FieldNode, ObjectNode } from "@gqlbase/core/definition";
+import { DefinitionNode, FieldNode, isObjectNode, ObjectNode } from "@gqlbase/core/definition";
 import { isInDataSourceType } from "@gqlbase/core/plugins";
 
 /** The data source type dsqlbase handles: `transform.dataSources: { db: { type: "dsqlbase" } }`. */
@@ -19,7 +19,16 @@ export const isDsqlBaseTable = (
 export const DsqlBaseDirective = {
   INDEX: "index",
   UNIQUE: "unique",
+  EMBEDDED: "embedded",
 } as const;
+
+/**
+ * An object type stored as a group of columns of each table that uses it (`embedded()`), rather than as one `jsonb`
+ * document. Reads `@embedded`, so call it before `cleanup`.
+ */
+export const isEmbedded = (node: DefinitionNode): node is ObjectNode => {
+  return isObjectNode(node) && node.hasDirective(DsqlBaseDirective.EMBEDDED);
+};
 
 export const DSQL_INDEX_COLUMN = "DsqlIndexColumn";
 export const DSQL_NULLS_ORDER = "DsqlNullsOrder";

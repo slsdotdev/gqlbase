@@ -20,10 +20,10 @@ import {
   createPluginFactory,
   InternalDirective,
   isClientOnly,
-  isEmbedded,
   isInternal,
+  isModel,
+  isPrimaryKeyField,
   isRelationField,
-  ModelDirective,
 } from "@gqlbase/core/plugins";
 import { isBuildInScalar } from "@gqlbase/shared/definition";
 import { TransformerPluginExecutionError } from "@gqlbase/shared/errors";
@@ -34,6 +34,7 @@ import {
   DsqlBaseDirective,
   getIndexes,
   isDsqlBaseTable,
+  isEmbedded,
   getUniqueConstraints,
 } from "./DsqlBaseUtilsPlugin.utils.js";
 
@@ -47,10 +48,13 @@ import {
  *
  * directive `@index(name: String!, columns: [DsqlIndexColumn!]!, unique: Boolean = false, include: [String!], distinctNulls: Boolean)` repeatable on OBJECT
  * directive `@unique(fields: [String!])` repeatable on OBJECT | FIELD_DEFINITION
+ * directive `@embedded` on OBJECT
  * ```
  *
  * - `@index` → `table.index(name, { unique }).columns(...).include(...).distinctNulls(...)`
  * - `@unique` on a field → `column.unique()`; on a type, with `fields` → `table.unique((c) => [...])`
+ * - `@embedded` → an `embedded({...})` shape, stored as columns of each table that uses it. The type is marked
+ *   `@gqlbase_sortable`, so `orderBy` reaches its members.
  *
  * Fields are checked in `execute`, once relation keys and tenancy claims exist: each must be a column of the table.
  */
@@ -141,7 +145,43 @@ export class DsqlBaseUtilsPlugin extends TransformerPluginBase {
           ],
           true
         )
+      )
+      .addNode(DirectiveDefinitionNode.create(DsqlBaseDirective.EMBEDDED, undefined, ["OBJECT"]));
+  }
+
+  /**
+   * An `@embedded` type is a value: it is not a model, has no `id` and no relations, and does not contain itself, since its
+   * members become columns of the table that uses it.
+   */
+  private _checkEmbedded(definition: ObjectNode, path: string[]) {
+    if (path.length === 1 && isModel(definition)) {
+      throw new TransformerPluginExecutionError(
+        this.name,
+        `Type ${definition.name} cannot be both @model and @embedded.`
       );
+    }
+
+    for (const field of definition.fields ?? []) {
+      if (path.length === 1 && (isPrimaryKeyField(field) || isRelationField(field))) {
+        throw new TransformerPluginExecutionError(
+          this.name,
+          `Field ${definition.name}.${field.name} cannot be on an @embedded type, which has no id and no relations.`
+        );
+      }
+
+      const member = this.context.document.getNode(field.type.getTypeName());
+
+      if (isListTypeNode(field.type) || !member || !isEmbedded(member)) continue;
+
+      if (path.includes(member.name)) {
+        throw new TransformerPluginExecutionError(
+          this.name,
+          `@embedded type ${member.name} contains itself (${[...path, member.name].join(" > ")}).`
+        );
+      }
+
+      this._checkEmbedded(member, [...path, member.name]);
+    }
   }
 
   /**
@@ -281,17 +321,32 @@ export class DsqlBaseUtilsPlugin extends TransformerPluginBase {
 
   public before() {
     this._indexNames.clear();
+
+    for (const definition of this.context.document.definitions.values()) {
+      if (!isEmbedded(definition)) continue;
+
+      this._checkEmbedded(definition, [definition.name]);
+
+      if (!definition.hasDirective(InternalDirective.SORTABLE)) {
+        definition.addDirective(DirectiveNode.create(InternalDirective.SORTABLE));
+      }
+    }
   }
 
   public match(definition: DefinitionNode): boolean {
-    return isObjectNode(definition) && this._hasTableDirectives(definition);
+    return (
+      isObjectNode(definition) && (this._hasTableDirectives(definition) || isEmbedded(definition))
+    );
   }
 
   /**
    * Checks the table directives once relation keys (added in normalize) and tenancy claims (added before it) exist.
    */
   public execute(definition: ObjectNode) {
-    if (definition.hasDirective(ModelDirective.EMBEDDED)) {
+    // Not `isEmbedded`: its type guard would narrow the definition to `never` below.
+    if (definition.hasDirective(DsqlBaseDirective.EMBEDDED)) {
+      if (!this._hasTableDirectives(definition)) return;
+
       throw new TransformerPluginExecutionError(
         this.name,
         `@index and @unique apply to tables, not to the @embedded type ${definition.name}: its members are columns of each model that uses it. Index them there, by path ("<field>.<member>").`
@@ -309,7 +364,10 @@ export class DsqlBaseUtilsPlugin extends TransformerPluginBase {
   }
 
   public cleanup(definition: ObjectNode) {
-    definition.removeDirective(DsqlBaseDirective.INDEX).removeDirective(DsqlBaseDirective.UNIQUE);
+    definition
+      .removeDirective(DsqlBaseDirective.INDEX)
+      .removeDirective(DsqlBaseDirective.UNIQUE)
+      .removeDirective(DsqlBaseDirective.EMBEDDED);
 
     for (const field of definition.fields ?? []) {
       field.removeDirective(DsqlBaseDirective.UNIQUE);
@@ -320,6 +378,7 @@ export class DsqlBaseUtilsPlugin extends TransformerPluginBase {
     this.context.document
       .removeNode(DsqlBaseDirective.INDEX)
       .removeNode(DsqlBaseDirective.UNIQUE)
+      .removeNode(DsqlBaseDirective.EMBEDDED)
       .removeNode(DSQL_INDEX_COLUMN)
       .removeNode(DSQL_NULLS_ORDER);
   }

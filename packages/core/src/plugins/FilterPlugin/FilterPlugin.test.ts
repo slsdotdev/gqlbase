@@ -320,17 +320,17 @@ describe("FilterPlugin orderBy", () => {
   });
 });
 
-describe("FilterPlugin orderBy on @embedded fields", () => {
+describe("FilterPlugin orderBy on @gqlbase_sortable objects", () => {
   let schema: string;
 
   beforeAll(() => {
     ({ schema } = createTransformer().transform(/* GraphQL */ `
-      type Geo @embedded {
+      type Geo @gqlbase_sortable {
         lat: Float
         lng: Float
       }
 
-      type Address @embedded {
+      type Address @gqlbase_sortable {
         city: String
         geo: Geo
         lines: [String]
@@ -348,7 +348,7 @@ describe("FilterPlugin orderBy on @embedded fields", () => {
     `));
   });
 
-  it("orders by an embedded field's members, through a nested input", () => {
+  it("orders by a sortable object's members, through a nested input", () => {
     expect(schema).toMatch(
       /input StoreOrderByInput \{\s+id: SortDirection\s+address: AddressOrderByInput\s+\}/
     );
@@ -358,12 +358,12 @@ describe("FilterPlugin orderBy on @embedded fields", () => {
     expect(schema).toMatch(/input GeoOrderByInput \{\s+lat: SortDirection\s+lng: SortDirection\s+\}/);
   });
 
-  it("does not order by an object that is not embedded", () => {
+  it("does not order by an object that is not sortable", () => {
     expect(schema).not.toContain("NoteOrderByInput");
   });
 
   it("removes the directive from the output", () => {
-    expect(schema).not.toContain("@embedded");
+    expect(schema).not.toContain("gqlbase_sortable");
     expect(schema).toMatch(/type Address \{/);
   });
 });
