@@ -6,12 +6,6 @@ These are verified defects and inconsistencies in the current code. **Fix them; 
 
 ## Schema transformation
 
-### 2. Union relation targets always get an `ID!` key
-
-When a relation target is a union, `RelationsPlugin._setRelationKey` (`packages/core/src/plugins/RelationsPlugin/RelationsPlugin.ts`) recurses into each member. The recursive call passes only `key`, dropping `typeName` and `isNullable`. Every member therefore gets a non-null `ID` key field, whatever the relation's nullability or the id type `_getKeyTypeName` resolved.
-
-**Fix:** forward both arguments.
-
 ### 5. Lists of objects cannot be filtered
 
 `FilterPlugin._getFieldFilterInputName` (`packages/core/src/plugins/FilterPlugin/FilterPlugin.ts`) returns no filter for a list of objects, interfaces or unions (`tiers: [PricingModel!]`), so the field is left out of `<Type>FilterInput`. Object fields that are not lists are filtered through `<Type>FieldFilterInput`.

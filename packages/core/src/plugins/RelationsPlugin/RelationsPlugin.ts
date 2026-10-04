@@ -14,7 +14,6 @@ import {
   ListTypeNode,
   NamedTypeNode,
   ObjectNode,
-  UnionNode,
   isListTypeNode,
   isNullableTypeNode,
   DirectiveNode,
@@ -31,6 +30,7 @@ import {
   RelationDirective,
   RelationTarget,
   isBelongsToRelationship,
+  getRelationMembers,
 } from "./RelationsPlugin.utils.js";
 import { isClientOnly, UtilityDirective } from "../UtilitiesPlugin/index.js";
 import { isSemanticNullable } from "../RfcFeaturesPlugin/RfcFeaturesPlugin.utils.js";
@@ -142,75 +142,56 @@ export class RelationsPlugin implements ITransformerPlugin {
       return isModel(node) && !isClientOnly(node);
     }
 
-    const members: DefinitionNode[] = [];
-
-    if (isUnionNode(node)) {
-      for (const type of node.types ?? []) {
-        const member = this.context.document.getNode(type.getTypeName());
-        if (member) members.push(member);
-      }
-    } else {
-      if (isClientOnly(node)) return false;
-
-      for (const candidate of this.context.document.definitions.values()) {
-        if (isObjectNode(candidate) && candidate.hasInterface(node.name)) {
-          members.push(candidate);
-        }
-      }
+    if (isInterfaceNode(node) && isClientOnly(node)) {
+      return false;
     }
 
-    return (
-      members.length > 0 &&
-      members.every((member) => isValidRelationTarget(member) && this._isStored(member))
-    );
+    const members = getRelationMembers(this.context.document, node);
+
+    return members.length > 0 && members.every((member) => this._isStored(member));
   }
 
+  /**
+   * The type of the ids a key holds: the target's id type. For a union or an interface, the members' id type, `ID` when
+   * they differ. Members cannot mix `GUID` ids with others: the key column is a global id for all of them or none.
+   */
   private _getKeyTypeName(target: RelationTarget, relation: string): string {
-    if (isUnionNode(target)) {
-      const idTypes = new Set<string>();
+    if (isObjectNode(target) || (isInterfaceNode(target) && target.hasField("id"))) {
+      const idField = target.getField("id");
 
-      for (const type of target.types ?? []) {
-        const unionType = this.context.document.getNode(type.getTypeName());
-
-        if (!unionType) continue;
-
-        if (isObjectNode(unionType) || isInterfaceNode(unionType)) {
-          const idField = unionType.getField("id");
-
-          if (!idField) {
-            throw new TransformerPluginExecutionError(
-              this.name,
-              `Relation ${relation} needs an id on every member of ${target.name}, but ${unionType.name} has no id field.`
-            );
-          }
-
-          idTypes.add(idField.type.getTypeName());
-          continue;
-        }
-
+      if (!idField) {
         throw new TransformerPluginExecutionError(
           this.name,
-          `Invalid relation union target: ${target.name}`
+          `Relation ${relation} needs the id of ${target.name} for its key, but ${target.name} has no id field.`
         );
       }
 
-      if (idTypes.size > 1) {
-        return "ID";
-      }
-
-      return Array.from(idTypes.values())[0];
+      return idField.type.getTypeName();
     }
 
-    const idField = target.getField("id");
+    const idTypes = new Set<string>();
 
-    if (!idField) {
+    for (const member of getRelationMembers(this.context.document, target)) {
+      const idField = member.getField("id");
+
+      if (!idField) {
+        throw new TransformerPluginExecutionError(
+          this.name,
+          `Relation ${relation} needs an id on every member of ${target.name}, but ${member.name} has no id field.`
+        );
+      }
+
+      idTypes.add(idField.type.getTypeName());
+    }
+
+    if (idTypes.size > 1 && idTypes.has(BaseScalar.GUID)) {
       throw new TransformerPluginExecutionError(
         this.name,
-        `Relation ${relation} needs the id of ${target.name} for its key, but ${target.name} has no id field.`
+        `Relation ${relation} targets ${target.name}, whose members mix GUID ids with ${[...idTypes].filter((type) => type !== BaseScalar.GUID).join(", ")}. Give every member a GUID id, or none.`
       );
     }
 
-    return idField.type.getTypeName();
+    return idTypes.size === 1 ? [...idTypes][0] : "ID";
   }
 
   private _getFieldRelation(
@@ -252,26 +233,15 @@ export class RelationsPlugin implements ITransformerPlugin {
   }
 
   private _setRelationKey(
-    node: ObjectNode | InterfaceNode | UnionNode,
+    node: RelationTarget,
     key: string,
     typeName = "ID",
     isNullable = false
   ) {
-    if (isUnionNode(node)) {
-      for (const type of node.types ?? []) {
-        const unionType = this.context.document.getNode(type.getTypeName());
-
-        if (!unionType) continue;
-
-        if (isObjectNode(unionType) || isInterfaceNode(unionType)) {
-          this._setRelationKey(unionType, key, typeName);
-          continue;
-        }
-
-        throw new TransformerPluginExecutionError(
-          this.name,
-          `Invalid relation union target: ${node.name}`
-        );
+    // A union or an interface stands for its members: each one stores the key.
+    if (isUnionNode(node) || isInterfaceNode(node)) {
+      for (const member of getRelationMembers(this.context.document, node)) {
+        this._setRelationKey(member, key, typeName, isNullable);
       }
 
       return;
@@ -299,6 +269,28 @@ export class RelationsPlugin implements ITransformerPlugin {
     );
   }
 
+  /**
+   * The source field of a `@belongsTo` to a union or an interface that holds which member a row points at, beside the
+   * key. Hidden like the key: with `GUID` members, the store fills it from the id.
+   */
+  private _setDiscriminator(node: ObjectNode | InterfaceNode, name: string, isNullable: boolean) {
+    if (node.hasField(name)) {
+      return;
+    }
+
+    node.addField(
+      FieldNode.create(
+        name,
+        undefined,
+        [
+          DirectiveNode.create(UtilityDirective.SERVER_ONLY),
+          DirectiveNode.create(UtilityDirective.WRITE_ONLY),
+        ],
+        isNullable ? NamedTypeNode.create("String") : NonNullTypeNode.create("String")
+      )
+    );
+  }
+
   public init() {
     this.context.base
       .addNode(
@@ -314,7 +306,10 @@ export class RelationsPlugin implements ITransformerPlugin {
           RelationDirective.BELONGS_TO,
           undefined,
           ["FIELD_DEFINITION"],
-          [InputValueNode.create("key", undefined, undefined, "String")]
+          [
+            InputValueNode.create("key", undefined, undefined, "String"),
+            InputValueNode.create("discriminator", undefined, undefined, "String"),
+          ]
         )
       )
       .addNode(
@@ -403,6 +398,11 @@ export class RelationsPlugin implements ITransformerPlugin {
           this._getKeyTypeName(relation.target, name),
           isSemanticNullable(field)
         );
+
+        if (relation.discriminator) {
+          this._setDiscriminator(definition, relation.discriminator, isSemanticNullable(field));
+        }
+
         continue;
       }
 

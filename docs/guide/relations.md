@@ -126,20 +126,31 @@ Every `@hasMany` gets the `filter` and `orderBy` arguments, whatever its parent 
 
 ## Union and interface targets
 
-The target must be an object, interface or union type.
+The target must be an object, interface or union type. A union stands for its members, and an interface for the object types implementing it. A relation to one is keyed only when every member is a stored model, as for an object target.
 
-- **Interface targets** are handled like objects.
-- **Union targets** are accepted by the schema transform:
-  - a `@hasOne`/`@hasMany` key is added to every member;
-  - a `@belongsTo` key is typed from the members' `id` type, or `ID` if the members disagree.
+- **`@hasOne` / `@hasMany`** put the key on **every member**, typed with the source's id and nullable as the relation is. Nothing is added to the interface itself.
+- **`@belongsTo`** stores two fields on the source, both `@serverOnly @writeOnly` like any key:
+  - the key, `<field>Id` (or `key:`), typed with the members' id type (`ID` when they differ);
+  - the **discriminator**, `<field>Type` (or `discriminator:`), a `String` naming which member the row points at.
+- **Members cannot mix `GUID` ids with others**: the key is a global id for all of them or for none. A mix throws.
 
-Unions are not usable end to end yet:
-- keys added to union members are always `ID!`, whatever the members' id types or the field's nullability;
-- there is no discriminator (type) column;
-- Zod and the mutation inputs skip union fields;
-- the dsqlbase generator rejects non-model targets, and Drizzle uses the union name as if it were a table.
+```graphql
+union Owner = Invoice | PaymentOrder
 
-See [Known gaps](../internals/known-gaps.md).
+type Resource @model {
+  id: GUID!
+  owner: Owner @belongsTo          # adds ownerId: GUID, ownerType: String
+}
+
+type Invoice @model {
+  id: GUID!
+  resources: Resource @hasMany(key: "ownerId")
+}
+```
+
+With `GUID` members, nothing has to set the discriminator: [dsqlbase](./dsqlbase.md#polymorphic-relations) fills it from the id written to the key. A client that sets the relation passes one id, which names its member; declare the key as a public field (`ownerId: GUID`) to let it.
+
+**A member's reverse relation** (`Invoice.resources` above) correlates on the key alone: the discriminator is not part of the join. Ids are random uuids, so two members do not share one in practice. A resolver that filters with the parent's global id (`{ ownerId: { eq: source.id } }`) matches the discriminator too.
 
 ## Related
 
