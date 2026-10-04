@@ -1,4 +1,5 @@
 import { beforeAll, describe, expect, it } from "vitest";
+import { decodeGlobalId } from "dsqlbase";
 import { migrate } from "../src/lib/dsql";
 import { execute } from "./appsync";
 
@@ -51,7 +52,7 @@ describe("model CRUD", () => {
   it("accepts a client-provided id on create", async () => {
     const clientId = "0b6a1d4e-5f1c-4c2a-9a55-0d1a2b3c4d5e";
 
-    const result = await execute(
+    const result = await execute<{ createCategory: { id: string } }>(
       /* GraphQL */ `
         mutation Create($input: CreateCategoryInput!) {
           createCategory(input: $input) {
@@ -62,8 +63,12 @@ describe("model CRUD", () => {
       { variables: { input: { id: clientId, name: "Fruit", slug: "fruit", sortOrder: 2 } } }
     );
 
+    // A raw uuid goes in; the id comes back as a global id naming the category.
     expect(result.errors).toBeUndefined();
-    expect(result.data).toEqual({ createCategory: { id: clientId } });
+    expect(decodeGlobalId(result.data?.createCategory.id ?? "")).toEqual({
+      key: "categories",
+      pk: { id: clientId },
+    });
   });
 
   it("gets a model by id", async () => {

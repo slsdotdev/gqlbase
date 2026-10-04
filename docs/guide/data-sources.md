@@ -61,6 +61,18 @@ Both read `@dataSource`, so call them before `cleanup`, for example in `generate
 - **Drizzle** is frozen and ignores data sources: it emits every model, as before.
 - Every other generator works on the public schema and is not affected.
 
+## Global ids
+
+A model in a service source can have a [`GUID`](./scalars.md#guid) id like any other, but the service owns its ids: dsqlbase never sees them. For `Query.node` to reach such a model, the service hands out wrapped ids itself, with a node key of its choosing:
+
+```ts
+import { encodeGlobalId } from "dsqlbase";
+
+const id = encodeGlobalId("integrations", { id: randomUUID() });
+```
+
+The `node` resolver dispatches on `decodeGlobalId(id).key`: the service's key goes to the service, any other to `$findByGlobalId` (see [Relay](./relay.md#node-interface)). A dsqlbase column that keys into such a model is `text()`, so it stores the id exactly as the service gave it (see [dsqlbase](./dsqlbase.md#global-ids)).
+
 ## Related
 
 - [Configuration](./configuration.md#transformer-options)

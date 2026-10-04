@@ -14,6 +14,7 @@ These are accepted design decisions, numbered in the order they were accepted. A
 | [0004](./0004-filters-ordering-and-relation-keys.md) | One filter vocabulary, `orderBy` maps, and relation keys only between stored types | 2026-10-02 | accepted |
 | [0005](./0005-tenancy-scopes.md) | Tenancy scopes in config, claims as `@serverOnly` fields | 2026-10-02 | accepted |
 | [0006](./0006-resolver-typings.md) | Schema types as parts; AppSync types under the API's names; `@computed` | 2026-10-03 | accepted |
+| [0007](./0007-global-ids.md) | Global ids through a `GUID` scalar | 2026-10-04 | accepted |
 
 ## Template
 

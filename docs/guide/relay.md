@@ -17,10 +17,33 @@ With `relay` off (the default), neither is registered: there is no `Node` interf
 ## `Node` interface
 
 - **The interface:** adds `interface Node { id: ID! }`, or reuses an existing `Node` interface. Only its `id` field survives; other fields are removed in `after()`.
-- **The query:** adds `Query.node(id: ID!): Node`.
-- **Implementors:** every `@model` type implements `Node`, and so does every type that already declares `implements Node`. A missing `id` field is added. An `id` of a different type throws.
+- **The id type** is the interface's: declare `interface Node { id: GUID! }` to give every model a [global id](./scalars.md#guid).
+- **The query:** adds `Query.node(id: <id type>!): Node`.
+- **Implementors:** every `@model` type implements `Node`, and so does every type that already declares `implements Node`. A missing `id` field is added with the interface's type, before relations and operations read it. An `id` of a different type throws.
 
-The id is passed through unchanged. Nothing encodes the type into it, and no resolver is generated for `node`.
+No resolver is generated for `node`; the typed `Query.node` entry in `appsync/middy-appsync.types.ts` requires the result to carry `__typename`. With `ID` ids, the id says nothing about its type. With [`GUID`](./scalars.md#guid) ids, it names its model, so one resolver can read any node. On dsqlbase:
+
+```ts
+import { createQueryResolver } from "@middy-appsync/graphql";
+import { decodeGlobalId } from "dsqlbase";
+import type { Node } from "../generated/appsync/middy-appsync.types";
+
+const node = createQueryResolver({
+  fieldName: "node",
+  resolve: async ({ args }) => {
+    const { key } = decodeGlobalId(args.id); // the schema alias: "categories"
+    // A service-backed model: dispatch on `key` to its service here (see Data sources).
+    const row = await dsql.$findByGlobalId({ id: args.id });
+
+    return row && ({ ...row, __typename: row.$$meta.__typename } as Node);
+  },
+});
+```
+
+- `row.$$meta.__typename` is set by the generated tables (see [dsqlbase](./dsqlbase.md#global-ids)). The cast is needed because spreading a union of rows does not narrow it.
+- **Scope.** `$findByGlobalId` applies dsqlbase's tenant predicate on a client scoped with claims. Until gqlbase emits `tenantScope()`, pass the caller's claims for a scoped table yourself: `on: { [key]: { where: claims } }`, and another tenant's id reads as `null`.
+- **Hidden models.** A `@serverOnly` model with a `GUID` id is a node too. Its type is not in the public schema, so return `null` for its key rather than reading it.
+- A malformed id makes `decodeGlobalId` throw `GlobalIdError`, an error in the response.
 
 ## Connections
 

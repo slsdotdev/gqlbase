@@ -54,6 +54,10 @@ import { TransformerPluginBase } from "../TransformerPluginBase.js";
  *    Specified by: http://rfc-editor.org/rfc/rfc9562
  *    Example: `"550e8400-e29b-41d4-a716-446655440000"`, `"123e4567-e89b-12d3-a456-426614174000"`
  *
+ * - `GUID`: A global id: a model's id that also names its model. Stored as a uuid; on the wire an opaque string
+ *    (`guid:<base64url>`), though a raw uuid is accepted on the way in. Only a model's `id` and relation keys are `GUID`.
+ *    Example: `"guid:WyJjYXRlZ29yaWVzIix7ImlkIjoiNTUwZTg0MDAtZTI5Yi00MWQ0LWE3MTYtNDQ2NjU1NDQwMDAwIn1d"`
+ *
  */
 
 export class ScalarsPlugin extends TransformerPluginBase {
@@ -121,6 +125,13 @@ export class ScalarsPlugin extends TransformerPluginBase {
           DirectiveNode.create("specifiedBy", [
             ArgumentNode.create("url", ValueNode.string("http://rfc-editor.org/rfc/rfc9562")),
           ]),
+          DirectiveNode.create("gqlbase_typehint", [
+            ArgumentNode.create("type", ValueNode.enum("id")),
+          ]),
+        ])
+      )
+      .addNode(
+        ScalarNode.create("GUID", undefined, [
           DirectiveNode.create("gqlbase_typehint", [
             ArgumentNode.create("type", ValueNode.enum("id")),
           ]),

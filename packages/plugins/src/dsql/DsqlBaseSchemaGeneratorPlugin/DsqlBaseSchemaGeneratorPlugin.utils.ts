@@ -33,6 +33,7 @@ export const SCALAR_TYPE_MAP: Record<BuildInScalar | BaseScalarName, ScalarConfi
   Float: { type: "number", dataType: "real" },
   Boolean: { type: "boolean", dataType: "bool" },
   UUID: { type: "string", dataType: "uuid" },
+  GUID: { type: "string", dataType: "guid" },
   DateTime: { type: "string", dataType: "timestamp", options: { mode: "iso" } },
   Date: { type: "string", dataType: "date", options: { mode: "iso" } },
   Time: { type: "string", dataType: "time", options: { mode: "iso" } },

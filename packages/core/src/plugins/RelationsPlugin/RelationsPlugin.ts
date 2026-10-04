@@ -35,6 +35,8 @@ import {
 import { isClientOnly, UtilityDirective } from "../UtilitiesPlugin/index.js";
 import { isSemanticNullable } from "../RfcFeaturesPlugin/RfcFeaturesPlugin.utils.js";
 import { isModel } from "../ModelPlugin/ModelPlugin.utils.js";
+import { getScope } from "../TenancyPlugin/TenancyPlugin.utils.js";
+import { BaseScalar } from "../ScalarsPlugin/ScalarsPlugin.utils.js";
 
 /**
  * Adds the `@hasOne`, `@hasMany` and `@belongsTo` relation directives, the key fields they need, and the list shape of `@hasMany` fields.
@@ -223,6 +225,32 @@ export class RelationsPlugin implements ITransformerPlugin {
     return target ? parseFieldRelation(object, field, target) : null;
   }
 
+  /**
+   * A declared key holds the target's ids, so it has the target's id type. Only enforced where `GUID` is involved:
+   * `ID` and `UUID` keys have always been interchangeable, while a `GUID` key and its target must agree for the
+   * global id pair to hold. A tenancy claim keeps the type its scope declares; the generators follow the target.
+   */
+  private _checkDeclaredKeyType(
+    node: ObjectNode | InterfaceNode,
+    field: FieldNode,
+    typeName: string
+  ) {
+    const declared = field.type.getTypeName();
+
+    if (declared === typeName || (declared !== BaseScalar.GUID && typeName !== BaseScalar.GUID)) {
+      return;
+    }
+
+    if (isObjectNode(node) && getScope(node, this.context.options)?.claims[field.name]) {
+      return;
+    }
+
+    throw new TransformerPluginExecutionError(
+      this.name,
+      `${node.name}.${field.name} is a relation key of type ${declared}, but the ids it holds are ${typeName}. Declare it as ${typeName}.`
+    );
+  }
+
   private _setRelationKey(
     node: ObjectNode | InterfaceNode | UnionNode,
     key: string,
@@ -236,7 +264,7 @@ export class RelationsPlugin implements ITransformerPlugin {
         if (!unionType) continue;
 
         if (isObjectNode(unionType) || isInterfaceNode(unionType)) {
-          this._setRelationKey(unionType, key);
+          this._setRelationKey(unionType, key, typeName);
           continue;
         }
 
@@ -249,21 +277,26 @@ export class RelationsPlugin implements ITransformerPlugin {
       return;
     }
 
-    if (!node.hasField(key)) {
-      node.addField(
-        FieldNode.create(
-          key,
-          undefined,
-          [
-            DirectiveNode.create(UtilityDirective.SERVER_ONLY),
-            DirectiveNode.create(UtilityDirective.WRITE_ONLY),
-          ],
-          isNullable
-            ? NamedTypeNode.create(typeName)
-            : NonNullTypeNode.create(NamedTypeNode.create(typeName))
-        )
-      );
+    const declared = node.getField(key);
+
+    if (declared) {
+      this._checkDeclaredKeyType(node, declared, typeName);
+      return;
     }
+
+    node.addField(
+      FieldNode.create(
+        key,
+        undefined,
+        [
+          DirectiveNode.create(UtilityDirective.SERVER_ONLY),
+          DirectiveNode.create(UtilityDirective.WRITE_ONLY),
+        ],
+        isNullable
+          ? NamedTypeNode.create(typeName)
+          : NonNullTypeNode.create(NamedTypeNode.create(typeName))
+      )
+    );
   }
 
   public init() {

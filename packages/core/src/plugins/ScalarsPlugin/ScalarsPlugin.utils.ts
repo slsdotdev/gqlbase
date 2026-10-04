@@ -5,6 +5,7 @@ export const BaseScalar = {
   TIMESTAMP: "Timestamp",
   SAFE_INT: "SafeInt",
   UUID: "UUID",
+  GUID: "GUID",
   URL: "URL",
   EMAIL_ADDRESS: "EmailAddress",
   PHONE_NUMBER: "PhoneNumber",

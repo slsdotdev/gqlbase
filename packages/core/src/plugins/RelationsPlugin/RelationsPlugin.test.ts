@@ -398,3 +398,111 @@ describe("RelationsPlugin declared key on a relation without one", () => {
     ).toThrow(/User.recent declares key "buyerId", but Order has no field buyerId/);
   });
 });
+
+describe("RelationsPlugin GUID keys", () => {
+  let context: TransformerContext;
+  let plugin: RelationsPlugin;
+
+  beforeAll(() => {
+    context = new TransformerContext({});
+    plugin = new RelationsPlugin(context);
+    context.registerPlugin(plugin);
+  });
+
+  beforeEach(() => {
+    context.finishWork();
+    context.startWork(
+      DocumentNode.fromSource(/* GraphQL */ `
+        type Vendor @model {
+          id: GUID!
+          products: Product @hasMany
+        }
+
+        type Product @model {
+          id: GUID!
+          category: Category @belongsTo
+        }
+
+        type Category @model {
+          id: ID!
+        }
+      `)
+    );
+  });
+
+  it("types a key with the target's id type", () => {
+    const vendor = context.document.getNodeOrThrow("Vendor") as ObjectNode;
+    const product = context.document.getNodeOrThrow("Product") as ObjectNode;
+
+    plugin.normalize(vendor);
+    plugin.normalize(product);
+
+    expect(product.getField("vendorId")?.type.getTypeName()).toBe("GUID");
+    expect(product.getField("categoryId")?.type.getTypeName()).toBe("ID");
+  });
+
+  it("throws on a declared key that does not hold the target's GUID ids", () => {
+    expect(() =>
+      createTransformer().transform(/* GraphQL */ `
+        type Vendor @model {
+          id: GUID!
+        }
+
+        type Product @model {
+          id: GUID!
+          vendorId: ID!
+          vendor: Vendor @belongsTo
+        }
+      `)
+    ).toThrow(/Product.vendorId is a relation key of type ID, but the ids it holds are GUID/);
+  });
+
+  it("throws on a declared GUID key to a target without GUID ids", () => {
+    expect(() =>
+      createTransformer().transform(/* GraphQL */ `
+        type Vendor @model {
+          id: ID!
+        }
+
+        type Product @model {
+          id: ID!
+          vendorId: GUID!
+          vendor: Vendor @belongsTo
+        }
+      `)
+    ).toThrow(/Product.vendorId is a relation key of type GUID, but the ids it holds are ID/);
+  });
+
+  it("accepts ID and UUID keys for each other", () => {
+    expect(() =>
+      createTransformer().transform(/* GraphQL */ `
+        type Vendor @model {
+          id: UUID!
+        }
+
+        type Product @model {
+          id: ID!
+          vendorId: ID!
+          vendor: Vendor @belongsTo
+        }
+      `)
+    ).not.toThrow();
+  });
+
+  it("accepts a tenancy claim as the key, whatever its type", () => {
+    expect(() =>
+      createTransformer({
+        tenancy: { vendor: { default: true, claims: { vendorId: "UUID" } } },
+      }).transform(/* GraphQL */ `
+        type Vendor @model @scope(name: vendor) {
+          id: GUID!
+        }
+
+        type Product @model {
+          id: GUID!
+          vendor: Vendor @belongsTo
+        }
+      `)
+    ).not.toThrow();
+  });
+});

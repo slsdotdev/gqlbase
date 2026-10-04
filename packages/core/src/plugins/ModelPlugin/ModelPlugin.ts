@@ -310,6 +310,13 @@ export class ModelPlugin implements ITransformerPlugin {
 
   // #region Operations
 
+  /**
+   * The type `get` and `delete` take the id as: the model's own id type (`GUID`, `UUID`, …), `ID` when it declares none.
+   */
+  private _idTypeName(model: ObjectNode): string {
+    return model.getField("id")?.type.getTypeName() ?? "ID";
+  }
+
   private _createGetQueryField(model: ObjectNode) {
     const fieldName = camelCase("get", model.name);
     const queryNode = this.context.document.getQueryNode();
@@ -320,7 +327,7 @@ export class ModelPlugin implements ITransformerPlugin {
         undefined,
         [DirectiveNode.create("hasOne")],
         NamedTypeNode.create(model.name),
-        [InputValueNode.create("id", undefined, undefined, NonNullTypeNode.create("ID"))]
+        [InputValueNode.create("id", undefined, undefined, NonNullTypeNode.create(this._idTypeName(model)))]
       );
 
       queryNode.addField(field);
@@ -364,7 +371,7 @@ export class ModelPlugin implements ITransformerPlugin {
             "id",
             undefined,
             undefined,
-            NonNullTypeNode.create(NamedTypeNode.create("ID"))
+            NonNullTypeNode.create(NamedTypeNode.create(this._idTypeName(model)))
           ),
         ]
       );

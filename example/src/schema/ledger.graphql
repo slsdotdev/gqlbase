@@ -7,7 +7,7 @@ A money movement. Amounts are in minor units (cents) as `SafeInt`: up to 2^53 - 
 the int4 cap of `Int` (21,474,836.47 in major units).
 """
 type LedgerEntry @model {
-  id: UUID!
+  id: GUID!
   amountMinor: SafeInt!
   currency: Currency!
   """

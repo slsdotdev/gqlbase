@@ -16,7 +16,7 @@ and driven by the access token's active scope.
 type User implements Timestamped & SoftDeletable & Versioned
   @model(operations: [UPDATE])
   @access(allow: [ADMIN, VENDOR, SHOP]) {
-  id: UUID!
+  id: GUID!
   version: Int @readOnly @semanticNonNull
 
   email: EmailAddress @semanticNonNull @constraint(max: 320)
@@ -74,7 +74,7 @@ type Address implements Node & Timestamped
   @model
   @scope(name: user)
   @access(allow: [ADMIN, VENDOR, SHOP]) {
-  id: UUID!
+  id: GUID!
 
   label: AddressLabel @semanticNonNull
   recipientName: String @constraint(max: 200)
@@ -111,7 +111,7 @@ type UserPreferences implements Node
   @model(operations: [UPDATE])
   @scope(name: user)
   @access(allow: [ADMIN, SHOP]) {
-  id: UUID!
+  id: GUID!
 
   emailNotifications: Boolean @semanticNonNull
   smsNotifications: Boolean @semanticNonNull
@@ -153,7 +153,7 @@ type RefreshTokenFamily implements Node & Timestamped
   @model
   @scope(name: user)
   @access(allow: [ADMIN]) {
-  id: UUID!
+  id: GUID!
 
   tokenHash: String! @serverOnly
   familyId: UUID! @serverOnly
@@ -179,7 +179,7 @@ type VerificationToken implements Node & Timestamped
   @model
   @scope(name: user)
   @access(allow: [ADMIN]) {
-  id: UUID!
+  id: GUID!
 
   tokenHash: String! @serverOnly
   purpose: VerificationPurpose!

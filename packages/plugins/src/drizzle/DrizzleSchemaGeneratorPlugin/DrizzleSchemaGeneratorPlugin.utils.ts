@@ -46,6 +46,7 @@ export const PG_BUILITIN_SCALAR_MAP: Record<BuildInScalar, string> = {
  */
 export const PG_BASE_SCALAR_MAP: Record<BaseScalarName, string | ScalarConfig> = {
   UUID: "uuid",
+  GUID: "uuid",
   DateTime: "timestamp",
   Date: "date",
   Time: "time",

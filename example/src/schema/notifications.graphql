@@ -15,7 +15,7 @@ type-safe context so clients can deep-link and render rich previews
 without parsing free-text strings.
 """
 type Notification implements Timestamped @model @access(allow: [ADMIN, VENDOR, SHOP]) {
-  id: UUID!
+  id: GUID!
   recipientUserId: UUID! @serverOnly
 
   channel: NotificationChannel @semanticNonNull
@@ -198,7 +198,7 @@ Per-category, per-channel delivery preference. Users default to receiving
 all notifications; rows here represent explicit opt-outs or overrides.
 """
 type NotificationPreference @model @access(allow: [ADMIN, SHOP]) {
-  id: UUID!
+  id: GUID!
 
   category: NotificationCategory @semanticNonNull
   channel: NotificationChannel @semanticNonNull

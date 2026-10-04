@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { beforeAll, describe, expect, it } from "vitest";
+import { decodeGlobalId } from "dsqlbase";
 import { dsql, migrate } from "../src/lib/dsql";
 import { cognitoIdentity, execute } from "./appsync";
 
@@ -172,7 +173,8 @@ describe("tenancy", () => {
     it("stores the caller's claim on create", async () => {
       const row = await dsql.operatingSchedules.findOne({ where: { id: created?.id } });
 
-      expect(row?.vendorId).toBe(farm);
+      // The claim is the key to Vendor, so it reads back as a vendor's global id.
+      expect(decodeGlobalId(row?.vendorId ?? "")).toEqual({ key: "vendors", pk: { id: farm } });
     });
 
     it("lists only the caller's rows", async () => {
