@@ -18,9 +18,12 @@ import {
 } from "@gqlbase/core/definition";
 import {
   createPluginFactory,
+  FilterDirective,
   InternalDirective,
   isClientOnly,
   isInternal,
+  isModel,
+  isPrimaryKeyField,
   isRelationField,
 } from "@gqlbase/core/plugins";
 import { isBuildInScalar } from "@gqlbase/shared/definition";
@@ -32,6 +35,7 @@ import {
   DsqlBaseDirective,
   getIndexes,
   isDsqlBaseTable,
+  isEmbedded,
   getUniqueConstraints,
 } from "./DsqlBaseUtilsPlugin.utils.js";
 
@@ -45,10 +49,13 @@ import {
  *
  * directive `@index(name: String!, columns: [DsqlIndexColumn!]!, unique: Boolean = false, include: [String!], distinctNulls: Boolean)` repeatable on OBJECT
  * directive `@unique(fields: [String!])` repeatable on OBJECT | FIELD_DEFINITION
+ * directive `@embedded` on OBJECT
  * ```
  *
  * - `@index` → `table.index(name, { unique }).columns(...).include(...).distinctNulls(...)`
  * - `@unique` on a field → `column.unique()`; on a type, with `fields` → `table.unique((c) => [...])`
+ * - `@embedded` → an `embedded({...})` shape, stored as columns of each table that uses it. The type is marked
+ *   `@sortable`, so `orderBy` reaches its members.
  *
  * Fields are checked in `execute`, once relation keys and tenancy claims exist: each must be a column of the table.
  */
@@ -139,29 +146,83 @@ export class DsqlBaseUtilsPlugin extends TransformerPluginBase {
           ],
           true
         )
-      );
+      )
+      .addNode(DirectiveDefinitionNode.create(DsqlBaseDirective.EMBEDDED, undefined, ["OBJECT"]));
   }
 
   /**
-   * A field a table directive can name: a column of the table, so not a relation, not `@clientOnly`, and not a `json`
-   * column (lists and objects), which DSQL cannot index.
+   * An `@embedded` type is a value: it is not a model, has no `id` and no relations, and does not contain itself, since its
+   * members become columns of the table that uses it.
    */
-  private _checkColumn(model: ObjectNode, name: string, directive: string) {
-    const where = `@${directive} on ${model.name}`;
-
-    if (name.includes(".")) {
+  private _checkEmbedded(definition: ObjectNode, path: string[]) {
+    if (path.length === 1 && isModel(definition)) {
       throw new TransformerPluginExecutionError(
         this.name,
-        `${where} names "${name}". Paths into embedded objects are not supported yet.`
+        `Type ${definition.name} cannot be both @model and @embedded.`
       );
     }
 
-    const field = model.getField(name);
+    for (const field of definition.fields ?? []) {
+      if (path.length === 1 && (isPrimaryKeyField(field) || isRelationField(field))) {
+        throw new TransformerPluginExecutionError(
+          this.name,
+          `Field ${definition.name}.${field.name} cannot be on an @embedded type, which has no id and no relations.`
+        );
+      }
+
+      const member = this.context.document.getNode(field.type.getTypeName());
+
+      if (isListTypeNode(field.type) || !member || !isEmbedded(member)) continue;
+
+      if (path.includes(member.name)) {
+        throw new TransformerPluginExecutionError(
+          this.name,
+          `@embedded type ${member.name} contains itself (${[...path, member.name].join(" > ")}).`
+        );
+      }
+
+      this._checkEmbedded(member, [...path, member.name]);
+    }
+  }
+
+  /**
+   * A field a table directive can name: a column of the table, so not a relation, not `@clientOnly`, and not a `jsonb`
+   * column (lists and other objects), which DSQL cannot index. A dotted path (`price.amount`) names a member of an
+   * `@embedded` field, which is a column too.
+   */
+  private _checkColumn(model: ObjectNode, name: string, directive: string) {
+    const where = `@${directive} on ${model.name}`;
+    const path = name.split(".");
+    let owner = model;
+
+    for (const segment of path.slice(0, -1)) {
+      const field = owner.getField(segment);
+      const typeDef = field && this.context.document.getNode(field.type.getTypeName());
+
+      if (
+        !field ||
+        isInternal(field) ||
+        isClientOnly(field) ||
+        isListTypeNode(field.type) ||
+        !typeDef ||
+        !isEmbedded(typeDef)
+      ) {
+        throw new TransformerPluginExecutionError(
+          this.name,
+          `${where} names "${name}", but ${owner.name}.${segment} is not an @embedded field.`
+        );
+      }
+
+      owner = typeDef;
+    }
+
+    const leaf = path[path.length - 1] ?? name;
+    const field = owner.getField(leaf);
 
     if (!field || isInternal(field)) {
       throw new TransformerPluginExecutionError(
         this.name,
-        `${where} names "${name}", which is not a field of ${model.name}.`
+        `${where} names "${name}", which is not a field of ${owner.name}.`
       );
     }
 
@@ -177,10 +238,17 @@ export class DsqlBaseUtilsPlugin extends TransformerPluginBase {
     const isValue =
       isBuildInScalar(typeName) || (typeDef && (isScalarNode(typeDef) || isEnumNode(typeDef)));
 
+    if (typeDef && isEmbedded(typeDef) && !isListTypeNode(field.type)) {
+      throw new TransformerPluginExecutionError(
+        this.name,
+        `${where} names ${name}, a group of columns. Name its members instead (${name}.<member>).`
+      );
+    }
+
     if (isListTypeNode(field.type) || !isValue) {
       throw new TransformerPluginExecutionError(
         this.name,
-        `${where} names ${name}, a json column, which DSQL cannot index.`
+        `${where} names ${name}, a jsonb column, which DSQL cannot index.`
       );
     }
   }
@@ -254,16 +322,38 @@ export class DsqlBaseUtilsPlugin extends TransformerPluginBase {
 
   public before() {
     this._indexNames.clear();
+
+    for (const definition of this.context.document.definitions.values()) {
+      if (!isEmbedded(definition)) continue;
+
+      this._checkEmbedded(definition, [definition.name]);
+
+      if (!definition.hasDirective(FilterDirective.SORTABLE)) {
+        definition.addDirective(DirectiveNode.create(FilterDirective.SORTABLE));
+      }
+    }
   }
 
   public match(definition: DefinitionNode): boolean {
-    return isObjectNode(definition) && this._hasTableDirectives(definition);
+    return (
+      isObjectNode(definition) && (this._hasTableDirectives(definition) || isEmbedded(definition))
+    );
   }
 
   /**
    * Checks the table directives once relation keys (added in normalize) and tenancy claims (added before it) exist.
    */
   public execute(definition: ObjectNode) {
+    // Not `isEmbedded`: its type guard would narrow the definition to `never` below.
+    if (definition.hasDirective(DsqlBaseDirective.EMBEDDED)) {
+      if (!this._hasTableDirectives(definition)) return;
+
+      throw new TransformerPluginExecutionError(
+        this.name,
+        `@index and @unique apply to tables, not to the @embedded type ${definition.name}: its members are columns of each model that uses it. Index them there, by path ("<field>.<member>").`
+      );
+    }
+
     if (!isDsqlBaseTable(definition, this.context.options)) {
       throw new TransformerPluginExecutionError(
         this.name,
@@ -275,7 +365,10 @@ export class DsqlBaseUtilsPlugin extends TransformerPluginBase {
   }
 
   public cleanup(definition: ObjectNode) {
-    definition.removeDirective(DsqlBaseDirective.INDEX).removeDirective(DsqlBaseDirective.UNIQUE);
+    definition
+      .removeDirective(DsqlBaseDirective.INDEX)
+      .removeDirective(DsqlBaseDirective.UNIQUE)
+      .removeDirective(DsqlBaseDirective.EMBEDDED);
 
     for (const field of definition.fields ?? []) {
       field.removeDirective(DsqlBaseDirective.UNIQUE);
@@ -286,6 +379,7 @@ export class DsqlBaseUtilsPlugin extends TransformerPluginBase {
     this.context.document
       .removeNode(DsqlBaseDirective.INDEX)
       .removeNode(DsqlBaseDirective.UNIQUE)
+      .removeNode(DsqlBaseDirective.EMBEDDED)
       .removeNode(DSQL_INDEX_COLUMN)
       .removeNode(DSQL_NULLS_ORDER);
   }

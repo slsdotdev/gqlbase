@@ -1,4 +1,4 @@
-import { FieldNode } from "../../definition/index.js";
+import { DefinitionNode, FieldNode, isObjectNode, ObjectNode } from "../../definition/index.js";
 import {
   isClientOnly,
   isCreateOnly,
@@ -9,6 +9,18 @@ import {
 } from "../UtilitiesPlugin/index.js";
 import { isRelationField } from "../RelationsPlugin/RelationsPlugin.utils.js";
 import { BaseScalar } from "../ScalarsPlugin/ScalarsPlugin.utils.js";
+
+export const FilterDirective = {
+  SORTABLE: "sortable",
+} as const;
+
+/**
+ * An object whose members are sortable (`@sortable`), because its backend stores them as columns: a field of this type
+ * orders by them, through the type's own `<Type>OrderByInput`.
+ */
+export const isSortable = (node: DefinitionNode): node is ObjectNode => {
+  return isObjectNode(node) && node.hasDirective(FilterDirective.SORTABLE);
+};
 
 /**
  * Built-in scalars filtered as dates: ranges, no substring operators.

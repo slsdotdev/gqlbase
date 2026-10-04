@@ -66,6 +66,7 @@ import {
   isUnique,
   type DsqlIndexColumn,
   isDsqlBaseTable,
+  isEmbedded,
 } from "../DsqlBaseUtilsPlugin/index.js";
 
 /**
@@ -78,6 +79,8 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
   private _discriminators: Map<string, Map<string, string[]>> | null = null;
   private _unions: ts.Node[] = [];
   private _unionNames = new Set<string>();
+  private _embedded: ts.Node[] = [];
+  private _embeddedNames = new Set<string>();
   private _options: DsqlBaseSchemaGeneratorPluginOptions;
 
   private _imports = new Set<string>();
@@ -126,14 +129,13 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
   }
 
   /**
-   * Enums that back a column: a non-list field of a stored model. A list of enums is a `json` column typed with the enum's TS type, so it needs no `$enum`.
+   * Enums that back a column: a non-list field of a stored model, or of an `@embedded` type one stores. A list of enums is
+   * an `array()` column typed with the enum's TS type, so it needs no `$enum`.
    */
   private _collectColumnEnums() {
     const enums = new Set<string>();
 
-    for (const node of this.context.document.definitions.values()) {
-      if (!isObjectNode(node) || !isDsqlBaseTable(node, this.context.options)) continue;
-
+    const collect = (node: ObjectNode) => {
       for (const field of node.fields ?? []) {
         if (this._shouldSkipField(field) || isListTypeNode(field.type)) continue;
 
@@ -142,10 +144,88 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
         if (target && isEnumNode(target)) {
           enums.add(target.name);
         }
+
+        if (target && isEmbedded(target)) {
+          collect(target);
+        }
+      }
+    };
+
+    for (const node of this.context.document.definitions.values()) {
+      if (isObjectNode(node) && isDsqlBaseTable(node, this.context.options)) {
+        collect(node);
       }
     }
 
     return enums;
+  }
+
+  /**
+   * Whether a value of the type always has a column set: a member that is non-null, or a non-null group that has one.
+   */
+  private _hasRequiredMember(node: ObjectNode): boolean {
+    return (node.fields ?? []).some((field) => {
+      if (this._shouldSkipField(field) || isSemanticNullable(field)) return false;
+
+      const target = this.context.document.getNode(field.type.getTypeName());
+
+      return isListTypeNode(field.type) || !target || !isEmbedded(target)
+        ? true
+        : this._hasRequiredMember(target);
+    });
+  }
+
+  /**
+   * `export const <type> = embedded({ ... })`, once per `@embedded` type a stored model uses, before the tables.
+   *
+   * dsqlbase has no nullability on a group, only on its members, so a nullable field of a type with a required member
+   * uses a second shape, `<type>Nullable`, whose members are all nullable: a member column is `NOT NULL` only when the
+   * field and the member are both non-null. The generated inputs keep such a group all-or-nothing.
+   */
+  private _declareEmbedded(node: ObjectNode, nullable: boolean): string {
+    const relaxed = nullable && this._hasRequiredMember(node);
+    const name = relaxed ? camelCase(node.name, "nullable") : camelCase(node.name);
+
+    if (this._embeddedNames.has(name)) {
+      return name;
+    }
+
+    if (
+      this._unionNames.has(name) ||
+      Array.from(this.context.document.definitions.values()).some(
+        (definition) =>
+          isObjectNode(definition) &&
+          isDsqlBaseTable(definition, this.context.options) &&
+          this._tableAlias(definition) === name
+      )
+    ) {
+      throw new TransformerPluginExecutionError(
+        this.name,
+        `@embedded type ${node.name} would be exported as "${name}", which is already a table's schema alias. Rename one of them.`
+      );
+    }
+
+    this._embeddedNames.add(name);
+
+    const members: ts.ObjectLiteralElementLike[] = [];
+
+    for (const field of node.fields ?? []) {
+      if (this._shouldSkipField(field)) continue;
+
+      members.push(
+        ts.factory.createPropertyAssignment(field.name, this._generateColumn(node, field, relaxed))
+      );
+    }
+
+    this._imports.add("embedded");
+    this._embedded.push(
+      this._exportExp(
+        name,
+        this._callExp("embedded", [ts.factory.createObjectLiteralExpression(members, true)])
+      )
+    );
+
+    return name;
   }
 
   private _generateEnum(definition: EnumNode) {
@@ -356,7 +436,11 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
     return this._callExp(columnType.dataType, args);
   }
 
-  private _applyColumnConstraints(column: ts.Expression, field: FieldNode): ts.Expression {
+  private _applyColumnConstraints(
+    column: ts.Expression,
+    field: FieldNode,
+    nullable = false
+  ): ts.Expression {
     let expression = column;
 
     if (isPrimaryKeyField(field)) {
@@ -365,7 +449,7 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
       return expression;
     }
 
-    if (!isSemanticNullable(field)) {
+    if (!nullable && !isSemanticNullable(field)) {
       expression = this._chainCallExp(expression, "notNull");
     }
 
@@ -376,30 +460,35 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
     return expression;
   }
 
-  private _generateColumn(node: ObjectNode, field: FieldNode): ts.Expression {
+  /**
+   * The column for a field of a table, or a member of an `@embedded` type. `nullable` drops `.notNull()`, for the members
+   * of a group that a nullable field holds.
+   */
+  private _generateColumn(node: ObjectNode, field: FieldNode, nullable = false): ts.Expression {
     const fieldTypeName = field.type.getTypeName();
     const columnName = snakeCase(field.name);
     const keyColumn = this._keyColumn(node, field, columnName);
 
     if (keyColumn) {
-      return this._applyColumnConstraints(keyColumn, field);
+      return this._applyColumnConstraints(keyColumn, field, nullable);
     }
 
     const typeDef = this.context.document.getNode(fieldTypeName);
 
+    // A list is a `jsonb` array, whatever its items, embedded types included.
     if (isListTypeNode(field.type)) {
-      this._imports.add("json");
+      this._imports.add("array");
 
       if (isBuildInScalar(fieldTypeName) || (typeDef && isScalarNode(typeDef))) {
         const columnType = this._resolveScalarColumnType(fieldTypeName);
 
-        const column = this._callExp("json", [ts.factory.createStringLiteral(columnName)]);
+        const column = this._callExp("array", [ts.factory.createStringLiteral(columnName)]);
         const valueType = ts.factory.createArrayTypeNode(
           ts.factory.createTypeReferenceNode(columnType.type)
         );
 
         return this._chainCallExp(
-          this._applyColumnConstraints(column, field),
+          this._applyColumnConstraints(column, field, nullable),
           "$type",
           [],
           [valueType]
@@ -419,11 +508,11 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
         (this._publicDefinitions ??= collectPublicDefinitions(this.context))
       );
 
-      const column = this._callExp("json", [ts.factory.createStringLiteral(columnName)]);
+      const column = this._callExp("array", [ts.factory.createStringLiteral(columnName)]);
       const columnType = ts.factory.createArrayTypeNode(this._createNamedTypeNode(fieldTypeName));
 
       return this._chainCallExp(
-        this._applyColumnConstraints(column, field),
+        this._applyColumnConstraints(column, field, nullable),
         "$type",
         [],
         [columnType]
@@ -432,7 +521,7 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
 
     if (isBuildInScalar(fieldTypeName)) {
       const column = this._resolveScalarDataType(fieldTypeName, columnName);
-      return this._applyColumnConstraints(column, field);
+      return this._applyColumnConstraints(column, field, nullable);
     }
 
     if (!typeDef) {
@@ -444,7 +533,7 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
 
     if (isScalarNode(typeDef)) {
       const column = this._resolveScalarDataType(fieldTypeName, columnName);
-      return this._applyColumnConstraints(column, field);
+      return this._applyColumnConstraints(column, field, nullable);
     }
 
     if (isEnumNode(typeDef)) {
@@ -453,22 +542,32 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
         ts.factory.createStringLiteral(columnName),
       ]);
 
-      return this._applyColumnConstraints(column, field);
+      return this._applyColumnConstraints(column, field, nullable);
     }
 
+    // A group of columns, `<field>_<member>`; it has no constraints of its own.
+    if (isEmbedded(typeDef)) {
+      const shape = this._declareEmbedded(typeDef, nullable || isSemanticNullable(field));
+
+      return this._chainCallExp(ts.factory.createIdentifier(shape), "column", [
+        ts.factory.createStringLiteral(columnName),
+      ]);
+    }
+
+    // Any other object, interface or union is a `jsonb` document.
     if (isObjectLike(typeDef) && !isModel(typeDef) && !isOperationNode(typeDef)) {
-      this._imports.add("json");
+      this._imports.add("record");
       this._referenceType(
         fieldTypeName,
         this._typeRefs,
         (this._publicDefinitions ??= collectPublicDefinitions(this.context))
       );
 
-      const column = this._callExp("json", [ts.factory.createStringLiteral(columnName)]);
+      const column = this._callExp("record", [ts.factory.createStringLiteral(columnName)]);
       const columnType = this._createNamedTypeNode(fieldTypeName);
 
       return this._chainCallExp(
-        this._applyColumnConstraints(column, field),
+        this._applyColumnConstraints(column, field, nullable),
         "$type",
         [],
         [columnType]
@@ -809,8 +908,16 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
     );
   }
 
+  /**
+   * `c.<field>`, or `c.<field>.<member>` for a dotted path into an `@embedded` field.
+   */
   private _columnRef(field: string): ts.Expression {
-    return ts.factory.createPropertyAccessExpression(ts.factory.createIdentifier("c"), field);
+    return field
+      .split(".")
+      .reduce<ts.Expression>(
+        (expression, name) => ts.factory.createPropertyAccessExpression(expression, name),
+        ts.factory.createIdentifier("c")
+      );
   }
 
   private _indexColumnRef(column: DsqlIndexColumn): ts.Expression {
@@ -923,6 +1030,8 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
     this._discriminators = null;
     this._unions = [];
     this._unionNames.clear();
+    this._embedded = [];
+    this._embeddedNames.clear();
     this._enums = [];
     this._tables = [];
     this._relations = [];
@@ -999,6 +1108,7 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
         ...Array.from(this._localBuilders, createLocalColumnBuilder),
         ...declarations.values(),
         ...this._enums,
+        ...this._embedded,
         ...this._tables,
         ...this._unions,
         ...this._relations,

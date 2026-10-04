@@ -37,8 +37,8 @@ describe("dsqlbase SafeInt columns", () => {
     expect(tables).not.toMatch(/import \{[^}]*\bsafeint\b[^}]*\} from "dsqlbase\/schema"/);
   });
 
-  it("stores a list of SafeInt as json typed number[]", () => {
-    expect(tables).toContain('history: json("history").$type<number[]>()');
+  it("stores a list of SafeInt as a jsonb array typed number[]", () => {
+    expect(tables).toContain('history: array("history").$type<number[]>()');
   });
 });
 

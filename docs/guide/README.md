@@ -19,6 +19,7 @@ These pages describe what the library does **today**. Planned behaviour is not d
 - [Scalars](./scalars.md) — built-in scalars, `@gqlbase_typehint`, adding your own
 - [Tenancy](./tenancy.md) — `@scope`, tenancy scopes and their claim fields
 - [Data sources](./data-sources.md) — `@dataSource`, stores other than the database
+- [Embedded objects](./embedded-objects.md) — `@embedded` (dsqlbase plugin), value objects stored as columns of the model that uses them
 
 ## Plugins and generators
 
@@ -45,9 +46,11 @@ These pages describe what the library does **today**. Planned behaviour is not d
 | `@serverOnly` `@clientOnly` | FIELD_DEFINITION, OBJECT | [Field visibility](./field-visibility.md) |
 | `@createOnly` `@updateOnly` `@filterOnly` | FIELD_DEFINITION | [Field visibility](./field-visibility.md) |
 | `@constraint(min: Float, max: Float, pattern: String)` | FIELD_DEFINITION, INPUT_FIELD_DEFINITION, ARGUMENT_DEFINITION | [Field visibility](./field-visibility.md) |
+| `@sortable` | OBJECT | [Models](./models.md#ordering) |
 | `@semanticNonNull(levels: [Int!]! = [0])` | FIELD_DEFINITION | [Models](./models.md#nullability-and-semanticnonnull) |
 | `@scope(name: TenancyScope!)` | OBJECT | [Tenancy](./tenancy.md) |
 | `@dataSource(name: DataSource!)` | OBJECT | [Data sources](./data-sources.md) |
+| `@embedded` (dsqlbase plugin) | OBJECT | [Embedded objects](./embedded-objects.md) |
 | `@gqlbase_typehint(type: …, input: …)` | SCALAR | [Scalars](./scalars.md) |
 | `@gqlbase_internal` | most locations | [Scalars](./scalars.md#internal-definitions) |
 | `@aws_*` | OBJECT, FIELD_DEFINITION | [AppSync](./appsync.md) |

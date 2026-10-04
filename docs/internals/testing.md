@@ -61,7 +61,7 @@ describe("ModelPlugin", () => {
 });
 ```
 
-Generator tests assert on the emitted source string, e.g. `expect(output).toContain('price: json("price")…')`.
+Generator tests assert on the emitted source string, e.g. `expect(output).toContain('price: money.column("price")')`.
 
 Driving hooks by hand skips the rest of the pipeline. A generator that depends on hook order, for example on `cleanup` having removed `@gqlbase_typehint` before `output()`, needs a test through `createTransformer({ plugins: [...] }).transform(source)` as well. The `*.scalars.test.ts` files are examples.
 

@@ -5,6 +5,7 @@ import { type ITransformerContext } from "../../context/index.js";
 import {
   ArgumentNode,
   DefinitionNode,
+  DirectiveDefinitionNode,
   DirectiveNode,
   EnumNode,
   FieldNode,
@@ -33,9 +34,11 @@ import { getTypeHint, InternalDirective } from "../InternalUtilsPlugin/index.js"
 import { isManyRelationship } from "../RelationsPlugin/RelationsPlugin.utils.js";
 import {
   DATE_SCALARS,
+  FilterDirective,
   FilterKind,
   FilterOperator,
   FilterOperators,
+  isSortable,
   shouldSkipFieldFromFilterInput,
   SORT_DIRECTION,
 } from "./FilterPlugin.utils.js";
@@ -48,7 +51,8 @@ import {
  * - Shared per-scalar inputs (`StringFilterInput`, `IntFilterInput`, …), `<Enum>FilterInput` per enum, `<Type>ListFilterInput` per list.
  * - `<Type>FieldFilterInput` for object-like fields: `exists`, and `where: <Type>FilterInput` on the members.
  *
- * It also adds `orderBy: <Type>OrderByInput`, a `{ <field>: SortDirection }` map whose key order sets the sort priority.
+ * It also adds `orderBy: <Type>OrderByInput`, a `{ <field>: SortDirection }` map whose key order sets the sort priority. A field of an
+ * `@sortable` object (set by dsqlbase's `@embedded`) orders by its members, through a nested `<Type>OrderByInput`.
  *
  * @example
  * ```graphql
@@ -73,8 +77,8 @@ export class FilterPlugin extends TransformerPluginBase {
   }
 
   /**
-   * `<Type>OrderByInput`: one `SortDirection` entry per sortable field, a non-list scalar or enum the filter accepts. `null` when there is
-   * none. Clients list keys in priority order.
+   * `<Type>OrderByInput`: one `SortDirection` entry per sortable field, a non-list scalar or enum the filter accepts, and a nested
+   * `<Type>OrderByInput` per field of a `@sortable` object. `null` when there is none. Clients list keys in priority order.
    */
   private _createOrderByInput(target: ObjectNode | InterfaceNode): InputObjectNode | null {
     const inputName = pascalCase(target.name, "order", "by", "input");
@@ -113,6 +117,16 @@ export class FilterPlugin extends TransformerPluginBase {
             NamedTypeNode.create(SORT_DIRECTION)
           )
         );
+        continue;
+      }
+
+      // A backend that stores the object's members as columns marks it sortable: it orders by them, through its own input.
+      const nested = typeDef && isSortable(typeDef) ? this._createOrderByInput(typeDef) : null;
+
+      if (nested) {
+        input.addField(
+          InputValueNode.create(field.name, undefined, undefined, NamedTypeNode.create(nested.name))
+        );
       }
     }
 
@@ -125,7 +139,7 @@ export class FilterPlugin extends TransformerPluginBase {
   }
 
   /**
-   * `in` and `between` take `[T!]`, `exists` takes `Boolean`, every other operator takes `T`.
+   * `in`, `between` and a list's `contains` (every item given) take `[T!]`, `exists` takes `Boolean`, every other operator takes `T`.
    */
   private _createOperatorFilterInput(name: string, typeName: string, kind: FilterKind) {
     const input = InputObjectNode.create(name);
@@ -133,7 +147,11 @@ export class FilterPlugin extends TransformerPluginBase {
     for (const operator of FilterOperators[kind]) {
       let type: TypeNode = NamedTypeNode.create(typeName);
 
-      if (operator === FilterOperator.IN || operator === FilterOperator.BETWEEN) {
+      if (
+        operator === FilterOperator.IN ||
+        operator === FilterOperator.BETWEEN ||
+        (kind === "list" && operator === FilterOperator.CONTAINS)
+      ) {
         type = ListTypeNode.create(NonNullTypeNode.create(typeName));
       }
 
@@ -311,6 +329,12 @@ export class FilterPlugin extends TransformerPluginBase {
     return filterInput;
   }
 
+  public init() {
+    this.context.base.addNode(
+      DirectiveDefinitionNode.create(FilterDirective.SORTABLE, undefined, ["OBJECT"])
+    );
+  }
+
   public before() {
     const builtIns: [string, FilterKind][] = [
       ["ID", "id"],
@@ -378,6 +402,14 @@ export class FilterPlugin extends TransformerPluginBase {
         );
       }
     }
+  }
+
+  public cleanup(definition: ObjectNode | InterfaceNode) {
+    definition.removeDirective(FilterDirective.SORTABLE);
+  }
+
+  public after() {
+    this.context.document.removeNode(FilterDirective.SORTABLE);
   }
 }
 

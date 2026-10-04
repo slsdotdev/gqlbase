@@ -1,3 +1,5 @@
+import { withoutNulls, type WithoutNulls } from "./filter";
+
 export const DEFAULT_PAGE_SIZE = 20;
 
 interface PageArgs {
@@ -38,18 +40,13 @@ export const toConnection = <TNode>(rows: TNode[], first: number, offset: number
 /**
  * The generated `orderBy`, without explicit `null`s, then `id`, so that rows equal on every
  * requested key keep one order across pages. Priority follows the order the input type declares
- * its fields: GraphQL does not keep the client's key order.
+ * its fields: GraphQL does not keep the client's key order. An `@embedded` field nests its
+ * members' directions, which is dsqlbase's `orderBy` for a column group as it is.
  */
-export const orderOf = <TField extends string>(
-  orderBy: Partial<Record<TField, "asc" | "desc" | null>> | null | undefined
-) => {
-  const order: Partial<Record<TField | "id", "asc" | "desc">> = {};
-
-  for (const [field, direction] of Object.entries(orderBy ?? {})) {
-    if (direction) {
-      order[field as TField] = direction as "asc" | "desc";
-    }
-  }
+export const orderOf = <TOrder extends object>(orderBy: TOrder | null | undefined) => {
+  const order: WithoutNulls<TOrder> & { id?: "asc" | "desc" } = withoutNulls(
+    orderBy ?? ({} as TOrder)
+  );
 
   order.id ??= "asc";
   return order;

@@ -69,11 +69,11 @@ describe("FilterPlugin filter inputs", () => {
     );
   });
 
-  it("gives every list of scalars or enums a list filter", () => {
+  it("gives every list of scalars or enums a list filter, whose contains takes every item given", () => {
     expect(filterInput).toContain("tags: TagListFilterInput");
     expect(filterInput).toContain("labels: StringListFilterInput");
     expect(schema).toMatch(
-      /input StringListFilterInput \{\s+contains: String\s+exists: Boolean\s+\}/
+      /input StringListFilterInput \{\s+contains: \[String!\]\s+exists: Boolean\s+\}/
     );
   });
 
@@ -317,6 +317,56 @@ describe("FilterPlugin orderBy", () => {
   it("adds no orderBy when the target has no sortable field", () => {
     expect(schema).not.toContain("TagOrderByInput");
     expect(schema).toContain("tags(filter: TagFilterInput, first: Int, after: String)");
+  });
+});
+
+describe("FilterPlugin orderBy on @sortable objects", () => {
+  let schema: string;
+
+  beforeAll(() => {
+    ({ schema } = createTransformer().transform(/* GraphQL */ `
+      type Geo @sortable {
+        lat: Float
+        lng: Float
+      }
+
+      type Address @sortable {
+        city: String
+        geo: Geo
+        lines: [String]
+      }
+
+      type Note {
+        text: String
+      }
+
+      type Store @model {
+        id: ID!
+        address: Address
+        note: Note
+      }
+    `));
+  });
+
+  it("orders by a sortable object's members, through a nested input", () => {
+    expect(schema).toMatch(
+      /input StoreOrderByInput \{\s+id: SortDirection\s+address: AddressOrderByInput\s+\}/
+    );
+    expect(schema).toMatch(
+      /input AddressOrderByInput \{\s+city: SortDirection\s+geo: GeoOrderByInput\s+\}/
+    );
+    expect(schema).toMatch(
+      /input GeoOrderByInput \{\s+lat: SortDirection\s+lng: SortDirection\s+\}/
+    );
+  });
+
+  it("does not order by an object that is not sortable", () => {
+    expect(schema).not.toContain("NoteOrderByInput");
+  });
+
+  it("removes the directive from the output", () => {
+    expect(schema).not.toContain("@sortable");
+    expect(schema).toMatch(/type Address \{/);
   });
 });
 
