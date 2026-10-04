@@ -46,7 +46,7 @@ directive @cacheControl(maxAge: Int!, scope: CacheScope! = PUBLIC) on FIELD_DEFI
 Relay-compatible global object identification.
 """
 interface Node {
-  id: UUID!
+  id: GUID!
 }
 
 """

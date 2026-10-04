@@ -17,7 +17,7 @@ can list products. A vendor may operate at multiple market locations.
 type Vendor implements Node & Timestamped & Auditable & SoftDeletable & Versioned
   @model
   @access(allow: [ADMIN, VENDOR]) {
-  id: UUID!
+  id: GUID!
   version: Int! @readOnly
 
   """
@@ -105,8 +105,8 @@ Captures the full onboarding questionnaire submitted by a prospective vendor.
 Reviewed by admins; decision is recorded with optional notes.
 """
 type VendorApplication implements Node & Timestamped & Auditable @model @access(allow: [ADMIN]) {
-  id: UUID!
-  vendorId: UUID! @serverOnly
+  id: GUID!
+  vendorId: GUID! @serverOnly
 
   applicantUserId: UUID!
   businessType: BusinessType!
@@ -176,8 +176,8 @@ type VendorMember implements Node & Timestamped
   @model
   @scope(name: vendor)
   @access(allow: [ADMIN, VENDOR]) {
-  id: UUID!
-  userId: UUID! @serverOnly
+  id: GUID!
+  userId: GUID! @serverOnly
 
   role: VendorMemberRole!
   permissions: [VendorPermission!]!
@@ -220,8 +220,8 @@ type OperatingSchedule implements Node & Timestamped
   @model
   @scope(name: vendor)
   @access(allow: [ADMIN, VENDOR, SHOP]) {
-  id: UUID!
-  marketLocationId: UUID @serverOnly
+  id: GUID!
+  marketLocationId: GUID @serverOnly
 
   dayOfWeek: DayOfWeek!
   timeRange: TimeRange!
@@ -252,7 +252,7 @@ type MarketLocation implements Node & Timestamped & SoftDeletable
   @model
   @access(allow: [ADMIN, VENDOR, SHOP])
   @cacheControl(maxAge: 3600, scope: PUBLIC) {
-  id: UUID!
+  id: GUID!
 
   name: String! @constraint(min: 2, max: 200)
   slug: String! @constraint(pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$", max: 80) @unique
@@ -296,8 +296,8 @@ type MarketVendorAssignment implements Node & Timestamped
   @model
   @scope(name: vendor)
   @access(allow: [ADMIN, VENDOR]) {
-  id: UUID!
-  marketLocationId: UUID! @serverOnly
+  id: GUID!
+  marketLocationId: GUID! @serverOnly
 
   stallNumber: String @constraint(max: 20)
   assignedDays: [DayOfWeek!]!

@@ -59,7 +59,7 @@ Customer wishlist / favorites list. Each user has one default wishlist
 and may create additional named lists.
 """
 type Wishlist implements Node & Timestamped @model @scope(name: user) @access(allow: [SHOP]) {
-  id: UUID!
+  id: GUID!
 
   name: String! @constraint(min: 1, max: 100)
   isDefault: Boolean! @readOnly
@@ -79,8 +79,8 @@ enum WishlistVisibility {
 }
 
 type WishlistItem implements Node & Timestamped @model @access(allow: [SHOP]) {
-  id: UUID!
-  wishlistId: UUID! @serverOnly
+  id: GUID!
+  wishlistId: GUID! @serverOnly
   productId: UUID!
   variantId: UUID
 
@@ -109,7 +109,7 @@ Persisted search query for "notify me" or quick-access functionality.
 Optionally triggers a notification when new matching products appear.
 """
 type SavedSearch implements Node & Timestamped @model @scope(name: user) @access(allow: [SHOP]) {
-  id: UUID!
+  id: GUID!
 
   label: String @constraint(max: 120)
   query: String! @constraint(max: 500)
@@ -162,7 +162,7 @@ an entry. The `payload` union provides structured before/after snapshots
 for key entity types.
 """
 type AuditLogEntry implements Node & Timestamped @model @access(allow: [ADMIN]) {
-  id: UUID!
+  id: GUID!
 
   action: AuditAction!
   entityType: String! @constraint(max: 50)
@@ -249,7 +249,7 @@ determine delivery eligibility and fee based on the customer's address.
 Zones are evaluated in priority order; the first matching zone applies.
 """
 type DeliveryZone implements Node & Timestamped @model @access(allow: [ADMIN]) {
-  id: UUID!
+  id: GUID!
 
   name: String! @constraint(min: 1, max: 120)
   """
@@ -289,7 +289,7 @@ Singleton-ish key-value configuration store for platform-wide settings.
 Keys are namespaced (e.g. `checkout.cartTtlHours`, `payout.defaultHoldHours`).
 """
 type PlatformConfig implements Node & Timestamped & Auditable @model @access(allow: [ADMIN]) {
-  id: UUID!
+  id: GUID!
 
   key: String! @constraint(pattern: "^[a-z]+(?:\\.[a-z][a-zA-Z]*)+$", max: 120)
   value: String! @constraint(max: 5000)

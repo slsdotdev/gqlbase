@@ -18,7 +18,7 @@ type PaymentMethod implements Node & Timestamped
   @model
   @scope(name: user)
   @access(allow: [ADMIN, SHOP]) {
-  id: UUID!
+  id: GUID!
 
   type: PaymentMethodType!
   """
@@ -76,8 +76,8 @@ The lifecycle is: PENDING → (AUTHORIZED → CAPTURED | VOIDED) or FAILED.
 Refunds produce new Transaction records with type REFUND.
 """
 type PaymentTransaction implements Node & Timestamped @model @access(allow: [ADMIN, SHOP]) {
-  id: UUID!
-  orderId: UUID! @serverOnly
+  id: GUID!
+  orderId: GUID! @serverOnly
   paymentMethodId: UUID @serverOnly
 
   """
@@ -104,7 +104,7 @@ type PaymentTransaction implements Node & Timestamped @model @access(allow: [ADM
   """
   Links refund transactions back to the original capture.
   """
-  parentTransactionId: UUID @serverOnly
+  parentTransactionId: GUID @serverOnly
   parentTransaction: PaymentTransaction @hasOne(key: "parentTransactionId")
 
   order: Order! @hasOne
@@ -143,7 +143,7 @@ type VendorPayout implements Node & Timestamped
   @model
   @scope(name: vendor)
   @access(allow: [ADMIN, VENDOR]) {
-  id: UUID!
+  id: GUID!
 
   status: PayoutStatus!
   grossAmount: Money!
@@ -210,7 +210,7 @@ Tracks refund decisions, which may be partial (specific line items)
 or full (entire order). Generates a REFUND PaymentTransaction on approval.
 """
 type Refund implements Node & Timestamped & Auditable @model @access(allow: [ADMIN, VENDOR]) {
-  id: UUID!
+  id: GUID!
   orderId: UUID! @serverOnly
   vendorOrderId: UUID @serverOnly
 
@@ -278,7 +278,7 @@ free-delivery discounts with flexible targeting rules.
 type Coupon implements Node & Timestamped & Auditable & SoftDeletable
   @model
   @access(allow: [ADMIN]) {
-  id: UUID!
+  id: GUID!
 
   code: String! @constraint(pattern: "^[A-Z0-9-]{3,30}$")
   description: String @constraint(max: 500)
@@ -339,8 +339,8 @@ type CouponRedemption implements Node & Timestamped
   @model
   @scope(name: user)
   @access(allow: [ADMIN]) {
-  id: UUID!
-  couponId: UUID! @serverOnly
+  id: GUID!
+  couponId: GUID! @serverOnly
   orderId: UUID! @serverOnly
 
   discountApplied: Money!

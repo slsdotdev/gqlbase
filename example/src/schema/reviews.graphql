@@ -16,10 +16,10 @@ type Review implements Node & Timestamped & SoftDeletable & Versioned
   @model
   @scope(name: user)
   @access(allow: [ADMIN, VENDOR, SHOP]) {
-  id: UUID!
+  id: GUID!
   version: Int! @readOnly
 
-  productId: UUID! @serverOnly
+  productId: GUID! @serverOnly
   """
   The order that entitles this review. Used for verified-purchase badge.
   """
@@ -77,9 +77,9 @@ type ReviewResponse implements Node & Timestamped & Versioned
   @model
   @scope(name: vendor)
   @access(allow: [ADMIN, VENDOR, SHOP]) {
-  id: UUID!
+  id: GUID!
   version: Int! @readOnly
-  reviewId: UUID! @serverOnly
+  reviewId: GUID! @serverOnly
   respondedByUserId: UUID! @serverOnly
 
   body: String! @constraint(min: 1, max: 2000)
@@ -106,8 +106,8 @@ type ReviewVote implements Node & Timestamped
   @scope(name: user)
   @access(allow: [SHOP])
   @unique(fields: ["reviewId", "userId"]) {
-  id: UUID!
-  reviewId: UUID! @serverOnly
+  id: GUID!
+  reviewId: GUID! @serverOnly
 
   vote: ReviewVoteType!
 
@@ -132,7 +132,7 @@ Customer-submitted flag indicating a review may violate community guidelines.
 Triggers moderation queue entry.
 """
 type ReviewReport implements Node & Timestamped @model @access(allow: [ADMIN]) {
-  id: UUID!
+  id: GUID!
   reviewId: UUID! @serverOnly
   reporterUserId: UUID! @serverOnly
 

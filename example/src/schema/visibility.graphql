@@ -2,7 +2,7 @@
 
 # Stored and used by the server only: a table with no API.
 type ImportJob @model @serverOnly {
-  id: UUID!
+  id: GUID!
   source: String!
   status: ImportJobStatus!
   startedAt: DateTime!
@@ -17,7 +17,7 @@ enum ImportJobStatus {
 
 # Resolved at runtime and never stored: read operations only, no table.
 type ExchangeRate @model @clientOnly {
-  id: UUID!
+  id: GUID!
   currency: String!
   rate: Float!
 }
