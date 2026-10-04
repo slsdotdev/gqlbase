@@ -336,3 +336,96 @@ describe("global ids: errors", () => {
     ).toThrow(/Vendor.ownerRef is a GUID, which identifies a model/);
   });
 });
+
+describe("polymorphic relations", () => {
+  let tables: string;
+
+  beforeAll(() => {
+    const output = createTransformer({ plugins: [dsqlbase()] }).transform(/* GraphQL */ `
+      union Owner = Invoice | PaymentOrder
+
+      interface Document {
+        title: String!
+      }
+
+      type Invoice implements Document @model {
+        id: GUID!
+        title: String!
+        resources: Resource @hasMany(key: "ownerId")
+      }
+
+      type PaymentOrder implements Document @model {
+        id: GUID!
+        title: String!
+      }
+
+      type Resource @model {
+        id: GUID!
+        owner: Owner @belongsTo
+      }
+
+      type Folder @model {
+        id: GUID!
+        documents: Document @hasMany
+      }
+    `);
+
+    tables = output.files.find((file) => file.path === "dsqlbase/schema.ts")?.content ?? "";
+  });
+
+  it("exports a union of the members a relation targets", () => {
+    expect(tables).toContain("export const owners = union({ invoices, paymentOrders });");
+    expect(tables).toContain("export const documents = union({ invoices, paymentOrders });");
+  });
+
+  it("stores a @belongsTo to a union as a keyless guid and a discriminator typed by the member aliases", () => {
+    expect(tables).toContain('ownerId: guid("owner_id")');
+    expect(tables).toContain('ownerType: text("owner_type").$type<"invoices" | "paymentOrders">()');
+  });
+
+  it("relates a @belongsTo to the union through the discriminator", () => {
+    expect(tables).toMatch(
+      /owner: belongsTo\(owners, \{\s+from: \[resources\.columns\.ownerId\],\s+to: \[owners\.columns\.id\],\s+discriminator: resources\.columns\.ownerType\s+\}\)/
+    );
+  });
+
+  it("relates a @hasMany to an interface through each member's key", () => {
+    expect(tables).toMatch(
+      /documents: hasMany\(documents, \{\s+from: \[folders\.columns\.id\],\s+to: \{ invoices: \[invoices\.columns\.folderId\], paymentOrders: \[paymentOrders\.columns\.folderId\] \}\s+\}\)/
+    );
+    expect(tables).toContain('folderId: guid("folder_id", "folders")');
+  });
+
+  it("keeps a member's reverse relation on the polymorphic key", () => {
+    expect(tables).toMatch(
+      /resources: hasMany\(resources, \{\s+from: \[invoices\.columns\.id\],\s+to: \[resources\.columns\.ownerId\]\s+\}\)/
+    );
+  });
+});
+
+describe("polymorphic relations: errors", () => {
+  it("rejects a union exported under a table's alias", () => {
+    expect(() =>
+      createTransformer({ plugins: [dsqlbase()] }).transform(/* GraphQL */ `
+        union Items = Photo | Video
+
+        type Item @model {
+          id: ID!
+        }
+
+        type Photo @model {
+          id: ID!
+        }
+
+        type Video @model {
+          id: ID!
+        }
+
+        type Post @model {
+          id: ID!
+          item: Items @belongsTo
+        }
+      `)
+    ).toThrow(/Items would be exported as "items", which is already a table's schema alias/);
+  });
+});
