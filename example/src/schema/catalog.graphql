@@ -35,6 +35,7 @@ type Category implements Timestamped & SoftDeletable
   parent: Category @belongsTo
   children: Category @hasMany(key: "parentId")
   products: Product @hasMany
+  media: MediaAsset @hasMany(key: "subjectId")
 }
 
 # ------------------------------------------------------------------------------
@@ -394,4 +395,27 @@ type Viewer {
 
 extend type Query {
   viewer: Viewer!
+}
+
+# ------------------------------------------------------------------------------
+# Media
+# ------------------------------------------------------------------------------
+
+"""
+What a media asset shows.
+"""
+union MediaSubject = Category | MarketLocation
+
+"""
+An image of a category or a market location. `subject` is polymorphic: the row stores which member
+(`subjectType`, hidden) and which row (`subjectId`). Clients set the subject by its global id, which
+names the member, so they never send the type.
+"""
+type MediaAsset implements Node & Timestamped @model @access(allow: [ADMIN, VENDOR, SHOP]) {
+  id: GUID!
+  url: URL!
+  altText: String @constraint(max: 300)
+
+  subjectId: GUID!
+  subject: MediaSubject! @belongsTo
 }

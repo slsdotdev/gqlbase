@@ -270,6 +270,7 @@ type MarketLocation implements Node & Timestamped & SoftDeletable
 
   assignments: [MarketVendorAssignment!]! @hasMany
   operatingSchedules: [OperatingSchedule!]! @hasMany
+  media: [MediaAsset!]! @hasMany(key: "subjectId")
 
   createdAt: DateTime! @readOnly
   updatedAt: DateTime! @readOnly
