@@ -115,6 +115,11 @@ type SavedSearch implements Node & Timestamped @model @scope(name: user) @access
   query: String! @constraint(max: 500)
   filters: SavedSearchFilters!
 
+  """
+  Free-form labels the shopper groups saved searches by.
+  """
+  tags: [String!]
+
   notifyOnNewResults: Boolean!
   lastNotifiedAt: DateTime @readOnly
 

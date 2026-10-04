@@ -124,13 +124,13 @@ ISO 4217 currency code, for example `EUR`. Stored as text; the Zod override in
 scalar Currency @gqlbase_typehint(type: string)
 
 # ------------------------------------------------------------------------------
-# Shared Value Types (embedded, non-model)
+# Shared Value Types (@embedded: stored as columns of the model that uses them)
 # ------------------------------------------------------------------------------
 
 """
 Monetary amount with explicit currency. Never store bare floats for money.
 """
-type Money {
+type Money @embedded {
   amount: Decimal @semanticNonNull
   currency: Currency @semanticNonNull
 }
@@ -143,7 +143,7 @@ input MoneyInput {
 """
 GPS coordinates for market locations, delivery zones, etc.
 """
-type GeoPoint {
+type GeoPoint @embedded {
   latitude: Float @semanticNonNull
   longitude: Float @semanticNonNull
 }
@@ -156,7 +156,7 @@ input GeoPointInput {
 """
 Inclusive time range for a single day, in HH:mm (24h) local time.
 """
-type TimeRange {
+type TimeRange @embedded {
   opensAt: String @semanticNonNull
   closesAt: String @semanticNonNull
 }
