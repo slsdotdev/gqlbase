@@ -1,14 +1,14 @@
 import { createResolver, defineResolvers, GraphQLError } from "@middy-appsync/graphql";
-import { dsql } from "../lib/dsql";
+import { dsqlUnscoped } from "../lib/dsql";
 
 // The @computed fields of Product have their own resolvers, so the resolver that returns a product
-// (search, a relation, …) leaves them out.
+// (search, a relation, …) leaves them out. They summarise every shopper's reviews, so they read unscoped.
 
 const reviewCount = createResolver({
   typeName: "Product",
   fieldName: "reviewCount",
   resolve: async ({ source }) => {
-    const reviews = await dsql.reviews.findMany({ where: { productId: source.id } });
+    const reviews = await dsqlUnscoped.reviews.findMany({ where: { productId: source.id } });
 
     return reviews.length;
   },
@@ -18,7 +18,7 @@ const averageRating = createResolver({
   typeName: "Product",
   fieldName: "averageRating",
   resolve: async ({ source }) => {
-    const reviews = await dsql.reviews.findMany({ where: { productId: source.id } });
+    const reviews = await dsqlUnscoped.reviews.findMany({ where: { productId: source.id } });
 
     if (!reviews.length) {
       return null;
@@ -32,7 +32,9 @@ const startingPrice = createResolver({
   typeName: "Product",
   fieldName: "startingPrice",
   resolve: async ({ source }) => {
-    const variants = await dsql.productVariants.findMany({ where: { productId: source.id } });
+    const variants = await dsqlUnscoped.productVariants.findMany({
+      where: { productId: source.id },
+    });
     const [first, ...rest] = variants.map((variant) => variant.price);
 
     // Semantically non-null: a product without variants has no price, which is an error.

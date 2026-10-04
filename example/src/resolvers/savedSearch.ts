@@ -3,20 +3,20 @@ import {
   createQueryResolver,
   defineResolvers,
 } from "@middy-appsync/graphql";
-import { dsql } from "../lib/dsql";
-import { userClaims } from "../lib/claims";
+import { userDb } from "../lib/claims";
 import { withoutNulls } from "../lib/filter";
 import { orderOf, pageOf, toConnection } from "../lib/connection";
 import { validate } from "../lib/validation";
 import { CreateSavedSearchInputSchema } from "../../generated/zod/schema.validators";
 
-// SavedSearch is in the `user` scope: userId is a claim, never part of the API.
+// SavedSearch is in the `user` scope: userId is a claim, never part of the API, and the user's client sets and filters
+// it.
 const listSavedSearches = createQueryResolver({
   fieldName: "listSavedSearches",
   resolve: async ({ args, identity }) => {
     const { first, offset, limit } = pageOf(args);
-    const rows = await dsql.savedSearches.findMany({
-      where: { and: [userClaims(identity), withoutNulls(args.filter) ?? {}] },
+    const rows = await userDb(identity).savedSearches.findMany({
+      where: withoutNulls(args.filter),
       orderBy: orderOf(args.orderBy),
       limit,
       offset,
@@ -32,8 +32,8 @@ const createSavedSearch = createMutationResolver({
     const input = validate(CreateSavedSearchInputSchema, args.input);
     const now = new Date().toISOString();
 
-    return await dsql.savedSearches.create({
-      data: { ...input, ...userClaims(identity), createdAt: now, updatedAt: now },
+    return await userDb(identity).savedSearches.create({
+      data: { ...input, createdAt: now, updatedAt: now },
       return: true as const,
     });
   },

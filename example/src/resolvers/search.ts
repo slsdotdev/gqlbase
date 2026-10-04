@@ -1,13 +1,14 @@
 import { createQueryResolver, defineResolvers } from "@middy-appsync/graphql";
-import { dsql } from "../lib/dsql";
+import { dsqlUnscoped } from "../lib/dsql";
 
-// SearchResult is a union: each hit says which member it is with __typename, which the result type requires.
+// SearchResult is a union: each hit says which member it is with __typename, which the result type requires. Search
+// spans every vendor's catalog, so it reads unscoped.
 const search = createQueryResolver({
   fieldName: "search",
   resolve: async ({ args }) => {
     const [products, locations] = await Promise.all([
-      dsql.products.findMany({ where: { name: { contains: args.query } } }),
-      dsql.marketLocations.findMany({ where: { name: { contains: args.query } } }),
+      dsqlUnscoped.products.findMany({ where: { name: { contains: args.query } } }),
+      dsqlUnscoped.marketLocations.findMany({ where: { name: { contains: args.query } } }),
     ]);
 
     return [

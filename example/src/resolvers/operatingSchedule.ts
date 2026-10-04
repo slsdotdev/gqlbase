@@ -3,20 +3,20 @@ import {
   createQueryResolver,
   defineResolvers,
 } from "@middy-appsync/graphql";
-import { dsql } from "../lib/dsql";
-import { vendorClaims } from "../lib/claims";
+import { vendorDb } from "../lib/claims";
 import { withoutNulls } from "../lib/filter";
 import { orderOf, pageOf, toConnection } from "../lib/connection";
 import { validate } from "../lib/validation";
 import { CreateOperatingScheduleInputSchema } from "../../generated/zod/schema.validators";
 
-// OperatingSchedule is in the `vendor` scope: vendorId is a claim, never part of the API.
+// OperatingSchedule is in the `vendor` scope: vendorId is a claim, never part of the API, and the vendor's client sets
+// and filters it.
 const listOperatingSchedules = createQueryResolver({
   fieldName: "listOperatingSchedules",
   resolve: async ({ args, identity }) => {
     const { first, offset, limit } = pageOf(args);
-    const rows = await dsql.operatingSchedules.findMany({
-      where: { and: [vendorClaims(identity), withoutNulls(args.filter) ?? {}] },
+    const rows = await vendorDb(identity).operatingSchedules.findMany({
+      where: withoutNulls(args.filter),
       orderBy: orderOf(args.orderBy),
       limit,
       offset,
@@ -32,8 +32,8 @@ const createOperatingSchedule = createMutationResolver({
     const input = validate(CreateOperatingScheduleInputSchema, args.input);
     const now = new Date().toISOString();
 
-    return await dsql.operatingSchedules.create({
-      data: { ...input, ...vendorClaims(identity), createdAt: now, updatedAt: now },
+    return await vendorDb(identity).operatingSchedules.create({
+      data: { ...input, createdAt: now, updatedAt: now },
       return: true as const,
     });
   },

@@ -91,21 +91,37 @@ describe("type-level visibility in stored outputs", () => {
   });
 });
 
-describe("tenancy claims in the tables", () => {
+describe("tenancy scopes", () => {
   let tables: string;
 
   beforeAll(() => {
     const output = createTransformer({
-      tenancy: { vendor: { claims: { vendorId: "ID" } } },
+      tenancy: {
+        vendor: { claims: { vendorId: "UUID" } },
+        user: { claims: { userId: "UUID" } },
+        global: { claims: null },
+      },
       plugins: [dsqlbase()],
     }).transform(/* GraphQL */ `
-      type Product @model @scope(name: vendor) {
-        id: ID!
-        name: String!
-        category: Category @belongsTo
+      type Vendor @model {
+        id: GUID!
+        products: Product @hasMany
       }
 
-      type Category @model {
+      type Product @model @scope(name: vendor) {
+        id: GUID!
+        name: String!
+      }
+
+      type Schedule @model @scope(name: vendor) {
+        id: ID!
+      }
+
+      type Cart @model @scope(name: user) {
+        id: ID!
+      }
+
+      type Currency @model @scope(name: global) {
         id: ID!
       }
     `);
@@ -113,8 +129,89 @@ describe("tenancy claims in the tables", () => {
     tables = output.files.find((file) => file.path === "dsqlbase/schema.ts")?.content ?? "";
   });
 
-  it("emits a claim as a not-null column", () => {
-    expect(tables).toMatch(/vendorId: \w+\("vendor_id"\)\.notNull\(\)/);
+  it("declares each scope with claims as a tenantScope of its claim columns", () => {
+    expect(tables).toMatch(
+      /export const userScope = tenantScope\(\{\s*userId: uuid\("user_id"\)\.notNull\(\)\s*\}\);/
+    );
+  });
+
+  it("gives a claim that keys a node in one table the node's guid in every table of the scope", () => {
+    expect(tables).toMatch(
+      /export const vendorScope = tenantScope\(\{\s*vendorId: guid\("vendor_id", "vendors"\)\.notNull\(\)\s*\}\);/
+    );
+  });
+
+  it("emits a scoped model through its scope, without the claim columns", () => {
+    expect(tables).toContain('export const products = vendorScope.table("products", {');
+    expect(tables).toContain('export const schedules = vendorScope.table("schedules", {');
+    expect(tables).toContain('export const carts = userScope.table("carts", {');
+    expect(tables).not.toMatch(/(vendor|user)Id: \w+\("(vendor|user)_id"\)[^;]*\}\)\.meta/);
+    expect(tables.match(/"vendor_id"/g)).toHaveLength(1);
+  });
+
+  it("emits a model in a scope without claims, or in none, as a plain table", () => {
+    expect(tables).toContain('export const currencies = table("currencies", {');
+    expect(tables).toContain('export const vendors = table("vendors", {');
+    expect(tables).not.toContain("globalScope");
+  });
+
+  it("declares the scopes before the tables", () => {
+    expect(tables.indexOf("export const vendorScope")).toBeLessThan(
+      tables.indexOf("export const vendors =")
+    );
+  });
+
+  it("keeps relations on a claim working through the scope's column", () => {
+    expect(tables).toContain("to: [products.columns.vendorId]");
+  });
+});
+
+describe("tenancy scopes: errors", () => {
+  it("rejects a claim keying two models", () => {
+    expect(() =>
+      createTransformer({
+        tenancy: { vendor: { claims: { ownerId: "UUID" } } },
+        plugins: [dsqlbase()],
+      }).transform(/* GraphQL */ `
+        type Vendor @model {
+          id: GUID!
+          products: Product @hasMany(key: "ownerId")
+        }
+
+        type Market @model {
+          id: GUID!
+          stalls: Stall @hasMany(key: "ownerId")
+        }
+
+        type Product @model @scope(name: vendor) {
+          id: ID!
+        }
+
+        type Stall @model @scope(name: vendor) {
+          id: ID!
+        }
+      `)
+    ).toThrow(/Tenancy claim ownerId is a key to (vendors and markets|markets and vendors)/);
+  });
+
+  it("rejects an @embedded type exported under a scope's alias", () => {
+    expect(() =>
+      createTransformer({
+        tenancy: { vendor: { claims: { vendorId: "UUID" } } },
+        plugins: [dsqlbase()],
+      }).transform(/* GraphQL */ `
+        type VendorScope @embedded {
+          label: String!
+        }
+
+        type Product @model @scope(name: vendor) {
+          id: ID!
+          scope: VendorScope!
+        }
+      `)
+    ).toThrow(
+      /@embedded type VendorScope would be exported as "vendorScope", which is already a tenancy scope/
+    );
   });
 });
 
