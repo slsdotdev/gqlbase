@@ -145,6 +145,7 @@ describe("RelationsPlugin keys between stored types", () => {
   let employee: ObjectNode;
   let badge: ObjectNode;
   let asset: InterfaceNode;
+  let laptop: ObjectNode;
 
   beforeAll(() => {
     context = new TransformerContext({});
@@ -159,6 +160,7 @@ describe("RelationsPlugin keys between stored types", () => {
     employee = context.document.getNodeOrThrow("Employee") as ObjectNode;
     badge = context.document.getNodeOrThrow("Badge") as ObjectNode;
     asset = context.document.getNodeOrThrow("Asset") as InterfaceNode;
+    laptop = context.document.getNodeOrThrow("Laptop") as ObjectNode;
   });
 
   it("keys @model to @model", () => {
@@ -166,8 +168,9 @@ describe("RelationsPlugin keys between stored types", () => {
     expect(badge.hasField("employeeId")).toBe(true);
   });
 
-  it("keys a @model to an interface every implementation of which is a @model", () => {
-    expect(asset.hasField("teamId")).toBe(true);
+  it("keys a @model to an interface every implementation of which is a @model, on each implementation", () => {
+    expect(laptop.hasField("teamId")).toBe(true);
+    expect(asset.hasField("teamId")).toBe(false);
   });
 
   it("does not key a @model to an interface with a plain implementation", () => {
@@ -504,5 +507,114 @@ describe("RelationsPlugin GUID keys", () => {
         }
       `)
     ).not.toThrow();
+  });
+});
+
+describe("RelationsPlugin polymorphic targets", () => {
+  let context: TransformerContext;
+  let plugin: RelationsPlugin;
+
+  beforeAll(() => {
+    context = new TransformerContext({});
+    plugin = new RelationsPlugin(context);
+    context.registerPlugin(plugin);
+  });
+
+  beforeEach(() => {
+    context.finishWork();
+    context.startWork(
+      DocumentNode.fromSource(/* GraphQL */ `
+        union Owner = Invoice | PaymentOrder
+
+        interface Document {
+          title: String!
+        }
+
+        type Invoice implements Document @model {
+          id: GUID!
+          title: String!
+        }
+
+        type PaymentOrder implements Document @model {
+          id: GUID!
+          title: String!
+        }
+
+        type Resource @model {
+          id: GUID!
+          owner: Owner @belongsTo
+          document: Document! @belongsTo(key: "docId", discriminator: "docKind")
+        }
+
+        type Folder @model {
+          id: ID!
+          items: Owner @hasMany
+          documents: Document @hasMany
+        }
+      `)
+    );
+  });
+
+  it("adds a discriminator beside the key of a @belongsTo to a union", () => {
+    const resource = context.document.getNodeOrThrow("Resource") as ObjectNode;
+
+    plugin.normalize(resource);
+
+    const ownerIdType = resource.getField("ownerId")?.type;
+    expect(ownerIdType && print(ownerIdType.serialize())).toBe("GUID");
+    const ownerTypeField = resource.getField("ownerType")?.type;
+    expect(ownerTypeField && print(ownerTypeField.serialize())).toBe("String");
+    expect(resource.getField("ownerType")?.directives?.map((d) => d.name)).toEqual([
+      "serverOnly",
+      "writeOnly",
+    ]);
+  });
+
+  it("names the key and discriminator of a @belongsTo to an interface from its arguments", () => {
+    const resource = context.document.getNodeOrThrow("Resource") as ObjectNode;
+
+    plugin.normalize(resource);
+
+    const docIdType = resource.getField("docId")?.type;
+    expect(docIdType && print(docIdType.serialize())).toBe("GUID!");
+    const docKindType = resource.getField("docKind")?.type;
+    expect(docKindType && print(docKindType.serialize())).toBe("String!");
+  });
+
+  it("puts a @hasMany key on every member, with the relation's nullability", () => {
+    const folder = context.document.getNodeOrThrow("Folder") as ObjectNode;
+
+    plugin.normalize(folder);
+
+    for (const name of ["Invoice", "PaymentOrder"]) {
+      const member = context.document.getNodeOrThrow(name) as ObjectNode;
+      const folderIdType = member.getField("folderId")?.type;
+      expect(folderIdType && print(folderIdType.serialize())).toBe("ID");
+    }
+
+    expect(
+      (context.document.getNodeOrThrow("Document") as InterfaceNode).hasField("folderId")
+    ).toBe(false);
+  });
+
+  it("throws on members that mix GUID ids with others", () => {
+    expect(() =>
+      createTransformer().transform(/* GraphQL */ `
+        union Owner = Invoice | Vendor
+
+        type Invoice @model {
+          id: GUID!
+        }
+
+        type Vendor @model {
+          id: ID!
+        }
+
+        type Resource @model {
+          id: ID!
+          owner: Owner @belongsTo
+        }
+      `)
+    ).toThrow(/Owner, whose members mix GUID ids with ID/);
   });
 });

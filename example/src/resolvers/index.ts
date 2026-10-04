@@ -3,6 +3,7 @@ import category from "./category";
 import exchangeRate from "./exchangeRate";
 import integration from "./integration";
 import ledgerEntry from "./ledgerEntry";
+import mediaAsset from "./mediaAsset";
 import node from "./node";
 import operatingSchedule from "./operatingSchedule";
 import product from "./product";
@@ -17,6 +18,7 @@ export const resolvers = defineResolvers(
   exchangeRate,
   integration,
   ledgerEntry,
+  mediaAsset,
   node,
   operatingSchedule,
   product,

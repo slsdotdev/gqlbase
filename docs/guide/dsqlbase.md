@@ -97,7 +97,7 @@ export const postRelations = relations(posts, {
   - `@belongsTo` → `belongsTo(target, { from: [source.key], to: [target.id] })`;
   - `@hasOne` / `@hasMany` → `hasOne` / `hasMany(target, { from: [source.id], to: [target.key] })`.
   - Relay connections and `{ items }` connections are resolved back to the node type.
-  - The target must be a `@model`: union, interface and plain-object targets throw.
+  - A union or interface target becomes a `union()`; see [Polymorphic relations](#polymorphic-relations). A plain-object target throws.
 
 ### `SafeInt` columns
 
@@ -122,10 +122,8 @@ The builder and the `@dsqlbase/core` import are emitted only when a column uses 
 
 Nothing below is emitted:
 - tenancy / scoped columns;
-- `guid()` global-id columns;
 - `numeric` columns (unless through `scalarMap`);
-- check constraints (from `@constraint`);
-- polymorphic relations.
+- check constraints (from `@constraint`).
 
 ## Global ids
 
@@ -163,10 +161,61 @@ export const products = table("products", {
 
 - **Relation keys** that hold a node's ids are `guid("<col>", "<alias>")`, so `product.vendorId === product.vendor.id`. dsqlbase requires both sides of a relation to agree, and they do by construction. A [tenancy claim](./tenancy.md) that is the key becomes the same `guid()` column, whatever type its scope declares.
 - **A key to a `GUID` model in another [data source](./data-sources.md)** is `text()`. `guid()` can only name a node in this schema, and the other source owns its ids, so the column stores one exactly as it is given (wrapped, as `node` needs it). Filter it with the same form.
-- **Other keys** keep their own column. A `GUID` key to a union is a plain `uuid()` for now.
+- **Other keys** keep their own column. The key of a `@belongsTo` to a union is covered in [Polymorphic relations](#polymorphic-relations).
 - **Any other `GUID` field throws**: `GUID` identifies a model. Use `UUID` or `ID`.
 - **Reading by id.** `dsql.$findByGlobalId({ id })` reads the row an id names, through the table's model client, so the tenant predicate applies. Its rows carry `$$key`, the schema alias, and `$$meta.__typename`, the GraphQL type. A `Query.node` resolver returns `{ ...row, __typename: row.$$meta.__typename }` (see [Relay](./relay.md#node-interface)).
 - **Raw uuids are accepted** wherever a `guid()` column is, on writes and in filters. An id naming another node throws `GlobalIdError("key_mismatch")`.
+
+## Polymorphic relations
+
+A relation to a [union or an interface](./relations.md#union-and-interface-targets) whose members are all tables of this source relates to a dsqlbase `union()` of them, exported once under the target's schema alias. A member in another data source leaves the relation to a resolver; its key columns stay.
+
+```graphql
+union Owner = Invoice | PaymentOrder
+
+type Resource @model {
+  id: GUID!
+  owner: Owner @belongsTo
+}
+
+type Folder @model {
+  id: GUID!
+  documents: Document @hasMany   # interface Document, implemented by Invoice and PaymentOrder
+}
+```
+
+```ts
+export const resources = table("resources", {
+  id: guid("id").primaryKey().defaultRandom(),
+  ownerId: guid("owner_id"),
+  ownerType: text("owner_type").$type<"invoices" | "paymentOrders">(),
+}).meta({ __typename: "Resource" as const });
+
+export const owners = union({ invoices, paymentOrders });
+export const documents = union({ invoices, paymentOrders });
+
+export const resourceRelations = relations(resources, {
+  owner: belongsTo(owners, {
+    from: [resources.columns.ownerId],
+    to: [owners.columns.id],
+    discriminator: resources.columns.ownerType,
+  }),
+});
+
+export const folderRelations = relations(folders, {
+  documents: hasMany(documents, {
+    from: [folders.columns.id],
+    to: { invoices: [invoices.columns.folderId], paymentOrders: [paymentOrders.columns.folderId] },
+  }),
+});
+```
+
+- **The discriminator** (`<field>Type`) is a `text` column typed with the members' schema aliases, which is what dsqlbase stores in it.
+- **The key** of a `@belongsTo` is a keyless `guid()` when the members have `GUID` ids: dsqlbase wraps each id with the member its row names, and **writing a global id fills the discriminator**. Without `GUID` ids it is a plain column, and the discriminator must be written with it.
+- **`@hasOne` / `@hasMany`** to a union or an interface name each member's key.
+- **A member's reverse `@hasMany`** onto the polymorphic key (`Invoice.resources @hasMany(key: "ownerId")`) is a plain `hasMany`: dsqlbase correlates it on the id alone (see [Relations](./relations.md#union-and-interface-targets)).
+- **Rows** of a union carry `$$key`, the member alias, and `$$meta.__typename`, so a resolver returns `{ ...row, __typename: row.$$meta.__typename }`.
+- A union whose schema alias is already a table's throws; rename one of them.
 
 ## Indexes and unique constraints
 

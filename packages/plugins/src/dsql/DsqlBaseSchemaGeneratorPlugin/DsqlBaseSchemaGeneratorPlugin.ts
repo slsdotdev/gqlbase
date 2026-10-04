@@ -4,6 +4,7 @@ import {
   DefinitionNode,
   EnumNode,
   FieldNode,
+  InterfaceNode,
   isDirectiveDefinitionNode,
   isEnumNode,
   isListTypeNode,
@@ -11,8 +12,10 @@ import {
   isObjectNode,
   isOperationNode,
   isScalarNode,
+  isInterfaceNode,
   isUnionNode,
   ObjectNode,
+  UnionNode,
 } from "@gqlbase/core/definition";
 import {
   BaseScalar,
@@ -22,6 +25,8 @@ import {
   isClientOnly,
   isModel,
   isRelationField,
+  getRelationMembers,
+  type RelationTarget,
   isSemanticNullable,
   isPrimaryKeyField,
   parseFieldRelation,
@@ -70,6 +75,9 @@ import {
 export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
   private _columnEnums: Set<string> | null = null;
   private _keyTargets: Map<string, Map<string, ObjectNode | null>> | null = null;
+  private _discriminators: Map<string, Map<string, string[]>> | null = null;
+  private _unions: ts.Node[] = [];
+  private _unionNames = new Set<string>();
   private _options: DsqlBaseSchemaGeneratorPluginOptions;
 
   private _imports = new Set<string>();
@@ -164,14 +172,21 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
 
   /**
    * Per table, its relation key columns and the model whose ids each holds: a `@belongsTo` key holds its target's ids, a
-   * `@hasOne` / `@hasMany` key its source's. `null` for a key to a union, whose node is per row (polymorphic relations).
+   * `@hasOne` / `@hasMany` key its source's. `null` for the key of a `@belongsTo` to a union or an interface, whose
+   * node is named row by row by its discriminator; a member's reverse relation onto that key does not change it.
+   * Also collects each such discriminator, with the schema aliases of the members it can name.
    */
   private _collectKeyTargets() {
     const keyTargets = new Map<string, Map<string, ObjectNode | null>>();
+    const discriminators = new Map<string, Map<string, string[]>>();
 
     const add = (holder: ObjectNode, key: string, target: ObjectNode | null) => {
       const keys = keyTargets.get(holder.name) ?? new Map<string, ObjectNode | null>();
-      keys.set(key, target);
+
+      if (keys.get(key) !== null) {
+        keys.set(key, target);
+      }
+
       keyTargets.set(holder.name, keys);
     };
 
@@ -183,28 +198,42 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
 
         const target = this._resolveFieldRelationTarget(field);
 
-        if (!isObjectNode(target) && !isUnionNode(target)) continue;
+        if (!isObjectNode(target) && !isUnionNode(target) && !isInterfaceNode(target)) continue;
 
-        const key = parseFieldRelation(node, field, target)?.key;
+        const relation = parseFieldRelation(node, field, target);
 
-        if (!key) continue;
+        if (!relation?.key) continue;
 
         if (isBelongsToRelationship(field)) {
-          add(node, key, isObjectNode(target) ? target : null);
+          add(node, relation.key, isObjectNode(target) ? target : null);
+
+          if (relation.discriminator) {
+            const fields = discriminators.get(node.name) ?? new Map<string, string[]>();
+            fields.set(
+              relation.discriminator,
+              getRelationMembers(this.context.document, target).map((member) =>
+                this._tableAlias(member)
+              )
+            );
+            discriminators.set(node.name, fields);
+          }
+
           continue;
         }
 
-        const holders = isUnionNode(target)
-          ? (target.types ?? []).map((type) => this.context.document.getNode(type.getTypeName()))
-          : [target];
-
-        for (const holder of holders) {
-          if (holder && isObjectNode(holder)) add(holder, key, node);
+        for (const holder of getRelationMembers(this.context.document, target)) {
+          add(holder, relation.key, node);
         }
       }
     }
 
+    this._discriminators = discriminators;
+
     return keyTargets;
+  }
+
+  private _tableAlias(node: { name: string }): string {
+    return pluralize(camelCase(node.name));
   }
 
   /**
@@ -221,8 +250,8 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
    * The column for a relation key or a `GUID` field, or `null` to resolve it as usual. A key holding a node's ids is
    * `guid(col, "<alias>")` whatever its own type (a tenancy claim keeps its declared one), so the pair agrees. A key to
    * a `GUID` model in another data source is `text`: that source owns its ids, so the column keeps one as it is given.
-   * A `GUID` key to a union is a plain `uuid` until polymorphic relations. `GUID` identifies models, so any other `GUID`
-   * field throws.
+   * The `GUID` key of a `@belongsTo` to a union or an interface is a keyless `guid`, and its discriminator a `text` typed
+   * with the member aliases. `GUID` identifies models, so any other `GUID` field throws.
    */
   private _keyColumn(node: ObjectNode, field: FieldNode, columnName: string): ts.Expression | null {
     const isGuid = field.type.getTypeName() === BaseScalar.GUID;
@@ -249,12 +278,32 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
         return this._callExp("text", [ts.factory.createStringLiteral(columnName)]);
       }
 
-      if (isGuid) {
-        this._imports.add("uuid");
-        return this._callExp("uuid", [ts.factory.createStringLiteral(columnName)]);
+      // A key a discriminator names row by row: keyless, so dsqlbase wraps each id with the member it points at.
+      if (target === null && isGuid) {
+        this._imports.add("guid");
+        return this._callExp("guid", [ts.factory.createStringLiteral(columnName)]);
       }
 
       return null;
+    }
+
+    const members = this._discriminators?.get(node.name)?.get(field.name);
+
+    if (members) {
+      this._imports.add("text");
+
+      return this._chainCallExp(
+        this._callExp("text", [ts.factory.createStringLiteral(columnName)]),
+        "$type",
+        [],
+        [
+          ts.factory.createUnionTypeNode(
+            members.map((alias) =>
+              ts.factory.createLiteralTypeNode(ts.factory.createStringLiteral(alias))
+            )
+          ),
+        ]
+      );
     }
 
     if (isGuid && !isPrimaryKeyField(field)) {
@@ -464,6 +513,141 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
     return target;
   }
 
+  private _columnAccess(tableVarName: string, column: string): ts.Expression {
+    return ts.factory.createPropertyAccessExpression(
+      ts.factory.createPropertyAccessExpression(
+        ts.factory.createIdentifier(tableVarName),
+        ts.factory.createIdentifier("columns")
+      ),
+      ts.factory.createIdentifier(column)
+    );
+  }
+
+  /**
+   * `export const <alias> = union({ <member aliases> })`, once per union or interface a relation targets.
+   */
+  private _declareUnion(target: RelationTarget, members: ObjectNode[]): string {
+    const alias = this._tableAlias(target);
+
+    if (this._unionNames.has(alias)) {
+      return alias;
+    }
+
+    if (
+      Array.from(this.context.document.definitions.values()).some(
+        (definition) =>
+          isObjectNode(definition) &&
+          isDsqlBaseTable(definition, this.context.options) &&
+          this._tableAlias(definition) === alias
+      )
+    ) {
+      throw new TransformerPluginExecutionError(
+        this.name,
+        `${target.name} would be exported as "${alias}", which is already a table's schema alias. Rename one of them.`
+      );
+    }
+
+    this._imports.add("union");
+    this._unionNames.add(alias);
+    this._unions.push(
+      this._exportExp(
+        alias,
+        this._callExp("union", [
+          ts.factory.createObjectLiteralExpression(
+            members.map((member) =>
+              ts.factory.createShorthandPropertyAssignment(this._tableAlias(member))
+            )
+          ),
+        ])
+      )
+    );
+
+    return alias;
+  }
+
+  /**
+   * A relation to a union or an interface: a dsqlbase `union()` of its members. A `@belongsTo` stores the key and the
+   * discriminator naming the member; a `@hasOne` / `@hasMany` finds its key on each member. `null` when a member is not
+   * a table of this source: the relation is resolved elsewhere, as for an object target in another data source.
+   */
+  private _generatePolymorphicRelation(
+    node: ObjectNode,
+    field: FieldNode,
+    target: InterfaceNode | UnionNode,
+    tableVarName: string
+  ): ts.Expression | null {
+    const members = getRelationMembers(this.context.document, target);
+    const relation = parseFieldRelation(node, field, target);
+
+    if (
+      !relation?.key ||
+      !members.length ||
+      !members.every((member) => isDsqlBaseTable(member, this.context.options))
+    ) {
+      return null;
+    }
+
+    const unionVarName = this._declareUnion(target, members);
+
+    if (isBelongsToRelationship(field) && relation.discriminator) {
+      this._imports.add("belongsTo");
+
+      return this._callExp("belongsTo", [
+        ts.factory.createIdentifier(unionVarName),
+        ts.factory.createObjectLiteralExpression(
+          [
+            ts.factory.createPropertyAssignment(
+              "from",
+              ts.factory.createArrayLiteralExpression([
+                this._columnAccess(tableVarName, relation.key),
+              ])
+            ),
+            ts.factory.createPropertyAssignment(
+              "to",
+              ts.factory.createArrayLiteralExpression([this._columnAccess(unionVarName, "id")])
+            ),
+            ts.factory.createPropertyAssignment(
+              "discriminator",
+              this._columnAccess(tableVarName, relation.discriminator)
+            ),
+          ],
+          true
+        ),
+      ]);
+    }
+
+    const type = isManyRelationship(field) ? "hasMany" : "hasOne";
+    this._imports.add(type);
+
+    return this._callExp(type, [
+      ts.factory.createIdentifier(unionVarName),
+      ts.factory.createObjectLiteralExpression(
+        [
+          ts.factory.createPropertyAssignment(
+            "from",
+            ts.factory.createArrayLiteralExpression([this._columnAccess(tableVarName, "id")])
+          ),
+          ts.factory.createPropertyAssignment(
+            "to",
+            ts.factory.createObjectLiteralExpression(
+              members.map((member) => {
+                const memberVarName = this._tableAlias(member);
+
+                return ts.factory.createPropertyAssignment(
+                  memberVarName,
+                  ts.factory.createArrayLiteralExpression([
+                    this._columnAccess(memberVarName, relation.key as string),
+                  ])
+                );
+              })
+            )
+          ),
+        ],
+        true
+      ),
+    ]);
+  }
+
   private _generateFieldRelation(
     type: string,
     sourceTableName: string,
@@ -514,6 +698,16 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
       }
 
       const target = this._resolveFieldRelationTarget(field);
+
+      if (isUnionNode(target) || isInterfaceNode(target)) {
+        const relation = this._generatePolymorphicRelation(node, field, target, tableVarName);
+
+        if (relation) {
+          relations.push(ts.factory.createPropertyAssignment(field.name, relation));
+        }
+
+        continue;
+      }
 
       if (!isModel(target)) {
         throw new TransformerPluginExecutionError(
@@ -726,6 +920,9 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
   public before() {
     this._columnEnums = null;
     this._keyTargets = null;
+    this._discriminators = null;
+    this._unions = [];
+    this._unionNames.clear();
     this._enums = [];
     this._tables = [];
     this._relations = [];
@@ -803,6 +1000,7 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
         ...declarations.values(),
         ...this._enums,
         ...this._tables,
+        ...this._unions,
         ...this._relations,
       ])
     );

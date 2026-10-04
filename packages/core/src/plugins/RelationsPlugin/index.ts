@@ -1,6 +1,8 @@
 export { RelationsPlugin, relationPlugin } from "./RelationsPlugin.js";
 export {
   RelationDirective,
+  getRelationMembers,
+  isPolymorphicTarget,
   isBelongsToRelationship,
   isManyRelationship,
   isOneRelationship,
