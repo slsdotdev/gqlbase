@@ -53,6 +53,8 @@ export const CUSTOM_SCALAR_ZOD_MAP: Record<BaseScalarName, string> = {
   [BaseScalar.TIMESTAMP]: "z.number()",
   [BaseScalar.SAFE_INT]: "z.number().int()",
   [BaseScalar.UUID]: "z.uuid()",
+  // A wrapped `guid:` id or a raw uuid; the encoding is dsqlbase's.
+  [BaseScalar.GUID]: "z.string()",
   [BaseScalar.URL]: "z.url()",
   [BaseScalar.EMAIL_ADDRESS]: "z.email()",
   [BaseScalar.PHONE_NUMBER]: "z.e164()",

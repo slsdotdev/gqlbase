@@ -21,7 +21,7 @@ A relation field says "this field is resolved from another record", linked by a 
 | `@hasMany` | many | `<ParentType>Id` (camelCase) | the target type | the source's `id` type |
 
 - `key:` overrides the name.
-- If a field with that name already exists, it is kept as declared.
+- If a field with that name already exists, it is kept as declared. Where `GUID` is involved its type must match the key type; see [`GUID`](./scalars.md#guid).
 - Otherwise the added key field is marked `@serverOnly @writeOnly`: it exists on the stored record, in the TS model type and in the database table, but not in the public schema, the GraphQL inputs or the Zod schemas.
 - The key is nullable when the relation field is nullable (after `@semanticNonNull`), and non-null otherwise.
 

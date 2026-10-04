@@ -15,7 +15,8 @@ import {
 import { InvalidDefinitionError, TransformerPluginExecutionError } from "@gqlbase/shared/errors";
 
 /**
- * Adds a `Node` interface with an `id: ID!` field to the schema and ensures that all types that implement the `Node` interface also have the `id: ID!` field.
+ * Adds a `Node` interface with an `id: ID!` field to the schema, or reuses a declared one (`id: GUID!`), and ensures that all types
+ * that implement the `Node` interface have an `id` of the interface's type. `Query.node` takes the id as that type.
  *
  * @definition
  * ```graphql
@@ -80,6 +81,18 @@ export class NodeInterfacePlugin extends TransformerPluginBase {
       );
     }
 
+    // The id's type is the interface's: `ID` by default, or what a redeclared `Node` says (`id: GUID!`).
+    const idField = node.getField("id") as FieldNode;
+    const idTypeName = idField.type.getTypeName();
+
+    // Added here rather than in `execute`, so the plugins that read a model's id type while normalizing (`get` and
+    // `delete` arguments, relation keys) see the one `Node` gives it.
+    for (const definition of this.context.document.definitions.values()) {
+      if (definition instanceof ObjectNode && this.match(definition) && !definition.hasField("id")) {
+        definition.addField(FieldNode.fromDefinition(idField.serialize()));
+      }
+    }
+
     const queryNode = this.context.document.getQueryNode();
 
     if (!queryNode.hasField("node")) {
@@ -94,7 +107,7 @@ export class NodeInterfacePlugin extends TransformerPluginBase {
               "id",
               undefined,
               undefined,
-              NonNullTypeNode.create(NamedTypeNode.create("ID"))
+              NonNullTypeNode.create(NamedTypeNode.create(idTypeName))
             ),
           ]
         )

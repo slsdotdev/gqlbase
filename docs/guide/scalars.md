@@ -4,7 +4,7 @@ _Audience: people using the built-in scalars or adding their own._
 
 ## Built-in scalars
 
-`ScalarsPlugin` (`packages/core/src/plugins/ScalarsPlugin/ScalarsPlugin.ts`, a core plugin) declares these scalars. Each carries `@specifiedBy` and a type hint. The per-generator mappings live in each generator's utils file (paths in [the last section](#adding-a-built-in-scalar-contributors)).
+`ScalarsPlugin` (`packages/core/src/plugins/ScalarsPlugin/ScalarsPlugin.ts`, a core plugin) declares these scalars. Each carries a type hint, and `@specifiedBy` where a specification exists (`GUID` has none). The per-generator mappings live in each generator's utils file (paths in [the last section](#adding-a-built-in-scalar-contributors)).
 
 | Scalar | Type hint | TS | Zod | dsqlbase column | Drizzle column | AppSync |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -14,6 +14,7 @@ _Audience: people using the built-in scalars or adding their own._
 | `Timestamp` | number | `number` | `z.number()` | `timestamp` | `integer` | `AWSTimestamp` |
 | `SafeInt` | number | `number` | `z.number().int()` | `safeint` (local, see below) | `bigint(…, { mode: "number" })` | `Long` |
 | `UUID` | id | `string` | `z.uuid()` | `uuid` | `uuid` | `ID` |
+| `GUID` | id | `string` | `z.string()` | `guid` (see below) | `uuid` | `ID` |
 | `URL` | string | `string` | `z.url()` | `text` | `text` | `AWSURL` |
 | `EmailAddress` | string | `string` | `z.email()` | `text` | `text` | `AWSEmail` |
 | `PhoneNumber` | string | `string` | `z.e164()` | `text` | `text` | `AWSPhone` |
@@ -41,6 +42,17 @@ The name states the limit. A larger value does not fail on the way in: JSON numb
 - **AppSync:** `SafeInt` becomes `Long` in the AppSync schema.
 
 There is no type hint for this: `SafeInt` carries the `number` hint, and each generator maps it by name. To give a custom scalar the same treatment, use `SafeInt` instead, or set each generator's override (`scalarMappings: { Cents: "Long" }`, `scalarMap: { Cents: { type: "number", dataType: "safeint" } }`, `scalars: { Cents: "z.number().int()" }`).
+
+### `GUID`
+
+`GUID` is a global id: a model's id that also names the model, so the row can be found from the id alone. It exists for [dsqlbase global ids](./dsqlbase.md#global-ids), and only a model's `id` and the relation keys pointing at it are `GUID`.
+
+- **Stored** as a uuid. dsqlbase's `guid()` column wraps it on the way out as `guid:<base64url>` (the table's schema alias and the uuid); treat that string as opaque.
+- **Accepted** wrapped or as a raw uuid, so Zod uses `z.string()` rather than `z.uuid()`.
+- **Opt in** per model with `id: GUID!`, or for every model by declaring `interface Node { id: GUID! }` with [relay](./relay.md#node-interface) on.
+- **Relation keys** take the target's id type, so a key to a `GUID` model is `GUID`. A key you declare must then be `GUID` too, and a declared `GUID` key must point at a `GUID` model; either mismatch throws. (`ID` and `UUID` keys stay interchangeable.) A [tenancy claim](./tenancy.md) used as the key keeps its declared type.
+- **AppSync** has no custom scalars, so `GUID` becomes `ID` there. The public schema keeps `scalar GUID`.
+- **Drizzle** stores it as a plain `uuid`.
 
 There is no decimal scalar built in. Declare one with a hint (see [Adding a custom scalar](#adding-a-custom-scalar)).
 
