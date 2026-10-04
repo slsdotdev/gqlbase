@@ -164,6 +164,7 @@ It sanitizes the filter for `util.transform.toDynamoDBFilterExpression`, calls i
 - **Operators are renamed** to AppSync's: `neq` → `ne`, `lte` → `le`, `gte` → `ge`, `exists` → `attributeExists`. The others are the same. Only operator keys are renamed, never field names.
 - **Nested `where` conditions are dropped**: AppSync cannot filter on nested paths. `exists` on the object field itself is kept. A field filtered only through `where` is not filtered at all on this backend.
 - **Explicit `null`s are dropped**, and so are the conditions they leave empty, as on every backend.
+- **A list's `contains`** takes `[T!]`, DynamoDB's one value: one item is sent as that value, no item drops the operator, and several items are rejected with `util.error` (combine them with `and`).
 - **`endsWith`** is not supported by DynamoDB: `util.error`.
 - **`exists`** follows AppSync: `attributeExists: true` matches an attribute stored as `NULL`, unlike SQL.
 

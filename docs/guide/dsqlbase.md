@@ -22,7 +22,7 @@ dsqlbase({
 
 | Option | Default | Effect |
 | --- | --- | --- |
-| `scalarMap` | `{}` | `Record<scalarName, { type, dataType, options? }>`. `dataType` is the column builder: a `dsqlbase/schema` export (`numeric`, `varchar`, …) or the local `safeint`. `type` is the TS type used when the scalar is in a list (`json(…).$type<type[]>()`). `options` is passed as the builder's second argument. Takes precedence over the built-in mapping and the type hint. |
+| `scalarMap` | `{}` | `Record<scalarName, { type, dataType, options? }>`. `dataType` is the column builder: a `dsqlbase/schema` export (`numeric`, `varchar`, …) or the local `safeint`. `type` is the TS type used when the scalar is in a list (`array(…).$type<type[]>()`). `options` is passed as the builder's second argument. Takes precedence over the built-in mapping and the type hint. |
 | `emitOutput` | `false` | Also return the file content as `output.dsqlBaseSchema`. |
 
 `@gqlbase/plugins/dsql` exports the option types as `DsqlBaseSchemaGeneratorPluginOptions` and `DsqlBaseScalarConfig`.
@@ -51,7 +51,7 @@ type Post @model {
 ```
 
 ```ts
-import { $enum, table, uuid, text, json, hasMany, belongsTo, relations } from "dsqlbase/schema";
+import { $enum, table, uuid, text, array, record, hasMany, belongsTo, relations } from "dsqlbase/schema";
 import { type AddressOwnFields } from "../schema.types.js";
 export type { AddressOwnFields } from "../schema.types.js";
 
@@ -61,8 +61,8 @@ export const users = table("users", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
   status: statusEnum.column("status"),
-  tags: json("tags").$type<string[]>(),
-  address: json("address").$type<AddressOwnFields>(),
+  tags: array("tags").$type<string[]>(),
+  address: record("address").$type<AddressOwnFields>(),
 }).meta({ __typename: "User" as const });
 
 export const posts = table("posts", {
@@ -87,11 +87,12 @@ export const postRelations = relations(posts, {
 - **Columns.** Every field except `@gqlbase_internal`, `@clientOnly` and relation fields. `@serverOnly`, `@writeOnly` and `@readOnly` fields, and relation keys, are all columns. Column names are `snake_case` of the field name.
 - **`id`.** Always `.primaryKey().defaultRandom()`, whatever its type. A `GUID` id is a `guid()` column; see [Global ids](#global-ids).
 - **`$$meta`.** Every table carries `.meta({ __typename: "<Type>" as const })`, so every row dsqlbase returns has `row.$$meta.__typename`.
-- **Not null.** `.notNull()` when the field is non-null or `@semanticNonNull`.
+- **Not null.** `.notNull()` when the field is non-null or `@semanticNonNull`. A member of an [embedded](#embedded-objects) field is not null only when the field is too.
 - **Scalars.** Mapped as in [Scalars](./scalars.md): `ID` → `uuid`, `String` → `text`, `Int` → `int`, `Float` → `real`, `Boolean` → `bool`, `DateTime` → `timestamp(…, { mode: "iso" })`, `SafeInt` → `safeint` (see below), … Custom scalars use `scalarMap`, then their type hint.
-- **Enums.** An enum becomes `$enum("<snake>_enum", [...])` only when a non-list column of a stored model uses it; the column is `<camel>Enum.column("<col>")`. A list of enums is a `json` column typed with the enum's TS type.
-- **Lists.** Every list field, scalar or not, becomes a single `json(...)` column typed `.$type<T[]>()`. dsqlbase filters a `json` column by `exists` only, so a `<Type>ListFilterInput` cannot be passed to `where` for these columns yet.
-- **Non-model object, interface or union fields.** A single `json(...)` column typed `.$type<Type>()`. There is no nesting and no validation. The generated filter has a nested `where` for these fields, but dsqlbase cannot run it: it filters a `json` column by `exists` only.
+- **Enums.** An enum becomes `$enum("<snake>_enum", [...])` only when a non-list column of a stored model uses it; the column is `<camel>Enum.column("<col>")`. A list of enums is an `array()` column typed with the enum's TS type. An enum a member of an [embedded](#embedded-objects) type uses counts as a column.
+- **Lists.** Every list field, scalar, enum or object, `@embedded` included, becomes one `array(...)` column, a `jsonb` array typed `.$type<T[]>()`. Its `<Type>ListFilterInput` (`contains`, `exists`) runs as it is.
+- **`@embedded` fields.** A group of columns; see [Embedded objects](#embedded-objects).
+- **Other non-model object, interface or union fields.** One `record(...)` column, a `jsonb` document typed `.$type<Type>()`. There is no validation. dsqlbase filters a document by `exists`, but not by its members: the generated filter's nested `where` throws on it. Mark the type `@embedded` to filter by members.
 - **A field typed as another `@model` without a relation directive** throws "Unsupported field type".
 - **Relations.** One `relations(table, {...})` per model, exported as `<camel>Relations`. A relation to a model in another data source keeps its key column but gets no relation, since there is no table to relate to:
   - `@belongsTo` → `belongsTo(target, { from: [source.key], to: [target.id] })`;
@@ -217,6 +218,43 @@ export const folderRelations = relations(folders, {
 - **Rows** of a union carry `$$key`, the member alias, and `$$meta.__typename`, so a resolver returns `{ ...row, __typename: row.$$meta.__typename }`.
 - A union whose schema alias is already a table's throws; rename one of them.
 
+## Embedded objects
+
+An [`@embedded`](./embedded-objects.md) type is declared once with `embedded({...})`, and each field of that type is a group of its columns, `<field>_<member>`:
+
+```graphql
+type Money @embedded {
+  amount: Int!
+  currency: Currency!
+}
+
+type Product @model {
+  id: ID!
+  price: Money!
+  compareAt: Money
+}
+```
+
+```ts
+export const money = embedded({
+  amount: int("amount").notNull(),
+  currency: currencyEnum.column("currency").notNull(),
+});
+export const moneyNullable = embedded({
+  amount: int("amount"),
+  currency: currencyEnum.column("currency"),
+});
+export const products = table("products", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  price: money.column("price"), // price_amount, price_currency
+  compareAt: moneyNullable.column("compare_at"), // compare_at_amount, compare_at_currency
+}).meta({ __typename: "Product" as const });
+```
+
+- **Members** are columns, generated by the same rules as a table's, nested `@embedded` fields included (`address.geo` → `address_geo_lat`). A list member is an `array()` column, any other object a `record()`.
+- **Nullability.** dsqlbase has no nullability on a group, only on its members, and reads a group as `null` when all of its columns are `NULL`. A member column is `NOT NULL` only when the field and the member are both non-null. A nullable field of a type with a required member uses a second shape, `<type>Nullable`, whose members are all nullable. The generated input keeps the group all-or-nothing on writes, but a read types each member `| null`; a resolver that returns the group asserts it is complete.
+- **Shapes** are exported as `camelCase` of the type, before the tables, nested shapes first. A shape whose name is a table's schema alias throws.
+
 ## Indexes and unique constraints
 
 The dsqlbase plugins declare two table directives. They mirror the dsqlbase schema builders, so every option dsqlbase supports is available, and what dsqlbase requires (an index name) is required. Without `dsqlbase()`, the directives are not declared, and a schema that uses them fails validation.
@@ -254,8 +292,8 @@ type Product @model
 | `@unique` on a field | `column.unique()` |
 
 Rules, checked once relation keys and tenancy claims exist (`execute`):
-- every name in `columns`, `include` and `fields`, and every `@unique` field, is a column of the table: a field of the type that is not a relation, not `@clientOnly`, and not a `json` column (lists and objects), which DSQL cannot index. Name a relation by its key field (`vendorId`). Tenancy claims are columns too, and are not added to indexes for you;
-- paths into embedded objects (`price.amount`) are rejected until embedded objects are supported;
+- every name in `columns`, `include` and `fields`, and every `@unique` field, is a column of the table: a field of the type that is not a relation, not `@clientOnly`, and not a `jsonb` column (lists and other objects), which DSQL cannot index. Name a relation by its key field (`vendorId`). Tenancy claims are columns too, and are not added to indexes for you;
+- a member of an `@embedded` field is named by its path (`price.amount`, `address.geo.lat`); the group itself is not a column. `@index` and `@unique` cannot sit on the `@embedded` type, whose members are columns of each model that uses it;
 - index names are unique across the schema;
 - `@unique` on a type needs `fields`; on a field it takes none;
 - the type is a dsqlbase table: a stored model (a `@model` that is not `@clientOnly`), in the `"dsqlbase"` data source when [data sources](./data-sources.md) are declared.
@@ -287,7 +325,8 @@ const rows = await dsql.categories.findMany({
 
 - **Explicit `null`s.** GraphQL passes an omitted operand as absent and an explicit one as `null`; dsqlbase reads `null` as a value. Drop explicit `null`s, and the conditions they leave empty, before the call. The example's `withoutNulls` (`example/src/lib/filter.ts`) does this, and `example/test/where.types.ts` checks at compile time that the result is assignable to `where` and `orderBy`.
 - **`between`** is typed `[low, high]` in the generated TS types and Zod schemas, matching dsqlbase.
-- **Not supported by dsqlbase on `json` columns:** list filters and nested `where` on object fields (see [Rules](#rules)).
+- **`@embedded` fields** filter by `exists` and a nested `where` on the members, and order by members through a nested input (`orderBy: { price: { amount: desc } }`), both as dsqlbase takes them.
+- **Not supported by dsqlbase on `jsonb` documents:** a nested `where` on a field whose type is not `@embedded` (see [Rules](#rules)).
 
 ## Related
 

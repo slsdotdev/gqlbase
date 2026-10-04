@@ -83,7 +83,7 @@ describe("DsqlBaseUtilsPlugin", () => {
       ).toThrow(/names vendor, which is not stored as a column. Name its key field instead/);
     });
 
-    it("rejects a json column", () => {
+    it("rejects a jsonb column", () => {
       expect(() =>
         createTransformer({ plugins: [dsqlbase()] }).transform(/* GraphQL */ `
           type Product @model {
@@ -91,10 +91,10 @@ describe("DsqlBaseUtilsPlugin", () => {
             tags: [String!]! @unique
           }
         `)
-      ).toThrow(/@unique on Product names tags, a json column, which DSQL cannot index/);
+      ).toThrow(/@unique on Product names tags, a jsonb column, which DSQL cannot index/);
     });
 
-    it("rejects a path into an embedded object", () => {
+    it("rejects a path into an object that is not embedded", () => {
       expect(() =>
         createTransformer({ plugins: [dsqlbase()] }).transform(/* GraphQL */ `
           type Product @model @unique(fields: ["price.amount"]) {
@@ -106,7 +106,52 @@ describe("DsqlBaseUtilsPlugin", () => {
             amount: Int!
           }
         `)
-      ).toThrow(/Paths into embedded objects are not supported yet/);
+      ).toThrow(/names "price.amount", but Product.price is not an @embedded field/);
+    });
+
+    it("rejects an embedded field named whole", () => {
+      expect(() =>
+        createTransformer({ plugins: [dsqlbase()] }).transform(/* GraphQL */ `
+          type Product @model @index(name: "by_price_idx", columns: [{ field: "price" }]) {
+            id: ID!
+            price: Money!
+          }
+
+          type Money @embedded {
+            amount: Int!
+          }
+        `)
+      ).toThrow(/names price, a group of columns. Name its members instead/);
+    });
+
+    it("rejects a path to a member that does not exist", () => {
+      expect(() =>
+        createTransformer({ plugins: [dsqlbase()] }).transform(/* GraphQL */ `
+          type Product @model @unique(fields: ["price.value"]) {
+            id: ID!
+            price: Money!
+          }
+
+          type Money @embedded {
+            amount: Int!
+          }
+        `)
+      ).toThrow(/names "price.value", which is not a field of Money/);
+    });
+
+    it("rejects @unique on a member of an embedded type", () => {
+      expect(() =>
+        createTransformer({ plugins: [dsqlbase()] }).transform(/* GraphQL */ `
+          type Product @model {
+            id: ID!
+            price: Money!
+          }
+
+          type Money @embedded {
+            amount: Int! @unique
+          }
+        `)
+      ).toThrow(/not to the @embedded type Money/);
     });
 
     it("rejects an index name used twice", () => {

@@ -86,7 +86,7 @@ describe("type-level visibility in stored outputs", () => {
 
   it("declares a column type locally when the schema types do not export it", () => {
     expect(tables).toMatch(/export type ImportMeta = \{\s*rows: number;\s*\};/);
-    expect(tables).toContain('json("meta").$type<ImportMeta>()');
+    expect(tables).toContain('record("meta").$type<ImportMeta>()');
     expect(tables).not.toMatch(/import \{[^}]*ImportMeta[^}]*\} from/);
   });
 });
@@ -319,8 +319,12 @@ describe("global ids", () => {
   });
 
   it("puts __typename in every table's meta", () => {
-    expect(tables).toMatch(/table\("products", \{[^;]*\}\)\.meta\(\{ __typename: "Product" as const \}\)/);
-    expect(tables).toMatch(/table\("categories", \{[^;]*\}\)\.meta\(\{ __typename: "Category" as const \}\)/);
+    expect(tables).toMatch(
+      /table\("products", \{[^;]*\}\)\.meta\(\{ __typename: "Product" as const \}\)/
+    );
+    expect(tables).toMatch(
+      /table\("categories", \{[^;]*\}\)\.meta\(\{ __typename: "Category" as const \}\)/
+    );
   });
 });
 
@@ -427,5 +431,127 @@ describe("polymorphic relations: errors", () => {
         }
       `)
     ).toThrow(/Items would be exported as "items", which is already a table's schema alias/);
+  });
+});
+
+describe("embedded objects", () => {
+  let tables: string;
+
+  beforeAll(() => {
+    const output = createTransformer({ plugins: [dsqlbase()] }).transform(/* GraphQL */ `
+      enum Currency {
+        EUR
+        USD
+      }
+
+      type Money @embedded {
+        amount: Int!
+        currency: Currency!
+      }
+
+      type Geo @embedded {
+        lat: Float
+        lng: Float
+      }
+
+      type Address @embedded {
+        city: String!
+        geo: Geo
+        lines: [String!]
+      }
+
+      type Note {
+        text: String
+      }
+
+      type Product
+        @model
+        @index(name: "products_price_idx", columns: [{ field: "price.amount" }])
+        @unique(fields: ["address.geo.lat", "address.geo.lng"]) {
+        id: ID!
+        price: Money!
+        compareAt: Money
+        address: Address
+        tags: [String!]
+        prices: [Money!]
+        note: Note
+      }
+    `);
+
+    tables = output.files.find((file) => file.path === "dsqlbase/schema.ts")?.content ?? "";
+  });
+
+  it("declares an embedded type once, with its members as columns", () => {
+    expect(tables).toMatch(
+      /export const money = embedded\(\{\s+amount: int\("amount"\)\.notNull\(\),\s+currency: currencyEnum\.column\("currency"\)\.notNull\(\)\s+\}\);/
+    );
+  });
+
+  it("places a group in the table under the field's name", () => {
+    expect(tables).toContain('price: money.column("price")');
+  });
+
+  it("gives a nullable field of a type with required members a shape whose members are all nullable", () => {
+    expect(tables).toMatch(
+      /export const moneyNullable = embedded\(\{\s+amount: int\("amount"\),\s+currency: currencyEnum\.column\("currency"\)\s+\}\);/
+    );
+    expect(tables).toContain('compareAt: moneyNullable.column("compare_at")');
+  });
+
+  it("nests groups, and needs no second shape for a type whose members are all nullable", () => {
+    expect(tables).toMatch(
+      /export const geo = embedded\(\{\s+lat: real\("lat"\),\s+lng: real\("lng"\)\s+\}\);/
+    );
+    expect(tables).toMatch(/geo: geo\.column\("geo"\)/);
+    expect(tables).not.toContain("geoNullable");
+    expect(tables).toContain('address: addressNullable.column("address")');
+  });
+
+  it("declares nested shapes before the shapes and tables that use them", () => {
+    expect(tables.indexOf("export const geo ")).toBeLessThan(
+      tables.indexOf("export const addressNullable ")
+    );
+    expect(tables.indexOf("export const addressNullable ")).toBeLessThan(
+      tables.indexOf("export const products ")
+    );
+  });
+
+  it("emits the enum a member uses", () => {
+    expect(tables).toContain('$enum("currency_enum"');
+  });
+
+  it("stores lists, embedded items included, as jsonb arrays", () => {
+    expect(tables).toContain('tags: array("tags").$type<string[]>()');
+    expect(tables).toContain('prices: array("prices").$type<MoneyOwnFields[]>()');
+    expect(tables).toContain('lines: array("lines").$type<string[]>()');
+  });
+
+  it("stores any other object as a jsonb record", () => {
+    expect(tables).toContain('note: record("note").$type<NoteOwnFields>()');
+    expect(tables).not.toMatch(/\bjson\(/);
+  });
+
+  it("indexes members by path", () => {
+    expect(tables).toContain(
+      'products.index("products_price_idx").columns(c => [c.price.amount]);'
+    );
+    expect(tables).toContain("products.unique(c => [c.address.geo.lat, c.address.geo.lng]);");
+  });
+});
+
+describe("embedded objects: errors", () => {
+  it("rejects a shape exported under a table's alias", () => {
+    expect(() =>
+      createTransformer({ plugins: [dsqlbase()] }).transform(/* GraphQL */ `
+        type Items @embedded {
+          count: Int
+        }
+
+        type Item @model {
+          id: ID!
+          items: Items
+        }
+      `)
+    ).toThrow(/@embedded type Items would be exported as "items"/);
   });
 });

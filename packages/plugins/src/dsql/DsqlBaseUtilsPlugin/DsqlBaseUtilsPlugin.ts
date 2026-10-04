@@ -20,8 +20,10 @@ import {
   createPluginFactory,
   InternalDirective,
   isClientOnly,
+  isEmbedded,
   isInternal,
   isRelationField,
+  ModelDirective,
 } from "@gqlbase/core/plugins";
 import { isBuildInScalar } from "@gqlbase/shared/definition";
 import { TransformerPluginExecutionError } from "@gqlbase/shared/errors";
@@ -143,25 +145,43 @@ export class DsqlBaseUtilsPlugin extends TransformerPluginBase {
   }
 
   /**
-   * A field a table directive can name: a column of the table, so not a relation, not `@clientOnly`, and not a `json`
-   * column (lists and objects), which DSQL cannot index.
+   * A field a table directive can name: a column of the table, so not a relation, not `@clientOnly`, and not a `jsonb`
+   * column (lists and other objects), which DSQL cannot index. A dotted path (`price.amount`) names a member of an
+   * `@embedded` field, which is a column too.
    */
   private _checkColumn(model: ObjectNode, name: string, directive: string) {
     const where = `@${directive} on ${model.name}`;
+    const path = name.split(".");
+    let owner = model;
 
-    if (name.includes(".")) {
-      throw new TransformerPluginExecutionError(
-        this.name,
-        `${where} names "${name}". Paths into embedded objects are not supported yet.`
-      );
+    for (const segment of path.slice(0, -1)) {
+      const field = owner.getField(segment);
+      const typeDef = field && this.context.document.getNode(field.type.getTypeName());
+
+      if (
+        !field ||
+        isInternal(field) ||
+        isClientOnly(field) ||
+        isListTypeNode(field.type) ||
+        !typeDef ||
+        !isEmbedded(typeDef)
+      ) {
+        throw new TransformerPluginExecutionError(
+          this.name,
+          `${where} names "${name}", but ${owner.name}.${segment} is not an @embedded field.`
+        );
+      }
+
+      owner = typeDef;
     }
 
-    const field = model.getField(name);
+    const leaf = path[path.length - 1] ?? name;
+    const field = owner.getField(leaf);
 
     if (!field || isInternal(field)) {
       throw new TransformerPluginExecutionError(
         this.name,
-        `${where} names "${name}", which is not a field of ${model.name}.`
+        `${where} names "${name}", which is not a field of ${owner.name}.`
       );
     }
 
@@ -177,10 +197,17 @@ export class DsqlBaseUtilsPlugin extends TransformerPluginBase {
     const isValue =
       isBuildInScalar(typeName) || (typeDef && (isScalarNode(typeDef) || isEnumNode(typeDef)));
 
+    if (typeDef && isEmbedded(typeDef) && !isListTypeNode(field.type)) {
+      throw new TransformerPluginExecutionError(
+        this.name,
+        `${where} names ${name}, a group of columns. Name its members instead (${name}.<member>).`
+      );
+    }
+
     if (isListTypeNode(field.type) || !isValue) {
       throw new TransformerPluginExecutionError(
         this.name,
-        `${where} names ${name}, a json column, which DSQL cannot index.`
+        `${where} names ${name}, a jsonb column, which DSQL cannot index.`
       );
     }
   }
@@ -264,6 +291,13 @@ export class DsqlBaseUtilsPlugin extends TransformerPluginBase {
    * Checks the table directives once relation keys (added in normalize) and tenancy claims (added before it) exist.
    */
   public execute(definition: ObjectNode) {
+    if (definition.hasDirective(ModelDirective.EMBEDDED)) {
+      throw new TransformerPluginExecutionError(
+        this.name,
+        `@index and @unique apply to tables, not to the @embedded type ${definition.name}: its members are columns of each model that uses it. Index them there, by path ("<field>.<member>").`
+      );
+    }
+
     if (!isDsqlBaseTable(definition, this.context.options)) {
       throw new TransformerPluginExecutionError(
         this.name,

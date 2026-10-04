@@ -145,6 +145,24 @@ describe("AppSyncDynamoDBFilterPlugin", () => {
     expect(toDynamoDBFilter(filter)).toEqual(filter);
   });
 
+  it("sends a list's contains with one item as that item", () => {
+    expect(
+      toDynamoDBFilter({ tags: { contains: ["local"], exists: true }, ids: { contains: [3] } })
+    ).toEqual({ tags: { contains: "local", attributeExists: true }, ids: { contains: 3 } });
+  });
+
+  it("drops a list's contains with no items", () => {
+    expect(toDynamoDBFilter({ tags: { contains: [] }, name: { eq: "Kale" } })).toEqual({
+      name: { eq: "Kale" },
+    });
+  });
+
+  it("rejects a list's contains with several items through util.error", () => {
+    expect(() => toDynamoDBFilter({ tags: { contains: ["local", "organic"] } })).toThrow(
+      /contains takes one item/
+    );
+  });
+
   it("rejects endsWith through util.error", () => {
     expect(() => toDynamoDBFilter({ name: { endsWith: "s" } })).toThrow(/endsWith/);
   });

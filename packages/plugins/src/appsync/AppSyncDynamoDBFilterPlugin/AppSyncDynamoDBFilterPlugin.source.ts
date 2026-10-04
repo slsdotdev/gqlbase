@@ -11,6 +11,8 @@ export const DYNAMODB_FILTER_SOURCE = `/**
  * - operators are renamed to AppSync's: \`neq\` → \`ne\`, \`lte\` → \`le\`, \`gte\` → \`ge\`, \`exists\` → \`attributeExists\`;
  * - nested \`where\` conditions on object fields are dropped: AppSync cannot filter on nested paths;
  * - explicit \`null\`s, and conditions left empty, are dropped;
+ * - a list's \`contains\` takes one item, as DynamoDB's does: \`["a"]\` is sent as \`"a"\`, and several items
+ *   are rejected with \`util.error\` (use \`and\`);
  * - \`endsWith\` is rejected with \`util.error\`.
  *
  * @example
@@ -29,10 +31,10 @@ const OPERATORS: Record<string, string> = {
 
 /**
  * \`filter\` is a filter object (fields, \`and\`, \`or\`, \`not\`), \`filters\` the list under \`and\`/\`or\`,
- * \`condition\` the operators of one field, \`value\` an operand.
+ * \`condition\` the operators of one field, \`contains\` the items of a list's \`contains\`, \`value\` an operand.
  */
 interface Level {
-  kind: "filter" | "filters" | "condition" | "value";
+  kind: "filter" | "filters" | "condition" | "contains" | "value";
   /** The last key read in this object. */
   key: string;
   /** Where the current member starts in the output, its leading comma included. */
@@ -124,6 +126,18 @@ function sanitize(json: string): string {
       if (char === '"') {
         inString = true;
         literal = char;
+      } else if (char === "[" && level && level.kind === "condition" && level.key === "contains") {
+        // The items of a list's contains: written without their brackets, so one item is the operand.
+        levels.push({ kind: "contains", key: "", member: out.length });
+      } else if (level && level.kind === "contains" && char === ",") {
+        util.error("Filter operator contains takes one item on DynamoDB; combine several with and", "FilterError");
+      } else if (level && level.kind === "contains" && char === "]") {
+        levels.pop();
+
+        // No item: drop the operator.
+        if (out.slice(-1) === ":") {
+          out = out.slice(0, levels[levels.length - 1].member);
+        }
       } else if (char === "{" || char === "[") {
         let kind: Level["kind"] = "value";
 
