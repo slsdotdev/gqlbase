@@ -320,17 +320,17 @@ describe("FilterPlugin orderBy", () => {
   });
 });
 
-describe("FilterPlugin orderBy on @gqlbase_sortable objects", () => {
+describe("FilterPlugin orderBy on @sortable objects", () => {
   let schema: string;
 
   beforeAll(() => {
     ({ schema } = createTransformer().transform(/* GraphQL */ `
-      type Geo @gqlbase_sortable {
+      type Geo @sortable {
         lat: Float
         lng: Float
       }
 
-      type Address @gqlbase_sortable {
+      type Address @sortable {
         city: String
         geo: Geo
         lines: [String]
@@ -355,7 +355,9 @@ describe("FilterPlugin orderBy on @gqlbase_sortable objects", () => {
     expect(schema).toMatch(
       /input AddressOrderByInput \{\s+city: SortDirection\s+geo: GeoOrderByInput\s+\}/
     );
-    expect(schema).toMatch(/input GeoOrderByInput \{\s+lat: SortDirection\s+lng: SortDirection\s+\}/);
+    expect(schema).toMatch(
+      /input GeoOrderByInput \{\s+lat: SortDirection\s+lng: SortDirection\s+\}/
+    );
   });
 
   it("does not order by an object that is not sortable", () => {
@@ -363,7 +365,7 @@ describe("FilterPlugin orderBy on @gqlbase_sortable objects", () => {
   });
 
   it("removes the directive from the output", () => {
-    expect(schema).not.toContain("gqlbase_sortable");
+    expect(schema).not.toContain("@sortable");
     expect(schema).toMatch(/type Address \{/);
   });
 });

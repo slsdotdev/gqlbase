@@ -8,7 +8,6 @@ import {
   EnumNode,
   InputObjectNode,
   InputValueNode,
-  ObjectNode,
   ScalarNode,
   NonNullTypeNode,
 } from "../../definition/index.js";
@@ -97,7 +96,6 @@ export class InternalUtilsPlugin implements ITransformerPlugin {
           InputValueNode.create("size", undefined, undefined, NonNullTypeNode.create("Int"))
         )
       )
-      .addNode(DirectiveDefinitionNode.create(InternalDirective.SORTABLE, undefined, ["OBJECT"]))
       .addNode(
         EnumNode.create(
           "TypeHint",
@@ -109,15 +107,13 @@ export class InternalUtilsPlugin implements ITransformerPlugin {
   }
 
   public match(node: DefinitionNode): boolean {
-    return (
-      node instanceof ScalarNode || node instanceof InputObjectNode || node instanceof ObjectNode
-    );
+    return node instanceof ScalarNode || node instanceof InputObjectNode;
   }
 
   /**
    * `validateSDL` does not check argument values, so a string literal (`type: "string"`) or an unknown value would silently become `unknown`. Reject both.
    */
-  public normalize(definition: ScalarNode | InputObjectNode | ObjectNode): void {
+  public normalize(definition: ScalarNode | InputObjectNode): void {
     if (!(definition instanceof ScalarNode)) {
       return;
     }
@@ -141,12 +137,7 @@ export class InternalUtilsPlugin implements ITransformerPlugin {
     }
   }
 
-  public cleanup(definition: ScalarNode | InputObjectNode | ObjectNode): void {
-    if (definition instanceof ObjectNode) {
-      definition.removeDirective(InternalDirective.SORTABLE);
-      return;
-    }
-
+  public cleanup(definition: ScalarNode | InputObjectNode): void {
     if (definition instanceof InputObjectNode) {
       for (const field of definition.fields ?? []) {
         if (field.hasDirective(InternalDirective.TUPLE)) {
@@ -167,7 +158,6 @@ export class InternalUtilsPlugin implements ITransformerPlugin {
       .removeNode(InternalDirective.INTERNAL)
       .removeNode(InternalDirective.TYPE_HINT)
       .removeNode(InternalDirective.TUPLE)
-      .removeNode(InternalDirective.SORTABLE)
       .removeNode("TypeHint");
   }
 }

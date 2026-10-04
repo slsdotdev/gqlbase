@@ -6,7 +6,6 @@ export const InternalDirective = Object.freeze({
   INTERNAL: "gqlbase_internal",
   TYPE_HINT: "gqlbase_typehint",
   TUPLE: "gqlbase_tuple",
-  SORTABLE: "gqlbase_sortable",
 });
 
 export const TypeHintValue = Object.freeze({
@@ -93,11 +92,4 @@ export const getInputTypeHint = (node: ScalarNode): TypeHintValueType => {
   }
 
   return getTypeHint(node);
-};
-
-/**
- * Whether a field of this object type orders by the type's members (_@gqlbase_sortable_), because a backend stores them as columns.
- */
-export const isSortable = (node: unknown): boolean => {
-  return node instanceof WithDirectivesNode && node.hasDirective(InternalDirective.SORTABLE);
 };

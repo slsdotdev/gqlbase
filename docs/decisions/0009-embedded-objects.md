@@ -10,7 +10,7 @@ Every non-model object field was one `json` column, and every list too. dsqlbase
 
 ## Decision
 
-- **`@embedded` on an object type** makes it a column group, opt-in. It is a dsqlbase feature, declared and checked by `DsqlBaseUtilsPlugin`: no `@model`, no `id`, no relations, and no cycle through non-list members. Core stays storage-agnostic: it only knows an internal `@gqlbase_sortable` marker, which the plugin sets on embedded types so that `orderBy` reaches their members.
+- **`@embedded` on an object type** makes it a column group, opt-in. It is a dsqlbase feature, declared and checked by `DsqlBaseUtilsPlugin`: no `@model`, no `id`, no relations, and no cycle through non-list members. Core stays storage-agnostic: it only knows `@sortable` on an object (declared by `FilterPlugin`), which the plugin sets on embedded types so that `orderBy` reaches their members.
 - **Nullability follows the field.** A member column is `NOT NULL` only when the field and the member are both non-null. A type used by a nullable field, with a required member, gets a second dsqlbase shape whose members are all nullable (`<type>Nullable`). The generated input keeps writes all-or-nothing; the database does not.
 - **Lists and other objects move to `jsonb`**: a list is `array()`, whatever its items; any other object, interface or union is `record()`.
 - **A list's `contains` takes `[T!]`**, matching dsqlbase's `@>`: every item given.

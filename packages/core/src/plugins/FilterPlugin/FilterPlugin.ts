@@ -5,6 +5,7 @@ import { type ITransformerContext } from "../../context/index.js";
 import {
   ArgumentNode,
   DefinitionNode,
+  DirectiveDefinitionNode,
   DirectiveNode,
   EnumNode,
   FieldNode,
@@ -29,13 +30,15 @@ import {
 } from "../../definition/index.js";
 import { createPluginFactory } from "../createPluginFactory.js";
 import { TransformerPluginBase } from "../TransformerPluginBase.js";
-import { getTypeHint, InternalDirective, isSortable } from "../InternalUtilsPlugin/index.js";
+import { getTypeHint, InternalDirective } from "../InternalUtilsPlugin/index.js";
 import { isManyRelationship } from "../RelationsPlugin/RelationsPlugin.utils.js";
 import {
   DATE_SCALARS,
+  FilterDirective,
   FilterKind,
   FilterOperator,
   FilterOperators,
+  isSortable,
   shouldSkipFieldFromFilterInput,
   SORT_DIRECTION,
 } from "./FilterPlugin.utils.js";
@@ -49,7 +52,7 @@ import {
  * - `<Type>FieldFilterInput` for object-like fields: `exists`, and `where: <Type>FilterInput` on the members.
  *
  * It also adds `orderBy: <Type>OrderByInput`, a `{ <field>: SortDirection }` map whose key order sets the sort priority. A field of an
- * `@gqlbase_sortable` object (dsqlbase's `@embedded`) orders by its members, through a nested `<Type>OrderByInput`.
+ * `@sortable` object (set by dsqlbase's `@embedded`) orders by its members, through a nested `<Type>OrderByInput`.
  *
  * @example
  * ```graphql
@@ -75,7 +78,7 @@ export class FilterPlugin extends TransformerPluginBase {
 
   /**
    * `<Type>OrderByInput`: one `SortDirection` entry per sortable field, a non-list scalar or enum the filter accepts, and a nested
-   * `<Type>OrderByInput` per field of a `@gqlbase_sortable` object. `null` when there is none. Clients list keys in priority order.
+   * `<Type>OrderByInput` per field of a `@sortable` object. `null` when there is none. Clients list keys in priority order.
    */
   private _createOrderByInput(target: ObjectNode | InterfaceNode): InputObjectNode | null {
     const inputName = pascalCase(target.name, "order", "by", "input");
@@ -118,10 +121,7 @@ export class FilterPlugin extends TransformerPluginBase {
       }
 
       // A backend that stores the object's members as columns marks it sortable: it orders by them, through its own input.
-      const nested =
-        typeDef && isObjectNode(typeDef) && isSortable(typeDef)
-          ? this._createOrderByInput(typeDef)
-          : null;
+      const nested = typeDef && isSortable(typeDef) ? this._createOrderByInput(typeDef) : null;
 
       if (nested) {
         input.addField(
@@ -329,6 +329,12 @@ export class FilterPlugin extends TransformerPluginBase {
     return filterInput;
   }
 
+  public init() {
+    this.context.base.addNode(
+      DirectiveDefinitionNode.create(FilterDirective.SORTABLE, undefined, ["OBJECT"])
+    );
+  }
+
   public before() {
     const builtIns: [string, FilterKind][] = [
       ["ID", "id"],
@@ -396,6 +402,14 @@ export class FilterPlugin extends TransformerPluginBase {
         );
       }
     }
+  }
+
+  public cleanup(definition: ObjectNode | InterfaceNode) {
+    definition.removeDirective(FilterDirective.SORTABLE);
+  }
+
+  public after() {
+    this.context.document.removeNode(FilterDirective.SORTABLE);
   }
 }
 

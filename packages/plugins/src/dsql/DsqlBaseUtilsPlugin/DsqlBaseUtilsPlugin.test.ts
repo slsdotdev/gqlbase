@@ -230,7 +230,7 @@ describe("DsqlBaseUtilsPlugin @embedded", () => {
     expect(schema).toMatch(/type Money \{\s+amount: Float!\s+currency: String!\s+\}/);
     expect(schema).toMatch(/input MoneyInput \{\s+amount: Float!\s+currency: String!\s+\}/);
     expect(schema).not.toContain("embedded");
-    expect(schema).not.toContain("gqlbase_sortable");
+    expect(schema).not.toContain("@sortable");
   });
 
   it("orders by an embedded field's members", () => {

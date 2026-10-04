@@ -46,6 +46,7 @@ These pages describe what the library does **today**. Planned behaviour is not d
 | `@serverOnly` `@clientOnly` | FIELD_DEFINITION, OBJECT | [Field visibility](./field-visibility.md) |
 | `@createOnly` `@updateOnly` `@filterOnly` | FIELD_DEFINITION | [Field visibility](./field-visibility.md) |
 | `@constraint(min: Float, max: Float, pattern: String)` | FIELD_DEFINITION, INPUT_FIELD_DEFINITION, ARGUMENT_DEFINITION | [Field visibility](./field-visibility.md) |
+| `@sortable` | OBJECT | [Models](./models.md#ordering) |
 | `@semanticNonNull(levels: [Int!]! = [0])` | FIELD_DEFINITION | [Models](./models.md#nullability-and-semanticnonnull) |
 | `@scope(name: TenancyScope!)` | OBJECT | [Tenancy](./tenancy.md) |
 | `@dataSource(name: DataSource!)` | OBJECT | [Data sources](./data-sources.md) |

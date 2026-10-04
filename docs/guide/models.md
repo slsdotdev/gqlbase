@@ -236,7 +236,7 @@ products(filter: ProductFilterInput, orderBy: ProductOrderByInput, first: Int, a
 ```
 
 - **Sortable fields** are the non-list scalar and enum fields the filter accepts (see [Filter inputs](#filter-inputs)): `@readOnly` fields such as `createdAt` included, `@serverOnly`, `@clientOnly` and unreadable `@writeOnly` fields excluded. There is no opt-out. A target with no sortable field gets no `orderBy`.
-- **A field of a `@gqlbase_sortable` object** orders by its members, through the object's own `<Type>OrderByInput`: `orderBy: { price: { amount: desc } }`. A backend that stores the members as columns sets the marker: the dsqlbase plugin sets it on [`@embedded`](./embedded-objects.md) types. A field of any other object type cannot be sorted.
+- **A field of a `@sortable` object** orders by its members, through the object's own `<Type>OrderByInput`: `orderBy: { price: { amount: desc } }`. `@sortable` (OBJECT) is declared by `FilterPlugin` and removed from the output schema. Put it on a type whose members your backend can order by; the dsqlbase plugin sets it on [`@embedded`](./embedded-objects.md) types. A field of any other object type cannot be sorted.
 - **Priority follows the input type, not the client.** GraphQL does not keep the key order of an input object: graphql-js, for one, rebuilds it in the order the type declares its fields. With `{ price: desc, name: asc }`, `name` (declared first) decides first, and `price` breaks ties. Declare fields in the order they should take priority, or sort by one key.
 - The value passes to dsqlbase's `orderBy` unchanged, apart from explicit `null`s. Add a unique key (`id`) last for a stable order across pages.
 - An `orderBy` argument declared in the source is kept as is.

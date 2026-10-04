@@ -15,7 +15,7 @@ type ProductVariant @model {
 }
 ```
 
-`@embedded` marks an object type as a **value object**. It is stored as columns of each model that uses it, rather than as one document. In GraphQL, TypeScript and Zod it stays a nested object: `variant.price.amount`. `@embedded` is a dsqlbase feature: `DsqlBaseUtilsPlugin` (`packages/plugins/src/dsql/DsqlBaseUtilsPlugin/DsqlBaseUtilsPlugin.ts`) declares and checks it, and it is removed from the output schema. Without `dsqlbase()` the directive is not declared. The plugin marks each embedded type with core's internal `@gqlbase_sortable`, which is how `orderBy` reaches its members ([Models](./models.md#ordering)).
+`@embedded` marks an object type as a **value object**. It is stored as columns of each model that uses it, rather than as one document. In GraphQL, TypeScript and Zod it stays a nested object: `variant.price.amount`. `@embedded` is a dsqlbase feature: `DsqlBaseUtilsPlugin` (`packages/plugins/src/dsql/DsqlBaseUtilsPlugin/DsqlBaseUtilsPlugin.ts`) declares and checks it, and it is removed from the output schema. Without `dsqlbase()` the directive is not declared. The plugin marks each embedded type with core's `@sortable`, which is how `orderBy` reaches its members ([Models](./models.md#ordering)).
 
 An object type without `@embedded` is a **document**. It is one value, read and written whole. Both kinds are output types with a generated `<Type>Input` (see [Models](./models.md#mutation-inputs)); only storage, filtering and ordering differ.
 

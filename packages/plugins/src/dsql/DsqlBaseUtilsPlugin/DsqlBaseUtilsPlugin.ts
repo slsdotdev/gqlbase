@@ -18,6 +18,7 @@ import {
 } from "@gqlbase/core/definition";
 import {
   createPluginFactory,
+  FilterDirective,
   InternalDirective,
   isClientOnly,
   isInternal,
@@ -54,7 +55,7 @@ import {
  * - `@index` → `table.index(name, { unique }).columns(...).include(...).distinctNulls(...)`
  * - `@unique` on a field → `column.unique()`; on a type, with `fields` → `table.unique((c) => [...])`
  * - `@embedded` → an `embedded({...})` shape, stored as columns of each table that uses it. The type is marked
- *   `@gqlbase_sortable`, so `orderBy` reaches its members.
+ *   `@sortable`, so `orderBy` reaches its members.
  *
  * Fields are checked in `execute`, once relation keys and tenancy claims exist: each must be a column of the table.
  */
@@ -327,8 +328,8 @@ export class DsqlBaseUtilsPlugin extends TransformerPluginBase {
 
       this._checkEmbedded(definition, [definition.name]);
 
-      if (!definition.hasDirective(InternalDirective.SORTABLE)) {
-        definition.addDirective(DirectiveNode.create(InternalDirective.SORTABLE));
+      if (!definition.hasDirective(FilterDirective.SORTABLE)) {
+        definition.addDirective(DirectiveNode.create(FilterDirective.SORTABLE));
       }
     }
   }
