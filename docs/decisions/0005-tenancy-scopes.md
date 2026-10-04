@@ -23,7 +23,7 @@ Applications declared their tenant column by hand on every model (`workspaceId: 
 - Additive and opt-in: `minor`, with no migration for schemas that do not configure tenancy.
 - Claim fields are added before any plugin normalizes, so a relation keyed on a claim reuses it rather than adding a `@writeOnly` key.
 - The `@scope` directive name is taken by core when tenancy is on; a schema declaring its own `@scope` must rename it.
-- Until dsqlbase releases tenancy, the claim is an ordinary not-null column, and resolvers set and filter it. Emitting `tenantScope()`/`<scope>.table()` is a later change, read through `getScope`.
+- Until dsqlbase releases tenancy, the claim is an ordinary not-null column, and resolvers set and filter it. Emitting `tenantScope()`/`<scope>.table()` is a later change, read through `getScope`: done in [0010](./0010-tenant-scope-emission.md).
 - Data only admins should reach has no claim. That is an access policy, still to be designed with dsqlbase.
 
 ## Docs

@@ -38,6 +38,7 @@ import {
   TypesGeneratorBase,
   collectPublicDefinitions,
   createTypeReferences,
+  getScope,
   type TypeReferences,
 } from "@gqlbase/core/plugins";
 import { TransformerPluginExecutionError } from "@gqlbase/shared/errors";
@@ -81,6 +82,8 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
   private _unionNames = new Set<string>();
   private _embedded: ts.Node[] = [];
   private _embeddedNames = new Set<string>();
+  private _scopes: Map<string, string> | null = null;
+  private _scopeDeclarations: ts.Node[] = [];
   private _options: DsqlBaseSchemaGeneratorPluginOptions;
 
   private _imports = new Set<string>();
@@ -188,6 +191,13 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
 
     if (this._embeddedNames.has(name)) {
       return name;
+    }
+
+    if (this._isScopeAlias(name)) {
+      throw new TransformerPluginExecutionError(
+        this.name,
+        `@embedded type ${node.name} would be exported as "${name}", which is already a tenancy scope's schema alias. Rename one of them.`
+      );
     }
 
     if (
@@ -981,8 +991,134 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
     }
   }
 
+  /**
+   * `export const <scope>Scope = tenantScope({ <claims> })` for each tenancy scope a table is in, keyed by the alias.
+   * A claim is one column in every table of every scope that declares it, so it has one definition: `guid(col, "<alias>")`
+   * when a table keys a node with it, otherwise its own column. A claim keying two nodes, or with two different columns,
+   * throws.
+   */
+  private _declareScopes(): Map<string, string> {
+    const scopes = new Map<string, string>();
+    const scopeClaims = new Map<string, string[]>();
+    const holders = new Map<string, ObjectNode[]>();
+    const tables = Array.from(this.context.document.definitions.values()).filter(
+      (definition): definition is ObjectNode =>
+        isObjectNode(definition) && isDsqlBaseTable(definition, this.context.options)
+    );
+
+    for (const node of tables) {
+      const scope = getScope(node, this.context.options);
+
+      if (!scope) continue;
+
+      scopeClaims.set(scope.name, Object.keys(scope.claims));
+
+      for (const claim of Object.keys(scope.claims)) {
+        holders.set(claim, [...(holders.get(claim) ?? []), node]);
+      }
+    }
+
+    const keyTargets = (this._keyTargets ??= this._collectKeyTargets());
+    const printer = ts.createPrinter();
+    const sourceFile = ts.createSourceFile("", "", ts.ScriptTarget.Latest);
+    const claimColumns = new Map<string, () => ts.Expression>();
+
+    for (const [claim, nodes] of holders) {
+      const columnName = snakeCase(claim);
+      const targets = new Set<string>();
+
+      for (const node of nodes) {
+        const target = keyTargets.get(node.name)?.get(claim);
+        if (target && this._isNode(target)) targets.add(this._tableAlias(target));
+      }
+
+      if (targets.size > 1) {
+        throw new TransformerPluginExecutionError(
+          this.name,
+          `Tenancy claim ${claim} is a key to ${Array.from(targets).join(" and ")}. A claim is one column in every table of its scope, so it can key one model only.`
+        );
+      }
+
+      const [target] = targets;
+      const [first] = nodes;
+      const field = first.getField(claim);
+
+      if (!field) continue;
+
+      if (target) {
+        claimColumns.set(claim, () => {
+          this._imports.add("guid");
+
+          return this._applyColumnConstraints(
+            this._callExp("guid", [
+              ts.factory.createStringLiteral(columnName),
+              ts.factory.createStringLiteral(target),
+            ]),
+            field
+          );
+        });
+
+        continue;
+      }
+
+      const columns = new Set(
+        nodes.map((node) => {
+          const own = node.getField(claim);
+          return own
+            ? printer.printNode(ts.EmitHint.Expression, this._generateColumn(node, own), sourceFile)
+            : "";
+        })
+      );
+
+      if (columns.size > 1) {
+        throw new TransformerPluginExecutionError(
+          this.name,
+          `Tenancy claim ${claim} has different columns in ${nodes.map((node) => node.name).join(", ")}: ${Array.from(columns).join(" and ")}. A claim is one column in every table of its scope.`
+        );
+      }
+
+      claimColumns.set(claim, () => this._generateColumn(first, field));
+    }
+
+    for (const [name, claims] of scopeClaims) {
+      const alias = camelCase(name, "scope");
+
+      scopes.set(name, alias);
+      this._imports.add("tenantScope");
+      this._scopeDeclarations.push(
+        this._exportExp(
+          alias,
+          this._callExp("tenantScope", [
+            ts.factory.createObjectLiteralExpression(
+              claims.flatMap((claim) => {
+                const column = claimColumns.get(claim);
+                return column ? [ts.factory.createPropertyAssignment(claim, column())] : [];
+              }),
+              true
+            ),
+          ])
+        )
+      );
+    }
+
+    return scopes;
+  }
+
+  private _isScopeAlias(name: string): boolean {
+    return Array.from(this._scopes?.values() ?? []).includes(name);
+  }
+
+  /**
+   * A table, or `<scope>Scope.table(...)` for a model in a tenancy scope with claims: the scope declares the claim
+   * columns, so the table leaves them out.
+   */
   private _generateTable(node: ObjectNode) {
-    this._imports.add("table");
+    const scope = getScope(node, this.context.options);
+    const scopeAlias = scope ? this._scopes?.get(scope.name) : undefined;
+
+    if (!scopeAlias) {
+      this._imports.add("table");
+    }
 
     const tableName = pluralize(snakeCase(node.name));
     const tableVarName = pluralize(camelCase(node.name));
@@ -990,7 +1126,7 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
     const columns: ts.ObjectLiteralElementLike[] = [];
 
     for (const field of node.fields ?? []) {
-      if (this._shouldSkipField(field)) {
+      if (this._shouldSkipField(field) || (scopeAlias && scope?.claims[field.name])) {
         continue;
       }
 
@@ -1000,10 +1136,19 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
 
     // `__typename` on every row's `$$meta`: `$$key` names the schema alias, a resolver returns the type name.
     const tableDef = this._chainCallExp(
-      this._callExp("table", [
-        ts.factory.createStringLiteral(tableName),
-        ts.factory.createObjectLiteralExpression(columns, true),
-      ]),
+      ts.factory.createCallExpression(
+        scopeAlias
+          ? ts.factory.createPropertyAccessExpression(
+              ts.factory.createIdentifier(scopeAlias),
+              ts.factory.createIdentifier("table")
+            )
+          : ts.factory.createIdentifier("table"),
+        undefined,
+        [
+          ts.factory.createStringLiteral(tableName),
+          ts.factory.createObjectLiteralExpression(columns, true),
+        ]
+      ),
       "meta",
       [
         ts.factory.createObjectLiteralExpression([
@@ -1032,6 +1177,8 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
     this._unionNames.clear();
     this._embedded = [];
     this._embeddedNames.clear();
+    this._scopes = null;
+    this._scopeDeclarations = [];
     this._enums = [];
     this._tables = [];
     this._relations = [];
@@ -1060,6 +1207,9 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
 
     // A client-only model is never stored, and a model in another data source is stored elsewhere.
     if (isObjectNode(definition) && isDsqlBaseTable(definition, this.context.options)) {
+      // Declared before the first table, so the shapes and unions declared with the tables see the scope aliases.
+      this._scopes ??= this._declareScopes();
+
       return this._generateTable(definition);
     }
   }
@@ -1109,6 +1259,7 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
         ...declarations.values(),
         ...this._enums,
         ...this._embedded,
+        ...this._scopeDeclarations,
         ...this._tables,
         ...this._unions,
         ...this._relations,

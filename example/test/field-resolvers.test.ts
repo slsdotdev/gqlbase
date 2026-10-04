@@ -54,7 +54,6 @@ const review = (productId: string, rating: number) => ({
   helpfulCount: 0,
   reportCount: 0,
   isArchived: false,
-  userId: randomUUID(),
   reviewResponseId: randomUUID(),
   reviewReportId: randomUUID(),
   ...timestamps,
@@ -73,8 +72,7 @@ const variant = (productId: string, sku: string, amount: string) => ({
   ...timestamps,
 });
 
-const payout = (vendorId: string, status: "PENDING" | "COMPLETED", vendorOrderIds: string[]) => ({
-  vendorId,
+const payout = (status: "PENDING" | "COMPLETED", vendorOrderIds: string[]) => ({
   status,
   vendorOrderIds,
   grossAmount: usd("0"),
@@ -105,7 +103,8 @@ describe("field resolvers", () => {
     beforeAll(async () => {
       const productId = randomUUID();
 
-      await dsql.products.create({
+      // A tenant table: rows are written through a client scoped to their claims.
+      await dsql.$identityClaims({ vendorId: randomUUID() }).products.create({
         data: {
           id: productId,
           name: "Heirloom tomatoes",
@@ -119,15 +118,19 @@ describe("field resolvers", () => {
           preOrderEnabled: false,
           isArchived: false,
           version: 1,
-          vendorId: randomUUID(),
           reviewId: randomUUID(),
           wishlistItemId: randomUUID(),
           ...timestamps,
         },
       });
 
-      await dsql.reviews.create({ data: review(productId, 4) });
-      await dsql.reviews.create({ data: review(productId, 5) });
+      // Two shoppers' reviews.
+      await dsql
+        .$identityClaims({ userId: randomUUID() })
+        .reviews.create({ data: review(productId, 4) });
+      await dsql
+        .$identityClaims({ userId: randomUUID() })
+        .reviews.create({ data: review(productId, 5) });
       await dsql.productVariants.create({ data: variant(productId, "tomato-1kg", "6.50") });
       await dsql.productVariants.create({ data: variant(productId, "tomato-500g", "3.75") });
 
@@ -181,10 +184,11 @@ describe("field resolvers", () => {
       pending = randomUUID();
       completed = randomUUID();
 
-      await dsql.vendorOrders.create({
+      const vendor = dsql.$identityClaims({ vendorId });
+
+      await vendor.vendorOrders.create({
         data: {
           id: orderId,
-          vendorId,
           version: 1,
           orderId: randomUUID(),
           referenceNumber: "VO-1001",
@@ -198,7 +202,7 @@ describe("field resolvers", () => {
         },
       });
 
-      const stored = payout(vendorId, "COMPLETED", [orderId]);
+      const stored = payout("COMPLETED", [orderId]);
 
       stored.lineItemSummary = [
         {
@@ -210,10 +214,10 @@ describe("field resolvers", () => {
         },
       ];
 
-      await dsql.vendorPayouts.create({
-        data: { ...payout(vendorId, "PENDING", [orderId]), id: pending },
+      await vendor.vendorPayouts.create({
+        data: { ...payout("PENDING", [orderId]), id: pending },
       });
-      await dsql.vendorPayouts.create({ data: { ...stored, id: completed } });
+      await vendor.vendorPayouts.create({ data: { ...stored, id: completed } });
     });
 
     it("is computed while the payout is open", async () => {

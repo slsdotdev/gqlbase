@@ -41,7 +41,7 @@ const node = createQueryResolver({
 ```
 
 - `row.$$meta.__typename` is set by the generated tables (see [dsqlbase](./dsqlbase.md#global-ids)). The cast is needed because spreading a union of rows does not narrow it.
-- **Scope.** `$findByGlobalId` applies dsqlbase's tenant predicate on a client scoped with claims. Until gqlbase emits `tenantScope()`, pass the caller's claims for a scoped table yourself: `on: { [key]: { where: claims } }`, and another tenant's id reads as `null`.
+- **Scope.** `$findByGlobalId` applies dsqlbase's tenant predicate, since the generated tables are [scoped](./tenancy.md#database). Call it on a client derived with the caller's claims (`dsql.$identityClaims(...)`): another tenant's id reads as `null`, and a node in a scope whose claim the caller lacks throws dsqlbase's `TenancyError` when the query is built.
 - **Hidden models.** A `@serverOnly` model with a `GUID` id is a node too. Its type is not in the public schema, so return `null` for its key rather than reading it.
 - A malformed id makes `decodeGlobalId` throw `GlobalIdError`, an error in the response.
 

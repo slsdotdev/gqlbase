@@ -83,7 +83,7 @@ export const postRelations = relations(posts, {
 
 ### Rules
 
-- **Tables.** Every `@model` object becomes `table("<snake_plural>", {...})`, exported as `<camelPlural>`, except `@clientOnly` models, which are never stored. Non-model types produce no table. A `@serverOnly` model keeps its table. With [data sources](./data-sources.md), only the models of the source with `type: "dsqlbase"` become tables; at most one source can have that type.
+- **Tables.** Every `@model` object becomes `table("<snake_plural>", {...})`, exported as `<camelPlural>`, except `@clientOnly` models, which are never stored. Non-model types produce no table. A `@serverOnly` model keeps its table. A model in a [tenancy](./tenancy.md#database) scope with claims is `<scope>Scope.table(...)`, and its claim columns are declared once by `export const <scope>Scope = tenantScope({...})`. With [data sources](./data-sources.md), only the models of the source with `type: "dsqlbase"` become tables; at most one source can have that type.
 - **Columns.** Every field except `@gqlbase_internal`, `@clientOnly` and relation fields. `@serverOnly`, `@writeOnly` and `@readOnly` fields, and relation keys, are all columns. Column names are `snake_case` of the field name.
 - **`id`.** Always `.primaryKey().defaultRandom()`, whatever its type. A `GUID` id is a `guid()` column; see [Global ids](#global-ids).
 - **`$$meta`.** Every table carries `.meta({ __typename: "<Type>" as const })`, so every row dsqlbase returns has `row.$$meta.__typename`.
@@ -122,7 +122,6 @@ The builder and the `@dsqlbase/core` import are emitted only when a column uses 
 ### Not generated
 
 Nothing below is emitted:
-- tenancy / scoped columns;
 - `numeric` columns (unless through `scalarMap`);
 - check constraints (from `@constraint`).
 
@@ -160,7 +159,7 @@ export const products = table("products", {
 }).meta({ __typename: "Product" as const });
 ```
 
-- **Relation keys** that hold a node's ids are `guid("<col>", "<alias>")`, so `product.vendorId === product.vendor.id`. dsqlbase requires both sides of a relation to agree, and they do by construction. A [tenancy claim](./tenancy.md) that is the key becomes the same `guid()` column, whatever type its scope declares.
+- **Relation keys** that hold a node's ids are `guid("<col>", "<alias>")`, so `product.vendorId === product.vendor.id`. dsqlbase requires both sides of a relation to agree, and they do by construction. A [tenancy claim](./tenancy.md#database) that is the key in any table of its scope becomes that `guid()` column in every table of the scope, whatever type the scope declares.
 - **A key to a `GUID` model in another [data source](./data-sources.md)** is `text()`. `guid()` can only name a node in this schema, and the other source owns its ids, so the column stores one exactly as it is given (wrapped, as `node` needs it). Filter it with the same form.
 - **Other keys** keep their own column. The key of a `@belongsTo` to a union is covered in [Polymorphic relations](#polymorphic-relations).
 - **Any other `GUID` field throws**: `GUID` identifies a model. Use `UUID` or `ID`.

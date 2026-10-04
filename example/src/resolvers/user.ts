@@ -6,6 +6,7 @@ import {
 } from "@middy-appsync/graphql";
 import { isCognito } from "@middy-appsync/graphql/utils";
 import { dsql } from "../lib/dsql";
+import { userDb } from "../lib/claims";
 import type { GeoPointOwnFields } from "../../generated/schema.types";
 
 export const queryMe = createQueryResolver({
@@ -24,8 +25,9 @@ export const queryMe = createQueryResolver({
 const userAddresses = createResolver({
   typeName: "User",
   fieldName: "addresses",
-  resolve: async ({ source, args }) => {
-    const userAddresses = await dsql.addresses.findMany({
+  resolve: async ({ source, args, identity }) => {
+    // Scoped to the caller, and filtered by the user too: another user's addresses are never reachable.
+    const userAddresses = await userDb(identity).addresses.findMany({
       where: { userId: source.id },
       limit: args.first ?? 100,
     });

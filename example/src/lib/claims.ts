@@ -1,10 +1,10 @@
 import { Unauthorized } from "@middy-appsync/graphql";
 import { isCognito } from "@middy-appsync/graphql/utils";
 import type { AppSyncIdentity } from "aws-lambda";
-import type * as schema from "../../generated/dsqlbase/schema";
+import { dsql } from "./dsql";
 
-// The tenancy claims of the caller, read from the Cognito token. Every write sets them and every read filters by them,
-// until dsqlbase's `$identityClaims` does both.
+// The tenancy claims of the caller, read from the Cognito token. A client derived with them fills the claims on every
+// write and filters by them on every read, nested joins included.
 
 export const userClaims = (identity: AppSyncIdentity) => {
   if (!isCognito(identity)) {
@@ -24,38 +24,24 @@ export const vendorClaims = (identity: AppSyncIdentity) => {
   return { vendorId };
 };
 
-// The tenancy scope of each scoped table, by schema alias: what `@scope` says in the source schema. A node lookup names
-// its table only at runtime, so it reads the scope from here.
-const tableScopes: Partial<Record<keyof typeof schema, "vendor" | "user">> = {
-  products: "vendor",
-  vendorOrders: "vendor",
-  vendorPayouts: "vendor",
-  reviewResponses: "vendor",
-  vendorMembers: "vendor",
-  operatingSchedules: "vendor",
-  marketVendorAssignments: "vendor",
-  carts: "user",
-  orders: "user",
-  paymentMethods: "user",
-  couponRedemptions: "user",
-  reviews: "user",
-  reviewVotes: "user",
-  wishlists: "user",
-  savedSearches: "user",
-  addresses: "user",
-  userPreferences: "user",
-  refreshTokenFamilies: "user",
-  verificationTokens: "user",
-};
+/** A client scoped to the calling user, for the `user` scope. */
+export const userDb = (identity: AppSyncIdentity) => dsql.$identityClaims(userClaims(identity));
+
+/** A client scoped to the caller's vendor, for the `vendor` scope. */
+export const vendorDb = (identity: AppSyncIdentity) => dsql.$identityClaims(vendorClaims(identity));
 
 /**
- * The caller's claims for a table's scope, or `undefined` for a table in no scope.
+ * A client with every claim the caller has, for a lookup whose table is known only at runtime: none for a caller without
+ * a Cognito identity. A table needing a claim the caller lacks throws `TenancyError` when the query is built.
  */
-export const scopeClaims = (alias: string, identity: AppSyncIdentity) => {
-  const scope = tableScopes[alias as keyof typeof schema];
+export const callerDb = (identity: AppSyncIdentity | null) => {
+  if (!identity || !isCognito(identity)) {
+    return dsql;
+  }
 
-  if (scope === "vendor") return vendorClaims(identity);
-  if (scope === "user") return userClaims(identity);
+  const vendorId: unknown = identity.claims["custom:vendor_id"];
 
-  return undefined;
+  return typeof vendorId === "string"
+    ? dsql.$identityClaims({ userId: identity.sub, vendorId })
+    : dsql.$identityClaims({ userId: identity.sub });
 };

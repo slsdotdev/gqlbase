@@ -1,11 +1,10 @@
 import { createQueryResolver, createResolver, defineResolvers } from "@middy-appsync/graphql";
-import { dsql } from "../lib/dsql";
-import { vendorClaims } from "../lib/claims";
+import { vendorDb } from "../lib/claims";
 
 const getVendorPayout = createQueryResolver({
   fieldName: "getVendorPayout",
   resolve: async ({ args, identity }) => {
-    return await dsql.vendorPayouts.findOne({ where: { id: args.id, ...vendorClaims(identity) } });
+    return await vendorDb(identity).vendorPayouts.findOne({ where: { id: args.id } });
   },
 });
 
@@ -14,7 +13,7 @@ const getVendorPayout = createQueryResolver({
 const lineItemSummary = createResolver({
   typeName: "VendorPayout",
   fieldName: "lineItemSummary",
-  resolve: async ({ source }) => {
+  resolve: async ({ source, identity }) => {
     if (source.status === "COMPLETED" && source.lineItemSummary) {
       return source.lineItemSummary;
     }
@@ -23,7 +22,7 @@ const lineItemSummary = createResolver({
       return [];
     }
 
-    const orders = await dsql.vendorOrders.findMany({
+    const orders = await vendorDb(identity).vendorOrders.findMany({
       where: { id: { in: source.vendorOrderIds } },
     });
 

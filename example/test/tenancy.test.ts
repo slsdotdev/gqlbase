@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { beforeAll, describe, expect, it } from "vitest";
 import { decodeGlobalId } from "dsqlbase";
-import { dsql, migrate } from "../src/lib/dsql";
+import { dsqlUnscoped, migrate } from "../src/lib/dsql";
 import { cognitoIdentity, execute } from "./appsync";
 
 const CREATE_SAVED_SEARCH = /* GraphQL */ `
@@ -126,9 +126,10 @@ describe("tenancy", () => {
     });
 
     it("stores the caller's claim on create", async () => {
-      const row = await dsql.savedSearches.findOne({ where: { id: created?.id } });
+      const row = await dsqlUnscoped.savedSearches.findOne({ where: { id: created?.id } });
 
-      expect(row?.userId).toBe(alice);
+      // The claim is the key to User in some user-scoped table, so it is a users guid in all of them.
+      expect(decodeGlobalId(row?.userId ?? "")).toEqual({ key: "users", pk: { id: alice } });
     });
 
     it("lists only the caller's rows", async () => {
@@ -171,7 +172,7 @@ describe("tenancy", () => {
     });
 
     it("stores the caller's claim on create", async () => {
-      const row = await dsql.operatingSchedules.findOne({ where: { id: created?.id } });
+      const row = await dsqlUnscoped.operatingSchedules.findOne({ where: { id: created?.id } });
 
       // The claim is the key to Vendor, so it reads back as a vendor's global id.
       expect(decodeGlobalId(row?.vendorId ?? "")).toEqual({ key: "vendors", pk: { id: farm } });

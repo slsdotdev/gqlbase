@@ -29,7 +29,7 @@ Rejected:
 ## Consequences
 
 - Opt-in, `minor`: nothing changes until a schema uses `GUID`. Adopting it changes ids on the wire from uuids to `guid:` strings; existing rows need no migration, since `guid()` has the same DDL as `uuid()`.
-- A `node` resolver is still hand-written. It must pass the caller's claims for scoped tables until gqlbase emits `tenantScope()`, and must skip models outside the public schema (`@serverOnly`), which are nodes too.
+- A `node` resolver is still hand-written. It must pass the caller's claims for scoped tables until gqlbase emits `tenantScope()` (done in [0010](./0010-tenant-scope-emission.md)), and must skip models outside the public schema (`@serverOnly`), which are nodes too.
 - Renaming a model changes its schema alias, so ids handed out before the rename no longer resolve.
 - Keys to a union stay `uuid()` until polymorphic relations bind them to a discriminator.
 

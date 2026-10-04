@@ -74,7 +74,32 @@ For generators, `getScope(model, context.options)` from `@gqlbase/core/plugins` 
 
 ## Database
 
-The dsqlbase generator emits each claim as an ordinary not-null column, like a hand-written `@serverOnly` field. Resolvers set it on writes and filter by it on reads. Declare an index that leads with it.
+The dsqlbase generator declares each scope with claims as a dsqlbase `tenantScope`, and emits its models through it:
+
+```ts
+export const vendorScope = tenantScope({
+  vendorId: guid("vendor_id", "vendors").notNull(),
+});
+
+export const products = vendorScope.table("products", {
+  id: guid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+}).meta({ __typename: "Product" as const });
+```
+
+- **One scope, one export.** The scope `vendor` is exported as `vendorScope`. A scope without claims emits nothing, and its models are plain `table(...)`s, like models in no scope. An `@embedded` type exported under the same name throws.
+- **The claims leave the table's own columns.** The scope declares them, and dsqlbase merges them into every table it builds, so `products.columns.vendorId` and `c.vendorId` in an index still work.
+- **A claim is one column in every table of its scope.** When any of them uses the claim as a key to a [node](./dsqlbase.md#global-ids), the scope's column is that node's `guid()`, in all of them, so its values read back as global ids everywhere. A claim keying two different nodes throws. Otherwise the column follows the claim's type.
+- **No index is added.** Declare one that leads with the claim, with [`@index`](./dsqlbase.md#indexes-and-unique-constraints).
+
+### What it means for the client
+
+dsqlbase enforces the scope on the client, not in the database (see dsqlbase's tenancy guide):
+
+- An enforcing client, the default, has no tenant table at its root. A request handler derives a client per caller, `dsql.$identityClaims({ vendorId })`, which fills the claims on every insert and filters by them on every read, nested joins and `$findByGlobalId` included. A claim value spread into `data` is dropped.
+- A process meant to read across tenants, such as public search or a worker, uses a client created with `tenancy: { enforce: false }`. Inserting still needs claims.
+
+The example wires both in `example/src/lib/dsql.ts` and `example/src/lib/claims.ts`.
 
 ## Related
 
