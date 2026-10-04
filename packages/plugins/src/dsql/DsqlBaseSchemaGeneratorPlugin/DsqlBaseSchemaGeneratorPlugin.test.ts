@@ -260,3 +260,79 @@ describe("data sources: errors", () => {
     ).toThrow(/@index and @unique apply to dsqlbase tables.*Integration is not one/);
   });
 });
+
+describe("global ids", () => {
+  let tables: string;
+
+  beforeAll(() => {
+    const output = createTransformer({
+      tenancy: { vendor: { claims: { vendorId: "UUID" } } },
+      dataSources: {
+        db: { type: "dsqlbase", default: true },
+        integrations: { type: "service" },
+      },
+      plugins: [dsqlbase()],
+    }).transform(/* GraphQL */ `
+      type Vendor @model {
+        id: GUID!
+        products: Product @hasMany
+      }
+
+      type Product @model @scope(name: vendor) {
+        id: GUID!
+        parent: Product @belongsTo
+        category: Category @belongsTo
+        integration: Integration @belongsTo
+      }
+
+      type Category @model {
+        id: ID!
+      }
+
+      type Integration @model @dataSource(name: integrations) {
+        id: GUID!
+      }
+    `);
+
+    tables = output.files.find((file) => file.path === "dsqlbase/schema.ts")?.content ?? "";
+  });
+
+  it("emits a GUID id as a guid primary key", () => {
+    expect(tables).toContain('id: guid("id").primaryKey().defaultRandom()');
+    expect(tables).toContain('id: uuid("id").primaryKey().defaultRandom()');
+  });
+
+  it("emits a key to a node as a guid naming the node's schema alias", () => {
+    expect(tables).toContain('parentId: guid("parent_id", "products")');
+  });
+
+  it("emits a claim that keys a node as a guid, whatever the claim's type", () => {
+    expect(tables).toContain('vendorId: guid("vendor_id", "vendors").notNull()');
+  });
+
+  it("keeps a key to a model that is not a node a plain column", () => {
+    expect(tables).toContain('categoryId: uuid("category_id")');
+  });
+
+  it("emits a GUID key to another data source as a uuid", () => {
+    expect(tables).toContain('integrationId: uuid("integration_id")');
+  });
+
+  it("puts __typename in every table's meta", () => {
+    expect(tables).toMatch(/table\("products", \{[^;]*\}\)\.meta\(\{ __typename: "Product" \}\)/);
+    expect(tables).toMatch(/table\("categories", \{[^;]*\}\)\.meta\(\{ __typename: "Category" \}\)/);
+  });
+});
+
+describe("global ids: errors", () => {
+  it("rejects a GUID field that is neither an id nor a relation key", () => {
+    expect(() =>
+      createTransformer({ plugins: [dsqlbase()] }).transform(/* GraphQL */ `
+        type Vendor @model {
+          id: GUID!
+          ownerRef: GUID
+        }
+      `)
+    ).toThrow(/Vendor.ownerRef is a GUID, which identifies a model/);
+  });
+});

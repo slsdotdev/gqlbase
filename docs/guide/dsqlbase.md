@@ -63,14 +63,14 @@ export const users = table("users", {
   status: statusEnum.column("status"),
   tags: json("tags").$type<string[]>(),
   address: json("address").$type<AddressOwnFields>(),
-});
+}).meta({ __typename: "User" });
 
 export const posts = table("posts", {
   id: uuid("id").primaryKey().defaultRandom(),
   title: text("title").notNull(),
   userId: uuid("user_id"),
   authorId: uuid("author_id"),
-});
+}).meta({ __typename: "Post" });
 
 export const userRelations = relations(users, {
   posts: hasMany(posts, { from: [users.columns.id], to: [posts.columns.userId] }),
@@ -85,7 +85,8 @@ export const postRelations = relations(posts, {
 
 - **Tables.** Every `@model` object becomes `table("<snake_plural>", {...})`, exported as `<camelPlural>`, except `@clientOnly` models, which are never stored. Non-model types produce no table. A `@serverOnly` model keeps its table. With [data sources](./data-sources.md), only the models of the source with `type: "dsqlbase"` become tables; at most one source can have that type.
 - **Columns.** Every field except `@gqlbase_internal`, `@clientOnly` and relation fields. `@serverOnly`, `@writeOnly` and `@readOnly` fields, and relation keys, are all columns. Column names are `snake_case` of the field name.
-- **`id`.** Always `.primaryKey().defaultRandom()`, whatever its type.
+- **`id`.** Always `.primaryKey().defaultRandom()`, whatever its type. A `GUID` id is a `guid()` column; see [Global ids](#global-ids).
+- **`$$meta`.** Every table carries `.meta({ __typename: "<Type>" })`, so every row dsqlbase returns has `row.$$meta.__typename`.
 - **Not null.** `.notNull()` when the field is non-null or `@semanticNonNull`.
 - **Scalars.** Mapped as in [Scalars](./scalars.md): `ID` → `uuid`, `String` → `text`, `Int` → `int`, `Float` → `real`, `Boolean` → `bool`, `DateTime` → `timestamp(…, { mode: "iso" })`, `SafeInt` → `safeint` (see below), … Custom scalars use `scalarMap`, then their type hint.
 - **Enums.** An enum becomes `$enum("<snake>_enum", [...])` only when a non-list column of a stored model uses it; the column is `<camel>Enum.column("<col>")`. A list of enums is a `json` column typed with the enum's TS type.
@@ -125,6 +126,46 @@ Nothing below is emitted:
 - `numeric` columns (unless through `scalarMap`);
 - check constraints (from `@constraint`);
 - polymorphic relations.
+
+## Global ids
+
+A model whose `id` is [`GUID`](./scalars.md#guid) is a dsqlbase **node**: its primary key is `guid("id")`, so ids leave dsqlbase as `guid:<base64url>`, naming the table by its schema alias (`products`) as well as the row. The database still holds a uuid, and switching a column between `uuid()` and `guid()` changes no DDL. See dsqlbase's global-ids guide for the format and the lookups.
+
+```graphql
+type Vendor @model {
+  id: GUID!
+  products: Product @hasMany
+}
+
+type Product @model {
+  id: GUID!
+  parent: Product @belongsTo
+  category: Category @belongsTo
+}
+
+type Category @model {
+  id: ID!
+}
+```
+
+```ts
+export const vendors = table("vendors", {
+  id: guid("id").primaryKey().defaultRandom(),
+}).meta({ __typename: "Vendor" });
+
+export const products = table("products", {
+  id: guid("id").primaryKey().defaultRandom(),
+  vendorId: guid("vendor_id", "vendors").notNull(),
+  parentId: guid("parent_id", "products"),
+  categoryId: uuid("category_id"),
+}).meta({ __typename: "Product" });
+```
+
+- **Relation keys** that hold a node's ids are `guid("<col>", "<alias>")`, so `product.vendorId === product.vendor.id`. dsqlbase requires both sides of a relation to agree, and they do by construction. A [tenancy claim](./tenancy.md) that is the key becomes the same `guid()` column, whatever type its scope declares.
+- **Other keys** keep their own column. A `GUID` key to a model that is not a dsqlbase table (another [data source](./data-sources.md)) or to a union is a plain `uuid()`, since `guid()` can only name a node in this schema.
+- **Any other `GUID` field throws**: `GUID` identifies a model. Use `UUID` or `ID`.
+- **Reading by id.** `dsql.$findByGlobalId({ id })` reads the row an id names, through the table's model client, so the tenant predicate applies. Its rows carry `$$key`, the schema alias, and `$$meta.__typename`, the GraphQL type. A `Query.node` resolver returns `{ ...row, __typename: row.$$meta.__typename }` (see [Relay](./relay.md#node-interface)).
+- **Raw uuids are accepted** wherever a `guid()` column is, on writes and in filters. An id naming another node throws `GlobalIdError("key_mismatch")`.
 
 ## Indexes and unique constraints
 

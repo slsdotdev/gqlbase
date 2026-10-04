@@ -11,9 +11,11 @@ import {
   isObjectNode,
   isOperationNode,
   isScalarNode,
+  isUnionNode,
   ObjectNode,
 } from "@gqlbase/core/definition";
 import {
+  BaseScalar,
   createPluginFactory,
   getTypeHint,
   isInternal,
@@ -67,6 +69,7 @@ import {
 
 export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
   private _columnEnums: Set<string> | null = null;
+  private _keyTargets: Map<string, Map<string, ObjectNode | null>> | null = null;
   private _options: DsqlBaseSchemaGeneratorPluginOptions;
 
   private _imports = new Set<string>();
@@ -159,6 +162,101 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
     this._enums.push(this._exportExp(enumVarName, initializer));
   }
 
+  /**
+   * Per table, its relation key columns and the model whose ids each holds: a `@belongsTo` key holds its target's ids, a
+   * `@hasOne` / `@hasMany` key its source's. `null` for a key to a union, whose node is per row (polymorphic relations).
+   */
+  private _collectKeyTargets() {
+    const keyTargets = new Map<string, Map<string, ObjectNode | null>>();
+
+    const add = (holder: ObjectNode, key: string, target: ObjectNode | null) => {
+      const keys = keyTargets.get(holder.name) ?? new Map<string, ObjectNode | null>();
+      keys.set(key, target);
+      keyTargets.set(holder.name, keys);
+    };
+
+    for (const node of this.context.document.definitions.values()) {
+      if (!isObjectNode(node) || !isModel(node)) continue;
+
+      for (const field of node.fields ?? []) {
+        if (!isRelationField(field)) continue;
+
+        const target = this._resolveFieldRelationTarget(field);
+
+        if (!isObjectNode(target) && !isUnionNode(target)) continue;
+
+        const key = parseFieldRelation(node, field, target)?.key;
+
+        if (!key) continue;
+
+        if (isBelongsToRelationship(field)) {
+          add(node, key, isObjectNode(target) ? target : null);
+          continue;
+        }
+
+        const holders = isUnionNode(target)
+          ? (target.types ?? []).map((type) => this.context.document.getNode(type.getTypeName()))
+          : [target];
+
+        for (const holder of holders) {
+          if (holder && isObjectNode(holder)) add(holder, key, node);
+        }
+      }
+    }
+
+    return keyTargets;
+  }
+
+  /**
+   * A dsqlbase node: a table whose primary key is a `GUID`, so ids name it by its schema alias.
+   */
+  private _isNode(node: ObjectNode): boolean {
+    return (
+      isDsqlBaseTable(node, this.context.options) &&
+      node.getField("id")?.type.getTypeName() === BaseScalar.GUID
+    );
+  }
+
+  /**
+   * The column for a relation key or a `GUID` field, or `null` to resolve it as usual. A key holding a node's ids is
+   * `guid(col, "<alias>")` whatever its own type (a tenancy claim keeps its declared one), so the pair agrees. A `GUID`
+   * key to anything else (another data source, a union) is a plain `uuid`. `GUID` identifies models, so any other
+   * `GUID` field throws.
+   */
+  private _keyColumn(node: ObjectNode, field: FieldNode, columnName: string): ts.Expression | null {
+    const isGuid = field.type.getTypeName() === BaseScalar.GUID;
+    const keys = (this._keyTargets ??= this._collectKeyTargets()).get(node.name);
+
+    if (keys?.has(field.name)) {
+      const target = keys.get(field.name);
+
+      if (target && this._isNode(target)) {
+        this._imports.add("guid");
+
+        return this._callExp("guid", [
+          ts.factory.createStringLiteral(columnName),
+          ts.factory.createStringLiteral(pluralize(camelCase(target.name))),
+        ]);
+      }
+
+      if (isGuid) {
+        this._imports.add("uuid");
+        return this._callExp("uuid", [ts.factory.createStringLiteral(columnName)]);
+      }
+
+      return null;
+    }
+
+    if (isGuid && !isPrimaryKeyField(field)) {
+      throw new TransformerPluginExecutionError(
+        this.name,
+        `${node.name}.${field.name} is a GUID, which identifies a model: only a model's id and relation keys can be GUID. Use UUID or ID.`
+      );
+    }
+
+    return null;
+  }
+
   private _resolveScalarColumnType(typeName: string): ScalarConfig {
     let columnType = resolveScalarDataType(typeName, this._options?.scalarMap);
 
@@ -219,9 +317,15 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
     return expression;
   }
 
-  private _generateColumn(field: FieldNode): ts.Expression {
+  private _generateColumn(node: ObjectNode, field: FieldNode): ts.Expression {
     const fieldTypeName = field.type.getTypeName();
     const columnName = snakeCase(field.name);
+    const keyColumn = this._keyColumn(node, field, columnName);
+
+    if (keyColumn) {
+      return this._applyColumnConstraints(keyColumn, field);
+    }
+
     const typeDef = this.context.document.getNode(fieldTypeName);
 
     if (isListTypeNode(field.type)) {
@@ -579,14 +683,26 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
         continue;
       }
 
-      const column = this._generateColumn(field);
+      const column = this._generateColumn(node, field);
       columns.push(ts.factory.createPropertyAssignment(field.name, column));
     }
 
-    const tableDef = this._callExp("table", [
-      ts.factory.createStringLiteral(tableName),
-      ts.factory.createObjectLiteralExpression(columns, true),
-    ]);
+    // `__typename` on every row's `$$meta`: `$$key` names the schema alias, a resolver returns the type name.
+    const tableDef = this._chainCallExp(
+      this._callExp("table", [
+        ts.factory.createStringLiteral(tableName),
+        ts.factory.createObjectLiteralExpression(columns, true),
+      ]),
+      "meta",
+      [
+        ts.factory.createObjectLiteralExpression([
+          ts.factory.createPropertyAssignment(
+            "__typename",
+            ts.factory.createStringLiteral(node.name)
+          ),
+        ]),
+      ]
+    );
 
     this._tables.push(this._exportExp(tableVarName, tableDef));
     this._generateTableConstraints(node, tableVarName);
@@ -595,6 +711,7 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
 
   public before() {
     this._columnEnums = null;
+    this._keyTargets = null;
     this._enums = [];
     this._tables = [];
     this._relations = [];
