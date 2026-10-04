@@ -31,6 +31,7 @@ import { createPluginFactory } from "../createPluginFactory.js";
 import { TransformerPluginBase } from "../TransformerPluginBase.js";
 import { getTypeHint, InternalDirective } from "../InternalUtilsPlugin/index.js";
 import { isManyRelationship } from "../RelationsPlugin/RelationsPlugin.utils.js";
+import { isEmbedded } from "../ModelPlugin/ModelPlugin.utils.js";
 import {
   DATE_SCALARS,
   FilterKind,
@@ -48,7 +49,8 @@ import {
  * - Shared per-scalar inputs (`StringFilterInput`, `IntFilterInput`, …), `<Enum>FilterInput` per enum, `<Type>ListFilterInput` per list.
  * - `<Type>FieldFilterInput` for object-like fields: `exists`, and `where: <Type>FilterInput` on the members.
  *
- * It also adds `orderBy: <Type>OrderByInput`, a `{ <field>: SortDirection }` map whose key order sets the sort priority.
+ * It also adds `orderBy: <Type>OrderByInput`, a `{ <field>: SortDirection }` map whose key order sets the sort priority. An `@embedded` field
+ * orders by its members, through a nested `<Type>OrderByInput`.
  *
  * @example
  * ```graphql
@@ -73,8 +75,8 @@ export class FilterPlugin extends TransformerPluginBase {
   }
 
   /**
-   * `<Type>OrderByInput`: one `SortDirection` entry per sortable field, a non-list scalar or enum the filter accepts. `null` when there is
-   * none. Clients list keys in priority order.
+   * `<Type>OrderByInput`: one `SortDirection` entry per sortable field, a non-list scalar or enum the filter accepts, and a nested
+   * `<Type>OrderByInput` per `@embedded` field. `null` when there is none. Clients list keys in priority order.
    */
   private _createOrderByInput(target: ObjectNode | InterfaceNode): InputObjectNode | null {
     const inputName = pascalCase(target.name, "order", "by", "input");
@@ -113,6 +115,16 @@ export class FilterPlugin extends TransformerPluginBase {
             NamedTypeNode.create(SORT_DIRECTION)
           )
         );
+        continue;
+      }
+
+      // An embedded group's members are columns, so it orders by them, through its own input.
+      const nested = typeDef && isEmbedded(typeDef) ? this._createOrderByInput(typeDef) : null;
+
+      if (nested) {
+        input.addField(
+          InputValueNode.create(field.name, undefined, undefined, NamedTypeNode.create(nested.name))
+        );
       }
     }
 
@@ -125,7 +137,7 @@ export class FilterPlugin extends TransformerPluginBase {
   }
 
   /**
-   * `in` and `between` take `[T!]`, `exists` takes `Boolean`, every other operator takes `T`.
+   * `in`, `between` and a list's `contains` (every item given) take `[T!]`, `exists` takes `Boolean`, every other operator takes `T`.
    */
   private _createOperatorFilterInput(name: string, typeName: string, kind: FilterKind) {
     const input = InputObjectNode.create(name);
@@ -133,7 +145,11 @@ export class FilterPlugin extends TransformerPluginBase {
     for (const operator of FilterOperators[kind]) {
       let type: TypeNode = NamedTypeNode.create(typeName);
 
-      if (operator === FilterOperator.IN || operator === FilterOperator.BETWEEN) {
+      if (
+        operator === FilterOperator.IN ||
+        operator === FilterOperator.BETWEEN ||
+        (kind === "list" && operator === FilterOperator.CONTAINS)
+      ) {
         type = ListTypeNode.create(NonNullTypeNode.create(typeName));
       }
 

@@ -10,6 +10,7 @@ import {
   InputValueNode,
   isEnumNode,
   isInputObjectNode,
+  isListTypeNode,
   isScalarNode,
   ListTypeNode,
   NamedTypeNode,
@@ -25,7 +26,9 @@ import { isBuildInScalar } from "@gqlbase/shared/definition";
 import {
   DEFAULT_READ_OPERATIONS,
   DEFAULT_WRITE_OPERATIONS,
+  isEmbedded,
   isModel,
+  isPrimaryKeyField,
   ModelDirective,
   ModelOperation,
   OperationType,
@@ -33,6 +36,7 @@ import {
   shouldSkipFieldFromUpdateInput,
 } from "./ModelPlugin.utils.js";
 import { isClientOnly, isServerOnly } from "../UtilitiesPlugin/index.js";
+import { isRelationField } from "../RelationsPlugin/index.js";
 import { isSemanticNullable } from "../RfcFeaturesPlugin/RfcFeaturesPlugin.utils.js";
 
 /**
@@ -431,14 +435,64 @@ export class ModelPlugin implements ITransformerPlugin {
             ),
           ]
         )
-      );
+      )
+      .addNode(DirectiveDefinitionNode.create(ModelDirective.EMBEDDED, undefined, ["OBJECT"]));
+  }
+
+  /**
+   * An `@embedded` type is a value: it is not a model, has no `id` and no relations, and does not contain itself, since its
+   * members become columns of the model that uses it.
+   */
+  public before() {
+    for (const definition of this.context.document.definitions.values()) {
+      if (!isEmbedded(definition)) continue;
+
+      if (definition.hasDirective(ModelDirective.MODEL)) {
+        throw new TransformerPluginExecutionError(
+          this.name,
+          `Type ${definition.name} cannot be both @model and @embedded.`
+        );
+      }
+
+      for (const field of definition.fields ?? []) {
+        if (isPrimaryKeyField(field) || isRelationField(field)) {
+          throw new TransformerPluginExecutionError(
+            this.name,
+            `Field ${definition.name}.${field.name} cannot be on an @embedded type, which has no id and no relations.`
+          );
+        }
+      }
+
+      this._checkEmbeddedCycle(definition, [definition.name]);
+    }
+  }
+
+  private _checkEmbeddedCycle(definition: ObjectNode, path: string[]) {
+    for (const field of definition.fields ?? []) {
+      if (isListTypeNode(field.type)) continue;
+
+      const member = this.context.document.getNode(field.type.getTypeName());
+
+      if (!member || !isEmbedded(member)) continue;
+
+      if (path.includes(member.name)) {
+        throw new TransformerPluginExecutionError(
+          this.name,
+          `@embedded type ${member.name} contains itself (${[...path, member.name].join(" > ")}).`
+        );
+      }
+
+      this._checkEmbeddedCycle(member, [...path, member.name]);
+    }
   }
 
   public match(definition: DefinitionNode) {
-    return isModel(definition);
+    return isModel(definition) || isEmbedded(definition);
   }
 
   public normalize(definition: ObjectNode) {
+    if (!isModel(definition)) return;
+
     const operations = this._getOperationNames(definition);
 
     for (const verb of operations) {
@@ -464,6 +518,8 @@ export class ModelPlugin implements ITransformerPlugin {
   }
 
   public execute(definition: ObjectNode) {
+    if (!isModel(definition)) return;
+
     const operations = this._getOperationNames(definition);
 
     for (const verb of operations) {
@@ -485,11 +541,14 @@ export class ModelPlugin implements ITransformerPlugin {
   }
 
   public cleanup(definition: ObjectNode): void {
-    definition.removeDirective(ModelDirective.MODEL);
+    definition.removeDirective(ModelDirective.MODEL).removeDirective(ModelDirective.EMBEDDED);
   }
 
   public after(): void {
-    this.context.document.removeNode(ModelDirective.MODEL).removeNode("ModelOperation");
+    this.context.document
+      .removeNode(ModelDirective.MODEL)
+      .removeNode(ModelDirective.EMBEDDED)
+      .removeNode("ModelOperation");
   }
 }
 
