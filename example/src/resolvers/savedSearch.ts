@@ -30,10 +30,9 @@ const createSavedSearch = createMutationResolver({
   fieldName: "createSavedSearch",
   resolve: async ({ args, identity }) => {
     const input = validate(CreateSavedSearchInputSchema, args.input);
-    const now = new Date().toISOString();
 
     return await userDb(identity).savedSearches.create({
-      data: { ...input, createdAt: now, updatedAt: now },
+      data: input,
       return: true as const,
     });
   },

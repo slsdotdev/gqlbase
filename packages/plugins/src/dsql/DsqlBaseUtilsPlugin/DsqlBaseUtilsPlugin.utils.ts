@@ -20,7 +20,26 @@ export const DsqlBaseDirective = {
   INDEX: "index",
   UNIQUE: "unique",
   EMBEDDED: "embedded",
+  DEFAULT: "default",
+  DEFAULT_NOW: "defaultNow",
+  DEFAULT_RANDOM: "defaultRandom",
 } as const;
+
+/** The code `@default` gives a column: TypeScript expressions, emitted as written. */
+export interface DsqlColumnDefault {
+  value?: string;
+  onCreate?: string;
+  onUpdate?: string;
+}
+
+/**
+ * The arguments of a field's `@default`, or `null` without one. Reads `@default`, so call it before `cleanup`.
+ */
+export const getColumnDefault = (field: FieldNode): DsqlColumnDefault | null => {
+  const directive = field.getDirective(DsqlBaseDirective.DEFAULT);
+
+  return directive ? (directive.getArgumentsJSON() as DsqlColumnDefault) : null;
+};
 
 /**
  * An object type stored as a group of columns of each table that uses it (`embedded()`), rather than as one `jsonb`

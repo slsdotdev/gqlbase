@@ -7,6 +7,8 @@ export {
   getIndexes,
   getUniqueConstraints,
   isUnique,
+  getColumnDefault,
+  type DsqlColumnDefault,
   type DsqlIndex,
   type DsqlIndexColumn,
 } from "./DsqlBaseUtilsPlugin.utils.js";

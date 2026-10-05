@@ -30,10 +30,9 @@ const createOperatingSchedule = createMutationResolver({
   fieldName: "createOperatingSchedule",
   resolve: async ({ args, identity }) => {
     const input = validate(CreateOperatingScheduleInputSchema, args.input);
-    const now = new Date().toISOString();
 
     return await vendorDb(identity).operatingSchedules.create({
-      data: { ...input, createdAt: now, updatedAt: now },
+      data: input,
       return: true as const,
     });
   },

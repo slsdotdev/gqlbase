@@ -54,12 +54,12 @@ const searchCategories = createQueryResolver({
 const createCategory = createMutationResolver({
   fieldName: "createCategory",
   resolve: async ({ args }) => {
-    // The schema checks what the client sent; the server adds its own values afterwards.
+    // The schema checks what the client sent. The timestamps and isArchived are column defaults
+    // (@defaultNow, @default), so the table fills them.
     const input = validate(CreateCategoryInputSchema, args.input);
-    const now = new Date().toISOString();
 
     return await dsql.categories.create({
-      data: { ...input, createdAt: now, updatedAt: now, isArchived: false },
+      data: input,
       return: true as const,
     });
   },
@@ -72,8 +72,9 @@ const updateCategory = createMutationResolver({
     // field is rejected by the schema. The client decides; the resolver never drops values.
     const { id, ...input } = validate(UpdateCategoryInputSchema, args.input);
 
+    // updatedAt is set by its @default(onUpdate:) hook.
     return await dsql.categories.update({
-      set: { ...input, updatedAt: new Date().toISOString() },
+      set: input,
       where: { id },
       return: true as const,
     });

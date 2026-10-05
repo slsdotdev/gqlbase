@@ -51,6 +51,7 @@ These pages describe what the library does **today**. Planned behaviour is not d
 | `@scope(name: TenancyScope!)` | OBJECT | [Tenancy](./tenancy.md) |
 | `@dataSource(name: DataSource!)` | OBJECT | [Data sources](./data-sources.md) |
 | `@embedded` (dsqlbase plugin) | OBJECT | [Embedded objects](./embedded-objects.md) |
+| `@default(value: String, onCreate: String, onUpdate: String)` `@defaultNow` `@defaultRandom` (dsqlbase plugin) | FIELD_DEFINITION | [dsqlbase](./dsqlbase.md#column-defaults) |
 | `@gqlbase_typehint(type: …, input: …)` | SCALAR | [Scalars](./scalars.md) |
 | `@gqlbase_internal` | most locations | [Scalars](./scalars.md#internal-definitions) |
 | `@aws_*` | OBJECT, FIELD_DEFINITION | [AppSync](./appsync.md) |

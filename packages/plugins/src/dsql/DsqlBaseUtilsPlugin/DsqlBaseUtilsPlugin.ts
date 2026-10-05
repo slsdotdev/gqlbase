@@ -2,6 +2,9 @@ import { ITransformerContext, TransformerPluginBase } from "@gqlbase/core";
 import {
   DefinitionNode,
   DirectiveDefinitionNode,
+  FieldNode,
+  InterfaceNode,
+  isInterfaceNode,
   EnumNode,
   DirectiveNode,
   InputObjectNode,
@@ -37,6 +40,7 @@ import {
   isDsqlBaseTable,
   isEmbedded,
   getUniqueConstraints,
+  getColumnDefault,
 } from "./DsqlBaseUtilsPlugin.utils.js";
 
 /**
@@ -50,14 +54,21 @@ import {
  * directive `@index(name: String!, columns: [DsqlIndexColumn!]!, unique: Boolean = false, include: [String!], distinctNulls: Boolean)` repeatable on OBJECT
  * directive `@unique(fields: [String!])` repeatable on OBJECT | FIELD_DEFINITION
  * directive `@embedded` on OBJECT
+ * directive `@default(value: String, onCreate: String, onUpdate: String)` on FIELD_DEFINITION
+ * directive `@defaultNow` on FIELD_DEFINITION
+ * directive `@defaultRandom` on FIELD_DEFINITION
  * ```
  *
  * - `@index` → `table.index(name, { unique }).columns(...).include(...).distinctNulls(...)`
  * - `@unique` on a field → `column.unique()`; on a type, with `fields` → `table.unique((c) => [...])`
  * - `@embedded` → an `embedded({...})` shape, stored as columns of each table that uses it. The type is marked
  *   `@sortable`, so `orderBy` reaches its members.
+ * - `@default` → `.default(<value>)`, `.$onCreate(<onCreate>)`, `.$onUpdate(<onUpdate>)`: TypeScript, emitted as written.
+ *   `@defaultNow` → `.defaultNow()` and `@defaultRandom` → `.defaultRandom()`. A field the server fills on create is
+ *   marked `@gqlbase_hasDefault`, so it is optional in the model's create input.
  *
- * Fields are checked in `execute`, once relation keys and tenancy claims exist: each must be a column of the table.
+ * Defaults are checked in `normalize`, before the create inputs exist. Index fields are checked in `execute`, once
+ * relation keys and tenancy claims exist: each must be a column of the table.
  */
 
 export class DsqlBaseUtilsPlugin extends TransformerPluginBase {
@@ -147,7 +158,122 @@ export class DsqlBaseUtilsPlugin extends TransformerPluginBase {
           true
         )
       )
-      .addNode(DirectiveDefinitionNode.create(DsqlBaseDirective.EMBEDDED, undefined, ["OBJECT"]));
+      .addNode(DirectiveDefinitionNode.create(DsqlBaseDirective.EMBEDDED, undefined, ["OBJECT"]))
+      .addNode(
+        DirectiveDefinitionNode.create(
+          DsqlBaseDirective.DEFAULT,
+          undefined,
+          ["FIELD_DEFINITION"],
+          ["value", "onCreate", "onUpdate"].map((name) =>
+            InputValueNode.create(name, undefined, undefined, NamedTypeNode.create("String"))
+          )
+        )
+      )
+      .addNode(
+        DirectiveDefinitionNode.create(DsqlBaseDirective.DEFAULT_NOW, undefined, [
+          "FIELD_DEFINITION",
+        ])
+      )
+      .addNode(
+        DirectiveDefinitionNode.create(DsqlBaseDirective.DEFAULT_RANDOM, undefined, [
+          "FIELD_DEFINITION",
+        ])
+      );
+  }
+
+  private _hasDefaults(node: ObjectNode | InterfaceNode) {
+    return (node.fields ?? []).some(
+      (field) =>
+        field.hasDirective(DsqlBaseDirective.DEFAULT) ||
+        field.hasDirective(DsqlBaseDirective.DEFAULT_NOW) ||
+        field.hasDirective(DsqlBaseDirective.DEFAULT_RANDOM)
+    );
+  }
+
+  /**
+   * A field's defaults are column modifiers, so the field is a column of a dsqlbase table or a member of an `@embedded`
+   * type, with at most one database default. A field the server fills on create (a database default or `onCreate`) is
+   * marked `@gqlbase_hasDefault`.
+   */
+  private _checkDefaults(node: ObjectNode, field: FieldNode) {
+    const columnDefault = getColumnDefault(field);
+    const now = field.hasDirective(DsqlBaseDirective.DEFAULT_NOW);
+    const random = field.hasDirective(DsqlBaseDirective.DEFAULT_RANDOM);
+    const where = `${node.name}.${field.name}`;
+
+    if (!columnDefault && !now && !random) {
+      return;
+    }
+
+    // Not `isEmbedded`: its type guard would narrow the node to `never` below.
+    if (
+      !isDsqlBaseTable(node, this.context.options) &&
+      !node.hasDirective(DsqlBaseDirective.EMBEDDED)
+    ) {
+      throw new TransformerPluginExecutionError(
+        this.name,
+        `Column defaults apply to the fields of dsqlbase tables and @embedded types. ${node.name} is neither, so ${where} has no column.`
+      );
+    }
+
+    if (isRelationField(field) || isClientOnly(field)) {
+      throw new TransformerPluginExecutionError(
+        this.name,
+        `${where} is not a column (a relation or a @clientOnly field), so it takes no default.`
+      );
+    }
+
+    if (
+      columnDefault &&
+      !columnDefault.value &&
+      !columnDefault.onCreate &&
+      !columnDefault.onUpdate
+    ) {
+      throw new TransformerPluginExecutionError(
+        this.name,
+        `@default on ${where} sets nothing: give it value, onCreate or onUpdate.`
+      );
+    }
+
+    const databaseDefaults = [
+      now && "@defaultNow",
+      random && "@defaultRandom",
+      columnDefault?.value && "@default(value:)",
+    ].filter(Boolean);
+
+    if (databaseDefaults.length > 1) {
+      throw new TransformerPluginExecutionError(
+        this.name,
+        `${where} has more than one database default (${databaseDefaults.join(", ")}). Keep one.`
+      );
+    }
+
+    if (isPrimaryKeyField(field) && (now || columnDefault)) {
+      throw new TransformerPluginExecutionError(
+        this.name,
+        `${where} is the primary key, which is always .defaultRandom(): only @defaultRandom applies to it.`
+      );
+    }
+
+    const typeDef = this.context.document.getNode(field.type.getTypeName());
+
+    if (
+      typeDef &&
+      isEmbedded(typeDef) &&
+      (now || random || columnDefault?.onCreate || columnDefault?.onUpdate)
+    ) {
+      throw new TransformerPluginExecutionError(
+        this.name,
+        `${where} is an @embedded group, which takes only @default(value:), an object of its members' values. Put the other defaults on the members.`
+      );
+    }
+
+    if (
+      (databaseDefaults.length > 0 || columnDefault?.onCreate) &&
+      !field.hasDirective(InternalDirective.HAS_DEFAULT)
+    ) {
+      field.addDirective(DirectiveNode.create(InternalDirective.HAS_DEFAULT));
+    }
   }
 
   /**
@@ -335,19 +461,43 @@ export class DsqlBaseUtilsPlugin extends TransformerPluginBase {
   }
 
   public match(definition: DefinitionNode): boolean {
+    // An interface's defaults reach the models that inherit the field; the interface is only cleaned.
+    if (isInterfaceNode(definition)) {
+      return this._hasDefaults(definition);
+    }
+
     return (
-      isObjectNode(definition) && (this._hasTableDirectives(definition) || isEmbedded(definition))
+      isObjectNode(definition) &&
+      (this._hasTableDirectives(definition) ||
+        isEmbedded(definition) ||
+        this._hasDefaults(definition))
     );
+  }
+
+  /**
+   * Checks the defaults and marks the fields filled on create, before `ModelPlugin` builds the create inputs. A field an
+   * interface adds to its implementors is already there.
+   */
+  public normalize(definition: ObjectNode | InterfaceNode) {
+    if (!isObjectNode(definition)) {
+      return;
+    }
+
+    for (const field of definition.fields ?? []) {
+      this._checkDefaults(definition, field);
+    }
   }
 
   /**
    * Checks the table directives once relation keys (added in normalize) and tenancy claims (added before it) exist.
    */
-  public execute(definition: ObjectNode) {
+  public execute(definition: ObjectNode | InterfaceNode) {
+    if (!isObjectNode(definition) || !this._hasTableDirectives(definition)) {
+      return;
+    }
+
     // Not `isEmbedded`: its type guard would narrow the definition to `never` below.
     if (definition.hasDirective(DsqlBaseDirective.EMBEDDED)) {
-      if (!this._hasTableDirectives(definition)) return;
-
       throw new TransformerPluginExecutionError(
         this.name,
         `@index and @unique apply to tables, not to the @embedded type ${definition.name}: its members are columns of each model that uses it. Index them there, by path ("<field>.<member>").`
@@ -364,14 +514,20 @@ export class DsqlBaseUtilsPlugin extends TransformerPluginBase {
     this._checkModel(definition);
   }
 
-  public cleanup(definition: ObjectNode) {
-    definition
-      .removeDirective(DsqlBaseDirective.INDEX)
-      .removeDirective(DsqlBaseDirective.UNIQUE)
-      .removeDirective(DsqlBaseDirective.EMBEDDED);
+  public cleanup(definition: ObjectNode | InterfaceNode) {
+    if (isObjectNode(definition)) {
+      definition
+        .removeDirective(DsqlBaseDirective.INDEX)
+        .removeDirective(DsqlBaseDirective.UNIQUE)
+        .removeDirective(DsqlBaseDirective.EMBEDDED);
+    }
 
     for (const field of definition.fields ?? []) {
-      field.removeDirective(DsqlBaseDirective.UNIQUE);
+      field
+        .removeDirective(DsqlBaseDirective.UNIQUE)
+        .removeDirective(DsqlBaseDirective.DEFAULT)
+        .removeDirective(DsqlBaseDirective.DEFAULT_NOW)
+        .removeDirective(DsqlBaseDirective.DEFAULT_RANDOM);
     }
   }
 
@@ -380,6 +536,9 @@ export class DsqlBaseUtilsPlugin extends TransformerPluginBase {
       .removeNode(DsqlBaseDirective.INDEX)
       .removeNode(DsqlBaseDirective.UNIQUE)
       .removeNode(DsqlBaseDirective.EMBEDDED)
+      .removeNode(DsqlBaseDirective.DEFAULT)
+      .removeNode(DsqlBaseDirective.DEFAULT_NOW)
+      .removeNode(DsqlBaseDirective.DEFAULT_RANDOM)
       .removeNode(DSQL_INDEX_COLUMN)
       .removeNode(DSQL_NULLS_ORDER);
   }

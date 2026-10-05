@@ -53,16 +53,16 @@ interface Node {
 Standard timestamp pair. All @model types should implement this.
 """
 interface Timestamped {
-  createdAt: DateTime @readOnly @semanticNonNull
-  updatedAt: DateTime @readOnly @semanticNonNull
+  createdAt: DateTime @readOnly @semanticNonNull @defaultNow
+  updatedAt: DateTime @readOnly @semanticNonNull @defaultNow @default(onUpdate: "() => new Date().toISOString()")
 }
 
 """
 Extended audit trail for admin-managed entities.
 """
 interface Auditable implements Timestamped {
-  createdAt: DateTime @readOnly @semanticNonNull
-  updatedAt: DateTime @readOnly @semanticNonNull
+  createdAt: DateTime @readOnly @semanticNonNull @defaultNow
+  updatedAt: DateTime @readOnly @semanticNonNull @defaultNow @default(onUpdate: "() => new Date().toISOString()")
   createdBy: UUID @serverOnly
   updatedBy: UUID @serverOnly
 }
@@ -73,7 +73,7 @@ Hard deletes are never performed on production data.
 """
 interface SoftDeletable {
   deletedAt: DateTime @serverOnly
-  isArchived: Boolean @readOnly @semanticNonNull
+  isArchived: Boolean @readOnly @semanticNonNull @default(value: "false")
 }
 
 """

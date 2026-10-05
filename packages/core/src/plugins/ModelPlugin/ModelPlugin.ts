@@ -18,7 +18,7 @@ import {
   TypeNode,
 } from "../../definition/index.js";
 import { createPluginFactory } from "../createPluginFactory.js";
-import { InternalDirective } from "../InternalUtilsPlugin/index.js";
+import { InternalDirective, hasDefault } from "../InternalUtilsPlugin/index.js";
 import { TransformerPluginExecutionError } from "@gqlbase/shared/errors";
 import { camelCase, pascalCase, pluralize } from "@gqlbase/shared/format";
 import { isBuildInScalar } from "@gqlbase/shared/definition";
@@ -231,6 +231,11 @@ export class ModelPlugin implements ITransformerPlugin {
         }
 
         const fieldTypeName = field.type.getTypeName();
+        // A model field the server fills when a create leaves it out. Nested inputs are shared with updates, so they keep
+        // their own nullability.
+        const nullable =
+          enforceNullable ||
+          (verb === "create" && model.hasDirective("model") && hasDefault(field));
 
         if (this._isIdField(field)) {
           input.addField(
@@ -253,7 +258,7 @@ export class ModelPlugin implements ITransformerPlugin {
               field.name,
               undefined,
               undefined,
-              this._createInputValueNode(field, field.type, enforceNullable)
+              this._createInputValueNode(field, field.type, nullable)
             )
           );
           continue;
@@ -272,7 +277,7 @@ export class ModelPlugin implements ITransformerPlugin {
               field.name,
               undefined,
               undefined,
-              this._createInputValueNode(field, field.type, enforceNullable)
+              this._createInputValueNode(field, field.type, nullable)
             )
           );
           continue;
@@ -297,7 +302,7 @@ export class ModelPlugin implements ITransformerPlugin {
               this._createInputValueNode(
                 field,
                 this._cloneTypeNode(field.type, inputName),
-                enforceNullable
+                nullable
               )
             )
           );
@@ -327,7 +332,14 @@ export class ModelPlugin implements ITransformerPlugin {
         undefined,
         [DirectiveNode.create("hasOne")],
         NamedTypeNode.create(model.name),
-        [InputValueNode.create("id", undefined, undefined, NonNullTypeNode.create(this._idTypeName(model)))]
+        [
+          InputValueNode.create(
+            "id",
+            undefined,
+            undefined,
+            NonNullTypeNode.create(this._idTypeName(model))
+          ),
+        ]
       );
 
       queryNode.addField(field);

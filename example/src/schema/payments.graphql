@@ -44,8 +44,8 @@ type PaymentMethod implements Node & Timestamped
 
   user: User! @hasOne
 
-  createdAt: DateTime! @readOnly
-  updatedAt: DateTime! @readOnly
+  createdAt: DateTime! @readOnly @defaultNow
+  updatedAt: DateTime! @readOnly @defaultNow @default(onUpdate: "() => new Date().toISOString()")
 }
 
 enum PaymentMethodType {
@@ -110,8 +110,8 @@ type PaymentTransaction implements Node & Timestamped @model @access(allow: [ADM
   order: Order! @hasOne
   paymentMethod: PaymentMethod @hasOne
 
-  createdAt: DateTime! @readOnly
-  updatedAt: DateTime! @readOnly
+  createdAt: DateTime! @readOnly @defaultNow
+  updatedAt: DateTime! @readOnly @defaultNow @default(onUpdate: "() => new Date().toISOString()")
 }
 
 enum TransactionType {
@@ -176,8 +176,8 @@ type VendorPayout implements Node & Timestamped
 
   vendor: Vendor! @hasOne
 
-  createdAt: DateTime! @readOnly
-  updatedAt: DateTime! @readOnly
+  createdAt: DateTime! @readOnly @defaultNow
+  updatedAt: DateTime! @readOnly @defaultNow @default(onUpdate: "() => new Date().toISOString()")
 }
 
 """
@@ -235,8 +235,8 @@ type Refund implements Node & Timestamped & Auditable @model @access(allow: [ADM
   reviewedAt: DateTime @readOnly
   completedAt: DateTime @readOnly
 
-  createdAt: DateTime! @readOnly
-  updatedAt: DateTime! @readOnly
+  createdAt: DateTime! @readOnly @defaultNow
+  updatedAt: DateTime! @readOnly @defaultNow @default(onUpdate: "() => new Date().toISOString()")
   createdBy: UUID @readOnly @serverOnly
   updatedBy: UUID @readOnly @serverOnly
 }
@@ -321,12 +321,12 @@ type Coupon implements Node & Timestamped & Auditable & SoftDeletable
 
   redemptions: [CouponRedemption!]! @hasMany @access(allow: [ADMIN])
 
-  createdAt: DateTime! @readOnly
-  updatedAt: DateTime! @readOnly
+  createdAt: DateTime! @readOnly @defaultNow
+  updatedAt: DateTime! @readOnly @defaultNow @default(onUpdate: "() => new Date().toISOString()")
   createdBy: UUID @readOnly @serverOnly
   updatedBy: UUID @readOnly @serverOnly
   deletedAt: DateTime @readOnly @serverOnly
-  isArchived: Boolean! @readOnly
+  isArchived: Boolean! @readOnly @default(value: "false")
 }
 
 enum DiscountType {
@@ -349,6 +349,6 @@ type CouponRedemption implements Node & Timestamped
   order: Order! @hasOne
   user: User! @hasOne
 
-  createdAt: DateTime! @readOnly
-  updatedAt: DateTime! @readOnly
+  createdAt: DateTime! @readOnly @defaultNow
+  updatedAt: DateTime! @readOnly @defaultNow @default(onUpdate: "() => new Date().toISOString()")
 }

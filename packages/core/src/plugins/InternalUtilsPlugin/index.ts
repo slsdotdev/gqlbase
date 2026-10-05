@@ -3,6 +3,7 @@ export {
   InternalDirective,
   TypeHintValue,
   isInternal,
+  hasDefault,
   getInputTypeHint,
   getTypeHint,
   getTupleSize,

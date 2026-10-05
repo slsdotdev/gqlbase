@@ -52,10 +52,10 @@ type Review implements Node & Timestamped & SoftDeletable & Versioned
   product: Product! @hasOne
   user: User! @hasOne
 
-  createdAt: DateTime! @readOnly
-  updatedAt: DateTime! @readOnly
+  createdAt: DateTime! @readOnly @defaultNow
+  updatedAt: DateTime! @readOnly @defaultNow @default(onUpdate: "() => new Date().toISOString()")
   deletedAt: DateTime @readOnly @serverOnly
-  isArchived: Boolean! @readOnly
+  isArchived: Boolean! @readOnly @default(value: "false")
 }
 
 enum ModerationStatus {
@@ -89,8 +89,8 @@ type ReviewResponse implements Node & Timestamped & Versioned
   review: Review! @hasOne
   vendor: Vendor! @hasOne
 
-  createdAt: DateTime! @readOnly
-  updatedAt: DateTime! @readOnly
+  createdAt: DateTime! @readOnly @defaultNow
+  updatedAt: DateTime! @readOnly @defaultNow @default(onUpdate: "() => new Date().toISOString()")
 }
 
 # ------------------------------------------------------------------------------
@@ -114,8 +114,8 @@ type ReviewVote implements Node & Timestamped
   review: Review! @belongsTo
   user: User! @belongsTo
 
-  createdAt: DateTime! @readOnly
-  updatedAt: DateTime! @readOnly
+  createdAt: DateTime! @readOnly @defaultNow
+  updatedAt: DateTime! @readOnly @defaultNow @default(onUpdate: "() => new Date().toISOString()")
 }
 
 enum ReviewVoteType {
@@ -145,8 +145,8 @@ type ReviewReport implements Node & Timestamped @model @access(allow: [ADMIN]) {
 
   review: Review! @hasOne
 
-  createdAt: DateTime! @readOnly
-  updatedAt: DateTime! @readOnly
+  createdAt: DateTime! @readOnly @defaultNow
+  updatedAt: DateTime! @readOnly @defaultNow @default(onUpdate: "() => new Date().toISOString()")
 }
 
 enum ReviewReportReason {

@@ -26,13 +26,12 @@ const createMediaAsset = createMutationResolver({
   fieldName: "createMediaAsset",
   resolve: async ({ args }) => {
     const input = validate(CreateMediaAssetInputSchema, args.input);
-    const now = new Date().toISOString();
 
     // dsqlbase fills the discriminator from a global id at runtime, but its create type still requires it.
     const subjectType = decodeGlobalId(input.subjectId).key as "categories" | "marketLocations";
 
     return await dsql.mediaAssets.create({
-      data: { ...input, subjectType, createdAt: now, updatedAt: now },
+      data: { ...input, subjectType },
       return: true as const,
     });
   },

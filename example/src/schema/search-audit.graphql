@@ -68,8 +68,8 @@ type Wishlist implements Node & Timestamped @model @scope(name: user) @access(al
   items: [WishlistItem!]! @hasMany
   user: User! @hasOne
 
-  createdAt: DateTime! @readOnly
-  updatedAt: DateTime! @readOnly
+  createdAt: DateTime! @readOnly @defaultNow
+  updatedAt: DateTime! @readOnly @defaultNow @default(onUpdate: "() => new Date().toISOString()")
 }
 
 enum WishlistVisibility {
@@ -96,8 +96,8 @@ type WishlistItem implements Node & Timestamped @model @access(allow: [SHOP]) {
   product: Product! @hasOne
   variant: ProductVariant @hasOne
 
-  createdAt: DateTime! @readOnly
-  updatedAt: DateTime! @readOnly
+  createdAt: DateTime! @readOnly @defaultNow
+  updatedAt: DateTime! @readOnly @defaultNow @default(onUpdate: "() => new Date().toISOString()")
 }
 
 # ------------------------------------------------------------------------------
@@ -120,13 +120,13 @@ type SavedSearch implements Node & Timestamped @model @scope(name: user) @access
   """
   tags: [String!]
 
-  notifyOnNewResults: Boolean!
+  notifyOnNewResults: Boolean! @default(value: "false")
   lastNotifiedAt: DateTime @readOnly
 
   user: User! @hasOne
 
-  createdAt: DateTime! @readOnly
-  updatedAt: DateTime! @readOnly
+  createdAt: DateTime! @readOnly @defaultNow
+  updatedAt: DateTime! @readOnly @defaultNow @default(onUpdate: "() => new Date().toISOString()")
 }
 
 """
@@ -183,8 +183,8 @@ type AuditLogEntry implements Node & Timestamped @model @access(allow: [ADMIN]) 
   """
   payload: AuditPayload
 
-  createdAt: DateTime! @readOnly
-  updatedAt: DateTime! @readOnly
+  createdAt: DateTime! @readOnly @defaultNow
+  updatedAt: DateTime! @readOnly @defaultNow @default(onUpdate: "() => new Date().toISOString()")
 }
 
 enum AuditAction {
@@ -281,8 +281,8 @@ type DeliveryZone implements Node & Timestamped @model @access(allow: [ADMIN]) {
   priority: Int! @constraint(min: 0)
   isActive: Boolean!
 
-  createdAt: DateTime! @readOnly
-  updatedAt: DateTime! @readOnly
+  createdAt: DateTime! @readOnly @defaultNow
+  updatedAt: DateTime! @readOnly @defaultNow @default(onUpdate: "() => new Date().toISOString()")
 }
 
 # ------------------------------------------------------------------------------
@@ -301,8 +301,8 @@ type PlatformConfig implements Node & Timestamped & Auditable @model @access(all
   valueType: ConfigValueType!
   description: String @constraint(max: 500)
 
-  createdAt: DateTime! @readOnly
-  updatedAt: DateTime! @readOnly
+  createdAt: DateTime! @readOnly @defaultNow
+  updatedAt: DateTime! @readOnly @defaultNow @default(onUpdate: "() => new Date().toISOString()")
   createdBy: UUID @readOnly @serverOnly
   updatedBy: UUID @readOnly @serverOnly
 }

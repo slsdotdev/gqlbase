@@ -44,7 +44,7 @@ The plugin is `ZodSchemaGeneratorPlugin` (`packages/plugins/src/zod/ZodSchemaGen
 
 - **Fields:** the fields of the GraphQL input (see [Models](./models.md#mutation-inputs)). Values the server sets, such as `@readOnly` and `@serverOnly` fields and relation keys, are not in the schemas: validate `args.input`, then add them.
 - **Expressions** come from the model field, so `@constraint` applies, and the nullability says what SDL cannot:
-  - create: `id` is `.optional()`; other fields keep their nullability;
+  - create: `id` is `.optional()`, and so is a non-null field the create input leaves optional because the server fills it ([Models](./models.md#mutation-inputs)); other fields keep their nullability;
   - update: `id` is required; non-null fields become `.optional()`, so `null` is rejected; nullable fields become `.nullable().optional()`.
 - **Non-model object fields** reference `<Type>InputSchema`, derived the same way from the nested `<Type>Input`. It has that input's fields, follows the create rules for every operation (a nested object is written whole), and is emitted with or without `generateArgumentSchemas`.
 - A hand-written `Create<Model>Input` that the model reuses gets the same treatment, field by field; a field the model does not declare is read from the input.

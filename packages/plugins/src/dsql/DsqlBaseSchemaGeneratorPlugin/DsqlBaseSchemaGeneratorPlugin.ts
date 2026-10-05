@@ -68,6 +68,8 @@ import {
   type DsqlIndexColumn,
   isDsqlBaseTable,
   isEmbedded,
+  DsqlBaseDirective,
+  getColumnDefault,
 } from "../DsqlBaseUtilsPlugin/index.js";
 
 /**
@@ -467,6 +469,94 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
       expression = this._chainCallExp(expression, "unique");
     }
 
+    return this._applyColumnDefaults(expression, field);
+  }
+
+  /**
+   * The builder a column expression starts from: `guid` for `guid("id").notNull()`, `statusEnum` for an enum column.
+   */
+  private _columnBuilder(column: ts.Expression): string | undefined {
+    let expression = column;
+
+    while (ts.isCallExpression(expression) || ts.isPropertyAccessExpression(expression)) {
+      expression = expression.expression;
+    }
+
+    return ts.isIdentifier(expression) ? expression.text : undefined;
+  }
+
+  /**
+   * A TypeScript expression from `@default`, emitted as written. Parsed here, so a syntax error fails the transform rather
+   * than the generated file; whether it fits the column is left to the generated file's typecheck.
+   */
+  private _codeExpression(field: FieldNode, argument: string, code: string): ts.Expression {
+    const source = `(${code});`;
+    const { diagnostics = [] } = ts.transpileModule(source, { reportDiagnostics: true });
+    const statements = ts.createSourceFile("default.ts", source, ts.ScriptTarget.Latest).statements;
+
+    if (diagnostics.length > 0 || statements.length !== 1) {
+      const reason = diagnostics.length
+        ? ts.flattenDiagnosticMessageText(diagnostics[0].messageText, " ")
+        : "it is not one expression";
+
+      throw new TransformerPluginExecutionError(
+        this.name,
+        `@default(${argument}:) on ${field.name} is not a TypeScript expression (${reason}): ${code}`
+      );
+    }
+
+    return ts.factory.createIdentifier(code);
+  }
+
+  /**
+   * `@defaultNow` → `.defaultNow()` on a `timestamp` column, `@defaultRandom` → `.defaultRandom()` on a `uuid` or `guid`
+   * column, and `@default` → `.default(<value>)`, `.$onCreate(<onCreate>)`, `.$onUpdate(<onUpdate>)`.
+   */
+  private _applyColumnDefaults(column: ts.Expression, field: FieldNode): ts.Expression {
+    const builder = this._columnBuilder(column);
+    const columnDefault = getColumnDefault(field);
+    let expression = column;
+
+    if (field.hasDirective(DsqlBaseDirective.DEFAULT_NOW)) {
+      if (builder !== "timestamp") {
+        throw new TransformerPluginExecutionError(
+          this.name,
+          `@defaultNow on ${field.name} needs a timestamp column (DateTime, Timestamp); its column is ${builder ?? "not a scalar"}.`
+        );
+      }
+
+      expression = this._chainCallExp(expression, "defaultNow");
+    }
+
+    if (field.hasDirective(DsqlBaseDirective.DEFAULT_RANDOM)) {
+      if (builder !== "uuid" && builder !== "guid") {
+        throw new TransformerPluginExecutionError(
+          this.name,
+          `@defaultRandom on ${field.name} needs a uuid or guid column (ID, UUID, GUID); its column is ${builder ?? "not a scalar"}.`
+        );
+      }
+
+      expression = this._chainCallExp(expression, "defaultRandom");
+    }
+
+    if (columnDefault?.value) {
+      expression = this._chainCallExp(expression, "default", [
+        this._codeExpression(field, "value", columnDefault.value),
+      ]);
+    }
+
+    if (columnDefault?.onCreate) {
+      expression = this._chainCallExp(expression, "$onCreate", [
+        this._codeExpression(field, "onCreate", columnDefault.onCreate),
+      ]);
+    }
+
+    if (columnDefault?.onUpdate) {
+      expression = this._chainCallExp(expression, "$onUpdate", [
+        this._codeExpression(field, "onUpdate", columnDefault.onUpdate),
+      ]);
+    }
+
     return expression;
   }
 
@@ -559,9 +649,13 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
     if (isEmbedded(typeDef)) {
       const shape = this._declareEmbedded(typeDef, nullable || isSemanticNullable(field));
 
-      return this._chainCallExp(ts.factory.createIdentifier(shape), "column", [
-        ts.factory.createStringLiteral(columnName),
-      ]);
+      // `.default(obj)` sets the members' defaults; the group takes no other modifier.
+      return this._applyColumnDefaults(
+        this._chainCallExp(ts.factory.createIdentifier(shape), "column", [
+          ts.factory.createStringLiteral(columnName),
+        ]),
+        field
+      );
     }
 
     // Any other object, interface or union is a `jsonb` document.

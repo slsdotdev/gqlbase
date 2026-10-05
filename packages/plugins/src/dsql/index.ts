@@ -15,12 +15,14 @@ export {
   getIndexes,
   getUniqueConstraints,
   isUnique,
+  getColumnDefault,
+  type DsqlColumnDefault,
   type DsqlIndex,
   type DsqlIndexColumn,
 } from "./DsqlBaseUtilsPlugin/index.js";
 
 /**
- * Registers the dsqlbase plugins: `DsqlBaseUtilsPlugin` (the `@index` and `@unique` directives) and the schema generator.
+ * Registers the dsqlbase plugins: `DsqlBaseUtilsPlugin` (the `@index`, `@unique`, `@embedded` and column default directives) and the schema generator.
  *
  * @param options - `scalarMap` maps a scalar to a column (`{ type, dataType, options? }`, where `dataType` is a `dsqlbase/schema` builder or `safeint`); `emitOutput` returns the content as `output.dsqlBaseSchema`.
  */
