@@ -14,20 +14,20 @@
     "test": "npm run typecheck && vitest run"
   },
   "dependencies": {
-    "@dsqlbase/core": "latest",
-    "@dsqlbase/migration": "latest",
+    "@dsqlbase/core": "^0.2.0",
+    "@dsqlbase/migration": "^0.2.0",
     "@electric-sql/pglite": "^0.4.6",
-    "@middy-appsync/graphql": "^0.1.4",
-    "drizzle-orm": "^0.45.2",
-    "dsqlbase": "latest",
-    "zod": "^4.4.3"
+    "@middy-appsync/graphql": "^0.1.5",
+    "drizzle-orm": "^0.45.3",
+    "dsqlbase": "^0.2.0",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@gqlbase/cli": "^0.1.11",
     "@gqlbase/plugins": "^0.1.11",
-    "@types/aws-lambda": "^8.10.161",
-    "graphql": "^16.14.0",
-    "tsx": "^4.22.1",
+    "@types/aws-lambda": "^8.10.164",
+    "graphql": "^16.14.2",
+    "tsx": "^4.23.15",
     "vitest": "^4.1.6"
   }
 }

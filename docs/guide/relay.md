@@ -24,13 +24,12 @@ With `relay` off (the default), neither is registered: there is no `Node` interf
 No resolver is generated for `node`; the typed `Query.node` entry in `appsync/middy-appsync.types.ts` requires the result to carry `__typename`. With `ID` ids, the id says nothing about its type. With [`GUID`](./scalars.md#guid) ids, it names its model, so one resolver can read any node. On dsqlbase:
 
 ```ts
-import { createQueryResolver } from "@middy-appsync/graphql";
+import { query } from "@middy-appsync/graphql";
 import { decodeGlobalId } from "dsqlbase";
 import type { Node } from "../generated/appsync/middy-appsync.types";
 
-const node = createQueryResolver({
-  fieldName: "node",
-  resolve: async ({ args }) => {
+const node = query({
+  node: async ({ args }) => {
     const { key } = decodeGlobalId(args.id); // the schema alias: "categories"
     // A service-backed model: dispatch on `key` to its service here (see Data sources).
     const row = await dsql.$findByGlobalId({ id: args.id });
