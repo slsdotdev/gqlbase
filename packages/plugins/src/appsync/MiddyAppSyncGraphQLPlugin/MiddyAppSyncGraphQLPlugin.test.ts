@@ -86,14 +86,15 @@ describe("MiddyAppSyncGraphQLPlugin", () => {
   });
 
   it("re-exports the enums, inputs and scalars it uses, not the parts of objects", () => {
-    const reExports = content.match(/export type \{[^}]*\} from "\.\.\/schema\.types";/)?.[0] ?? "";
+    const reExports =
+      content.match(/export type \{[^}]*\} from "\.\.\/schema\.types\.js";/)?.[0] ?? "";
 
     expect(reExports).toMatch(/\bScalars\b/);
     expect(reExports).toMatch(/\bStatus\b/);
     expect(reExports).toMatch(/\bCreateCategoryInput\b/);
     expect(reExports).not.toContain("OwnFields");
     expect(content).toMatch(
-      /import type \{[^}]*\bCategoryOwnFields\b[^}]*\} from "\.\.\/schema\.types";/
+      /import type \{[^}]*\bCategoryOwnFields\b[^}]*\} from "\.\.\/schema\.types\.js";/
     );
   });
 

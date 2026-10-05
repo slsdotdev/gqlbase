@@ -186,7 +186,7 @@ export class MiddyAppSyncGraphQLPlugin extends TypesGeneratorBase {
         undefined,
         ts.factory.createNamedImports(specifiers)
       ),
-      ts.factory.createStringLiteral("../schema.types"),
+      ts.factory.createStringLiteral("../schema.types.js"),
       undefined
     );
   }
@@ -200,7 +200,7 @@ export class MiddyAppSyncGraphQLPlugin extends TypesGeneratorBase {
           ts.factory.createExportSpecifier(false, undefined, ts.factory.createIdentifier(typeName))
         )
       ),
-      ts.factory.createStringLiteral("../schema.types")
+      ts.factory.createStringLiteral("../schema.types.js")
     );
   }
 
@@ -336,7 +336,7 @@ export class MiddyAppSyncGraphQLPlugin extends TypesGeneratorBase {
     );
 
     const printer = ts.createPrinter({
-      newLine: ts.NewLineKind.CarriageReturnLineFeed,
+      newLine: ts.NewLineKind.LineFeed,
       removeComments: false,
     });
 

@@ -10,6 +10,7 @@ import {
 import { WithDirectivesNode } from "./WithDirectivesNode.js";
 import { InputValueNode } from "./InputValueNode.js";
 import { DirectiveNode } from "./DirectiveNode.js";
+import { InvalidDefinitionError } from "@gqlbase/shared/errors";
 
 export class InputObjectNode extends WithDirectivesNode {
   kind: Kind.INPUT_OBJECT_TYPE_DEFINITION = Kind.INPUT_OBJECT_TYPE_DEFINITION;
@@ -37,7 +38,7 @@ export class InputObjectNode extends WithDirectivesNode {
       field instanceof InputValueNode ? field : InputValueNode.fromDefinition(field);
 
     if (this.hasField(fieldNode.name)) {
-      throw new Error(`Field ${field.name} already exists on type ${this.name}`);
+      throw new InvalidDefinitionError(`Field ${field.name} already exists on type ${this.name}`);
     }
 
     this.fields = this.fields ?? [];

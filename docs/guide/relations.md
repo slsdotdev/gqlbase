@@ -7,7 +7,7 @@ Relations are handled by `RelationsPlugin` (`packages/core/src/plugins/Relations
 ```graphql
 directive @hasOne(key: String) on FIELD_DEFINITION
 directive @hasMany(key: String) on FIELD_DEFINITION
-directive @belongsTo(key: String) on FIELD_DEFINITION
+directive @belongsTo(key: String, discriminator: String) on FIELD_DEFINITION
 ```
 
 A relation field says "this field is resolved from another record", linked by a **key field** that holds the related record's id. The plugin adds the key field where it belongs, reshapes `@hasMany` into a list or connection, and tells the other generators (TS types, Zod, database schema, resolver types) which fields are relations. A field may carry only one relation directive.
@@ -157,5 +157,5 @@ With `GUID` members, nothing has to set the discriminator: [dsqlbase](./dsqlbase
 - [Models](./models.md)
 - [Relay](./relay.md)
 - [Field visibility](./field-visibility.md)
-- [dsqlbase](./dsqlbase.md), [Drizzle](./drizzle.md) — relation output
+- [dsqlbase](./dsqlbase.md) — relation output
 - [Known gaps](../internals/known-gaps.md)

@@ -1,21 +1,28 @@
-# Farmers Market Platform — GraphQL Schema
+# Farmers Market Platform — gqlbase example
 
-## Architecture Overview
+This is gqlbase's end-to-end test project. `gqlbase.config.js` generates the schema types, the AppSync schema and resolver types, Zod validators and a dsqlbase schema from `src/schema/`. The resolvers in `src/resolvers/` use that output, and the specs in `test/` call them against an in-memory PGlite database. See [Testing](../docs/internals/testing.md).
 
-A multi-vendor marketplace platform modeled across three access scopes:
+```bash
+npm run codegen -w example   # generate into example/generated
+npm test -w example          # codegen, typecheck, then the specs
+```
 
-| Scope    | Audience      | Purpose                                           |
+The schema models a multi-vendor marketplace. The `@access(allow: [...])` directive describes three audiences:
+
+| Audience | Who           | Purpose                                           |
 | -------- | ------------- | ------------------------------------------------- |
 | `ADMIN`  | Platform ops  | Vendor onboarding, order routing, payouts, config |
 | `VENDOR` | Seller staff  | Inventory, fulfillment, earnings, team mgmt       |
 | `SHOP`   | End customers | Browse, cart, checkout, orders, reviews           |
+
+`@access`, `@auth` and `@cacheControl` are the schema's own directives. gqlbase passes them through unchanged; nothing prunes on them. Tenancy is gqlbase's `transform.tenancy` with the `@scope` directive (`vendor` and `user` scopes).
 
 ---
 
 ## File Map
 
 ```
-schema/
+src/schema/
 ├── base.graphql           Scalars, directives, interfaces, shared enums/types
 ├── users.graphql          Users, addresses, preferences, auth tokens
 ├── vendors.graphql        Vendors, applications, members, markets, schedules
@@ -25,7 +32,10 @@ schema/
 ├── reviews.graphql        Reviews, responses, votes, reports, moderation
 ├── notifications.graphql  Multi-channel notifications with union payloads
 ├── search-audit.graphql   Search unions, wishlists, saved search, audit log, config
-└── subscriptions.graphql  Real-time subscription events with interface + union
+├── subscriptions.graphql  Real-time subscription events with interface + union
+├── ledger.graphql         Custom and 64-bit scalars (Currency, SafeInt)
+├── integrations.graphql   A model in another data source (a service, not a table)
+└── visibility.graphql     Type-level @serverOnly and @clientOnly
 ```
 
 ---
@@ -88,11 +98,9 @@ mutate historical records.
 Entities implement `SoftDeletable` for logical deletion and `Versioned`
 for optimistic concurrency control via integer version vectors.
 
-### Scope-Based Visibility
+### Tenancy and Visibility
 
-The `@scope(allow: [...])` directive at type and field level drives
-schema pruning at generation time — a vendor never sees admin-only
-fields, and the shop schema omits internal operational types entirely.
+Vendor-owned and user-owned models are in the `vendor` and `user` tenancy scopes: their `vendorId` / `userId` is a claim, never part of the API ([Tenancy](../docs/guide/tenancy.md)). Field and type visibility uses gqlbase's `@serverOnly`, `@clientOnly`, `@readOnly`, `@writeOnly` and friends ([Field visibility](../docs/guide/field-visibility.md)).
 
 ---
 
@@ -102,21 +110,10 @@ fields, and the shop schema omits internal operational types entirely.
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | Custom Scalars    | `DateTime`, `Date`, `Decimal`, `URL`, `EmailAddress`, etc.                                                                            |
 | Interfaces        | `Node`, `Timestamped`, `Auditable`, `SoftDeletable`, `Versioned`, `SubscriptionEvent`                                                 |
-| Unions            | `NotificationPayload`, `SearchResult`, `AuditPayload`, `LiveEvent`                                                                    |
-| Custom Directives | `@scope`, `@auth`, `@constraint`, `@sunset`, `@cacheControl`                                                                          |
-| Transformer Dir.  | `@model`, `@hasOne`, `@hasMany`, `@serverOnly`, `@clientOnly`, `@readOnly`, `@writeOnly`, `@filterOnly`, `@createOnly`, `@updateOnly` |
+| Unions            | `NotificationPayload`, `SearchResult`, `AuditPayload`, `LiveEvent`, `MediaSubject` (a polymorphic relation target)                    |
+| Custom Directives | `@access`, `@auth`, `@cacheControl` (passed through)                                                                                  |
+| gqlbase           | `@model`, relations, visibility, `@scope`, `@dataSource`, `@embedded`, `@index`/`@unique`, column defaults, `@computed`, `@constraint` |
 | Subscriptions     | Order updates, inventory alerts, platform event firehose                                                                              |
 | Enums             | 40+ enums covering statuses, types, roles, permissions                                                                                |
 | Input Types       | Dedicated inputs for embedded value objects                                                                                           |
 | Documentation     | Description strings on all types, fields, and enum values                                                                             |
-
----
-
-## Entity Count
-
-- **@model types**: 45
-- **Enums**: 57
-- **Interfaces**: 6
-- **Unions**: 4
-- **Custom Scalars**: 8
-- **Custom Directives**: 5

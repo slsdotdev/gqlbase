@@ -9,8 +9,8 @@ const { version } = JSON.parse(
 const cli = cac("gqlbase");
 
 cli
-  .option("-c, --config [file]", "Path to configuration file")
-  .option("-o, --output [dir]", "Output directory for generated artifacts")
+  .option("-c, --config <file>", "Path to configuration file")
+  .option("-o, --output <dir>", "Output directory for generated artifacts")
   .option("-v, --verbose", "Enable verbose logging")
   .option("-w, --watch", "Watch schema files for changes and automatically transform them");
 

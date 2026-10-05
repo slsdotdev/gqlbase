@@ -10,7 +10,7 @@ export function printNodeList(nodes: ts.NodeArray<ts.Node>, fileName?: string): 
   );
 
   const printer = ts.createPrinter({
-    newLine: ts.NewLineKind.CarriageReturnLineFeed,
+    newLine: ts.NewLineKind.LineFeed,
     removeComments: false,
   });
 

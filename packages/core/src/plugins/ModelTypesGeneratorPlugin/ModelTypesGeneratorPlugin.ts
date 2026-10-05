@@ -52,7 +52,7 @@ export class ModelTypesGeneratorPlugin extends TypesGeneratorBase {
     );
 
     const printer = ts.createPrinter({
-      newLine: ts.NewLineKind.CarriageReturnLineFeed,
+      newLine: ts.NewLineKind.LineFeed,
       removeComments: false,
     });
 

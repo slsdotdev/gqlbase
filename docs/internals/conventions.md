@@ -19,7 +19,7 @@ _Audience: contributors and agents._
 - **Directive names:** keep them in a constant object in the owning plugin's utils (e.g. `UtilityDirective`, `RelationDirective`), never as string literals scattered through other plugins.
 - **Errors:** throw the classes from `@gqlbase/shared/errors`. A plugin rejecting a schema throws `TransformerPluginExecutionError` with its own name.
 - **Logging:** use `context.logger`, or a child from `logger.createChild(scope)`. Do not use `console`.
-- **Generated files:** each capability plugin writes into its own folder under the output directory (`appsync/`, `zod/`, `dsqlbase/`, `drizzle/`); only core writes to the root (`schema.graphql`, `schema.types.ts`). Generated files that hold only TypeScript types end in `.types.ts` (`schema.types.ts`, `appsync/middy-appsync.types.ts`).
+- **Generated files:** each capability plugin writes into its own folder under the output directory (`appsync/`, `zod/`, `dsqlbase/`); only core writes to the root (`schema.graphql`, `schema.types.ts`). Generated files that hold only TypeScript types end in `.types.ts` (`schema.types.ts`, `appsync/middy-appsync.types.ts`).
 - **Mutation:** mutate definition nodes in place through their methods ([Definition nodes](./definition-nodes.md)). Do not rebuild graphql-js AST by hand.
 
 ## Design workflow
@@ -55,7 +55,7 @@ _Audience: contributors and agents._
    - the decision record to add once accepted;
    - any `CLAUDE.md` or package README lines that become stale.
 2. **Every implementation story names the docs pages it changes.** A story is not done until those pages are updated in the same PR.
-3. **Every changeset body carries a `Docs:` line.** It names the pages touched, or says `Docs: none — <reason>`.
+3. **Every changeset ends with links to the guide pages a user should read** (full GitHub URLs, since the text is published in the npm changelogs), or none when no user-facing doc applies. Changesets describe the change for users: no proposal names, known-gap numbers or internal helpers. The PR description lists the docs pages it touched.
 4. **A change that alters a documented claim fixes the doc in the same change.** This includes the [Known gaps](./known-gaps.md) entry it closes.
 
 Page rules:

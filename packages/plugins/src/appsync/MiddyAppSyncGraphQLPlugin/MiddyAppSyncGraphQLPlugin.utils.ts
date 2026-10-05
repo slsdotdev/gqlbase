@@ -1,4 +1,5 @@
 import { type FieldNode } from "@gqlbase/core/definition";
+import { TransformerPluginExecutionError } from "@gqlbase/shared/errors";
 
 export type AppSyncAuthorizationMode = "cognito" | "iam" | "oidc" | "apiKey" | "lambda";
 
@@ -42,6 +43,9 @@ export const getAuthModeIdentityType = (mode: AppSyncAuthorizationMode): string 
     case "apiKey":
       return "null"; // API Key auth doesn't have an identity object
     default:
-      throw new Error(`Unsupported authorization mode: ${mode}`);
+      throw new TransformerPluginExecutionError(
+        "MiddyAppSyncGraphQLPlugin",
+        `Unsupported authorization mode: ${mode}`
+      );
   }
 };

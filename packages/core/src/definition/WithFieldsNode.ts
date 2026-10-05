@@ -2,6 +2,7 @@ import { FieldDefinitionNode, StringValueNode } from "graphql";
 import { FieldNode } from "./FieldNode.js";
 import { WithDirectivesNode } from "./WithDirectivesNode.js";
 import { DirectiveNode } from "./DirectiveNode.js";
+import { InvalidDefinitionError } from "@gqlbase/shared/errors";
 
 export abstract class WithFieldsNode extends WithDirectivesNode {
   fields?: FieldNode[] | undefined;
@@ -33,7 +34,7 @@ export abstract class WithFieldsNode extends WithDirectivesNode {
     const node = field instanceof FieldNode ? field : FieldNode.fromDefinition(field);
 
     if (this.hasField(node.name)) {
-      throw new Error(`Field ${node.name} already exists on node ${this.name}`);
+      throw new InvalidDefinitionError(`Field ${node.name} already exists on node ${this.name}`);
     }
 
     this.fields = this.fields ?? [];

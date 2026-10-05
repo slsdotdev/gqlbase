@@ -29,10 +29,9 @@ These pages describe what the library does **today**. Planned behaviour is not d
 | [Relay](./relay.md) | core plugins, `transform.relay` | connections, `Node` |
 | [Tenancy](./tenancy.md) | core plugin, `transform.tenancy` | claim fields |
 | [Data sources](./data-sources.md) | core plugin, `transform.dataSources` | which models each generator emits |
-| [AppSync](./appsync.md) | `@gqlbase/plugins` → `appsyncPreset` | `appsync/schema.graphql`, `appsync/middy-appsync.types.ts` |
-| [Zod](./zod.md) | `@gqlbase/plugins/zod` | `zod/schema.validators.ts` |
-| [dsqlbase](./dsqlbase.md) | `@gqlbase/plugins/dsql` | `dsqlbase/schema.ts` |
-| [Drizzle](./drizzle.md) | `@gqlbase/plugins/drizzle` | `drizzle/schema.ts` |
+| [AppSync](./appsync.md) | `gqlbase/plugins` → `appsyncPreset` | `appsync/schema.graphql`, `appsync/middy-appsync.types.ts` |
+| [Zod](./zod.md) | `gqlbase/plugins/zod` | `zod/schema.validators.ts` |
+| [dsqlbase](./dsqlbase.md) | `gqlbase/plugins/dsql` | `dsqlbase/schema.ts` |
 
 ## Directive quick reference
 
@@ -41,7 +40,7 @@ These pages describe what the library does **today**. Planned behaviour is not d
 | `@model(operations: [ModelOperation!])` | OBJECT | [Models](./models.md) |
 | `@hasOne(key: String)` | FIELD_DEFINITION | [Relations](./relations.md) |
 | `@hasMany(key: String)` | FIELD_DEFINITION | [Relations](./relations.md) |
-| `@belongsTo(key: String)` | FIELD_DEFINITION | [Relations](./relations.md) |
+| `@belongsTo(key: String, discriminator: String)` | FIELD_DEFINITION | [Relations](./relations.md) |
 | `@readOnly` `@writeOnly` | FIELD_DEFINITION | [Field visibility](./field-visibility.md) |
 | `@serverOnly` `@clientOnly` | FIELD_DEFINITION, OBJECT | [Field visibility](./field-visibility.md) |
 | `@createOnly` `@updateOnly` `@filterOnly` | FIELD_DEFINITION | [Field visibility](./field-visibility.md) |
@@ -52,6 +51,9 @@ These pages describe what the library does **today**. Planned behaviour is not d
 | `@dataSource(name: DataSource!)` | OBJECT | [Data sources](./data-sources.md) |
 | `@embedded` (dsqlbase plugin) | OBJECT | [Embedded objects](./embedded-objects.md) |
 | `@default(value: String, onCreate: String, onUpdate: String)` `@defaultNow` `@defaultRandom` (dsqlbase plugin) | FIELD_DEFINITION | [dsqlbase](./dsqlbase.md#column-defaults) |
+| `@index(name: String!, columns: [DsqlIndexColumn!]!, …)` (dsqlbase plugin) | OBJECT | [dsqlbase](./dsqlbase.md#indexes-and-unique-constraints) |
+| `@unique(fields: [String!])` (dsqlbase plugin) | OBJECT, FIELD_DEFINITION | [dsqlbase](./dsqlbase.md#indexes-and-unique-constraints) |
+| `@computed` (AppSync) | FIELD_DEFINITION | [AppSync](./appsync.md#computed-fields) |
 | `@gqlbase_typehint(type: …, input: …)` | SCALAR | [Scalars](./scalars.md) |
 | `@gqlbase_internal` | most locations | [Scalars](./scalars.md#internal-definitions) |
 | `@aws_*` | OBJECT, FIELD_DEFINITION | [AppSync](./appsync.md) |

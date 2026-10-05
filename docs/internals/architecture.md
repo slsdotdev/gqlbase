@@ -26,10 +26,9 @@ Each package exposes subpaths through `"./*": "./dist/*/index.js"`, for example 
 
 | Directory | Contents | How it is imported |
 |---|---|---|
-| `appsync/` | `AppSyncUtilsPlugin`, `AppSyncSchemaGeneratorPlugin`, `MiddyAppSyncGraphQLPlugin` | `appsyncPreset()` |
+| `appsync/` | `AppSyncUtilsPlugin`, `AppSyncSchemaGeneratorPlugin`, `MiddyAppSyncGraphQLPlugin`, `AppSyncDynamoDBFilterPlugin` | `appsyncPreset()` |
 | `zod/` | `ZodSchemaGeneratorPlugin` | `@gqlbase/plugins/zod` |
-| `dsql/` | `DsqlBaseSchemaGeneratorPlugin` | `@gqlbase/plugins/dsql` |
-| `drizzle/` | `DrizzleSchemaGeneratorPlugin` | `@gqlbase/plugins/drizzle` |
+| `dsql/` | `DsqlBaseUtilsPlugin`, `DsqlBaseSchemaGeneratorPlugin` | `@gqlbase/plugins/dsql` |
 
 The root `packages/plugins/src/index.ts` exports only the appsync preset. Each plugin's options, directives and output are covered in the [guide](../guide/README.md).
 
@@ -47,12 +46,12 @@ The root `packages/plugins/src/index.ts` exports only the appsync preset. Each p
 
 `createTransformer` (`packages/core/src/transformer/createTransformer.ts`) creates a `TransformerContext`. It then registers plugins in this order:
 
-1. the core plugins, from `corePlugins()` (`packages/core/src/plugins/corePlugins.ts`), in a fixed order: `InternalUtilsPlugin`, `UtilitiesPlugin`, `InterfaceUtilsPlugin`, `ScalarsPlugin`, then `RfcFeaturesPlugin` when `options.semanticNullability` is on, then `ModelPlugin`, `TenancyPlugin` when `options.tenancy` declares a scope, then `FilterPlugin`, `RelationsPlugin`, then `NodeInterfacePlugin` and `ConnectionPlugin` when `options.relay` is on, then `SchemaGeneratorPlugin`, `ModelTypesGeneratorPlugin`;
+1. the core plugins, from `corePlugins()` (`packages/core/src/plugins/corePlugins.ts`), in a fixed order: `InternalUtilsPlugin`, `UtilitiesPlugin`, `InterfaceUtilsPlugin`, `ScalarsPlugin`, then `RfcFeaturesPlugin` when `options.semanticNullability` is on, then `ModelPlugin`, `TenancyPlugin` when `options.tenancy` declares a scope, `DataSourcesPlugin` when `options.dataSources` declares a source, then `FilterPlugin`, `RelationsPlugin`, then `NodeInterfacePlugin` and `ConnectionPlugin` when `options.relay` is on, then `SchemaGeneratorPlugin`, `ModelTypesGeneratorPlugin`;
 2. every factory from `options.plugins`, flattened in config order.
 
 `SchemaGeneratorPlugin.output` runs once every plugin has cleaned up. Before printing `schema.graphql`, it removes every definition that nothing public reaches (`collectPublicDefinitions`), leftover `@gqlbase_internal` definitions included. The AppSync schema is printed in a later `output` hook, from the same pruned document, so both contain only what the client can reach.
 
-The transformer options (`relay`, `semanticNullability`, `operations`, `tenancy`) are resolved with their defaults and frozen onto `context.options` before any plugin is created.
+The transformer options (`relay`, `semanticNullability`, `operations`, `tenancy`, `dataSources`) are resolved with their defaults and frozen onto `context.options` before any plugin is created.
 
 Presets are plain arrays of factories, so they expand in place. Registering a plugin calls its `init()` straight away. Plugin names must be unique.
 
@@ -78,7 +77,8 @@ Things every plugin author needs to know:
 - **The definition map is live.** The loops iterate `document.definitions.values()` while plugins add nodes. A node added during a phase is visited later in the same phase if it has not been reached yet, because `Map` iteration includes entries added during iteration.
 - **`generate` runs before `cleanup`.** Generators still see utility directives (`@serverOnly`, `@readOnly`, …) and the `@serverOnly @writeOnly` relation key fields. Each generator therefore applies its own visibility rules; see [Field visibility](../guide/field-visibility.md). The flip side is that `output.schema` (printed after `after()`) and what a generator saw during `generate` are different documents.
 - **`match()` gates every per-definition hook.** A plugin that implements `normalize` but whose `match` returns false for a node never sees that node.
-- **Validation happens once, up front.** Nodes that plugins add are not re-validated. `validateSDL` checks SDL rules only, so directive argument value types are not checked.
+- **Validation runs in stages** (phases 1, 4b and 7b above): the source before plugins run, the document once `execute` has run, and the final document. `validateSDL` checks SDL rules only, so directive argument value types are not checked.
+- **A transformer can run more than once.** `startWork` merges a copy of `context.base` (`DocumentNode.clone`), so what plugins do to one run's document never reaches the next. Watch mode relies on this.
 
 ## Errors
 
@@ -89,6 +89,7 @@ The error classes are in `packages/shared/src/errors`:
 | `TransformerValidationError` | The merged source fails SDL validation. |
 | `InvalidDefinitionError` | A definition-node operation fails, e.g. `getNodeOrThrow` on a missing name, or a duplicate on merge. |
 | `TransformerPluginExecutionError` | A plugin rejects a schema. Plugins throw it with their own name. |
+| `ConfigurationError` | The CLI cannot load its config file, or `source` matches no GraphQL file. |
 
 ## Related
 

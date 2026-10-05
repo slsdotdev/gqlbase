@@ -59,7 +59,9 @@ export class TransformerContext implements ITransformerContext {
       throw new Error("Cannot start work without any plugins registered.");
     }
 
-    this._workInProgress = DocumentNode.merge(this.base, document);
+    // Plugins mutate the work in progress, so it starts from a copy of the base: a transformer
+    // can run more than once (watch mode) and every run sees the same base.
+    this._workInProgress = DocumentNode.merge(DocumentNode.clone(this.base), document);
     this._fileArtifacts = [];
 
     this.logger.debug("Starting work with document:", this._workInProgress.toString());

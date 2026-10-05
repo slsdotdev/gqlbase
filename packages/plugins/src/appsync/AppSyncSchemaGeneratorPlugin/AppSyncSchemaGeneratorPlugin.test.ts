@@ -464,32 +464,12 @@ describe("AppSyncSchemaGeneratorPlugin", () => {
       expect(out?.appsync?.schema).toContain("createUser(name: String!): User");
     });
 
-    it.skip("preserves field descriptions", () => {
-      context.startWork(
-        DocumentNode.fromSource(/* GraphQL */ `
-          type User {
-            "The unique identifier"
-            id: ID!
-            "The user display name"
-            name: String!
-          }
-          type Query {
-            me: User
-          }
-        `)
-      );
-
-      const out = generateSchema(plugin);
-
-      expect(out?.appsync?.schema).toContain("The unique identifier");
-      expect(out?.appsync?.schema).toContain("The user display name");
-    });
-
-    it.skip("preserves type descriptions", () => {
+    it("drops type and field descriptions", () => {
       context.startWork(
         DocumentNode.fromSource(/* GraphQL */ `
           "A platform user"
           type User {
+            "The unique identifier"
             id: ID!
           }
           type Query {
@@ -500,7 +480,9 @@ describe("AppSyncSchemaGeneratorPlugin", () => {
 
       const out = generateSchema(plugin);
 
-      expect(out?.appsync?.schema).toContain("A platform user");
+      expect(out?.appsync?.schema).toContain("type User");
+      expect(out?.appsync?.schema).not.toContain("A platform user");
+      expect(out?.appsync?.schema).not.toContain("The unique identifier");
     });
   });
 

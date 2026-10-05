@@ -2,7 +2,7 @@ import { Logger } from "@gqlbase/shared/logger";
 import { createTransformer, IPluginFactory, TransformerOptions } from "@gqlbase/core";
 import { definitionFromFiles, ensureOutputDirectoryExists } from "@gqlbase/shared/files";
 import { writeFile } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
+import { dirname, relative, resolve } from "node:path";
 
 export interface TransformParams {
   outputDirectory: string;
@@ -20,12 +20,15 @@ export function createTransform(params: TransformParams) {
     ...params.transform,
   });
 
+  // The output directory holds generated `.graphql` files, which must never be read back as source.
+  const ignore = [`${relative(process.cwd(), resolve(params.outputDirectory))}/**`];
+
   return async (source: string[]) => {
     params.logger.debug("Starting transformation");
     params.logger.debug("Input sources", source);
     const startTime = performance.now();
 
-    const definition = definitionFromFiles(source);
+    const definition = definitionFromFiles(source, ignore);
 
     const output = transformer.transform(definition);
 

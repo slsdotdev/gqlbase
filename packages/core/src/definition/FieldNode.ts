@@ -3,6 +3,7 @@ import { WithDirectivesNode } from "./WithDirectivesNode.js";
 import { InputValueNode } from "./InputValueNode.js";
 import { DirectiveNode } from "./DirectiveNode.js";
 import { ListTypeNode, NamedTypeNode, NonNullTypeNode, TypeNode } from "./TypeNode.js";
+import { InvalidDefinitionError } from "@gqlbase/shared/errors";
 
 export class FieldNode extends WithDirectivesNode {
   readonly kind: Kind.FIELD_DEFINITION = Kind.FIELD_DEFINITION;
@@ -36,7 +37,7 @@ export class FieldNode extends WithDirectivesNode {
       argument instanceof InputValueNode ? argument : InputValueNode.fromDefinition(argument);
 
     if (this.hasArgument(node.name)) {
-      throw new Error(`Argument ${node.name} already exists on field ${this.name}`);
+      throw new InvalidDefinitionError(`Argument ${node.name} already exists on field ${this.name}`);
     }
 
     this.arguments = this.arguments ?? [];

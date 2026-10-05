@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { resolve } from "node:path";
 import picomatch, { isMatch } from "picomatch";
-import { DEFAULT_IGNORED_DIRS, start } from "./watcher.js";
+import { createIgnoreMatcher, DEFAULT_IGNORED_DIRS, start } from "./watcher.js";
 
 const mockTransform = vi.fn();
 
@@ -43,5 +44,20 @@ describe("Watcher", () => {
     watcher.emit("all", "change", "src/schema.graphql");
 
     expect(mockTransform).toHaveBeenCalled();
+  });
+
+  it("does not run for files that are not GraphQL", () => {
+    watcher.emit("all", "change", "src/notes.md");
+
+    expect(mockTransform).not.toHaveBeenCalled();
+  });
+
+  it("ignores the given directories, resolved against the cwd", () => {
+    const ignored = createIgnoreMatcher(["generated"]);
+
+    expect(ignored(resolve("generated"))).toBe(true);
+    expect(ignored(resolve("generated/schema.graphql"))).toBe(true);
+    expect(ignored(resolve("generated-notes/schema.graphql"))).toBe(false);
+    expect(ignored(resolve("src/schema.graphql"))).toBe(false);
   });
 });

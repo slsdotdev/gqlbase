@@ -1,3 +1,4 @@
+import { isGraphQLFile } from "@gqlbase/shared/files";
 import { createLogger, Logger } from "@gqlbase/shared/logger";
 import { FSWatcher } from "chokidar";
 import path from "node:path";
@@ -14,18 +15,26 @@ export const DEFAULT_IGNORED_DIRS = [
 interface StartWatcherParams {
   paths: string[];
   transform: () => void;
+  /** Directories to ignore, such as the output directory. Relative paths resolve against the cwd. */
   ignored?: string[];
   logger?: Logger;
 }
 
 export type Watcher = FSWatcher;
 
+/** Matches the default ignored directories and the given ones, which resolve against the cwd. */
+export const createIgnoreMatcher = (ignored: string[] = []) => {
+  const directories = ignored.map((dir) => path.resolve(process.cwd(), dir));
+
+  return (file: string) =>
+    DEFAULT_IGNORED_DIRS.some((pattern) => pm.isMatch(file, pattern)) ||
+    directories.some((dir) => file === dir || file.startsWith(dir + path.sep));
+};
+
 export async function start(params: StartWatcherParams): Promise<Watcher> {
   const logger = params.logger?.createChild("watch") ?? createLogger("watch");
 
   logger.info("Starting file watcher...");
-
-  const ignoredPatterns = [...DEFAULT_IGNORED_DIRS, ...(params.ignored ?? [])];
 
   const watchPaths = params.paths.map((pattern) => {
     const parsed = pm.scan(pattern);
@@ -35,16 +44,14 @@ export async function start(params: StartWatcherParams): Promise<Watcher> {
   const watcher = watch(watchPaths, {
     ignoreInitial: true,
     ignorePermissionErrors: true,
-    ignored: (path) => {
-      return ignoredPatterns.some((dir) => pm.isMatch(path, dir));
-    },
+    ignored: createIgnoreMatcher(params.ignored),
   });
 
   watcher.on("all", async (type, file) => {
-    // const isMatch = params.paths.some((pattern) => pm.isMatch(file, pattern));
     logger.debug(`File ${type}: ${file}`);
 
-    if (["add", "change", "unlink"].includes(type)) {
+    // Only schema files trigger a run; the writes to the output directory are ignored above.
+    if (["add", "change", "unlink"].includes(type) && isGraphQLFile(file)) {
       try {
         params.transform();
       } catch (err) {

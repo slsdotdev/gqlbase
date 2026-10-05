@@ -14,9 +14,9 @@ TypeScript config files (`gqlbase.config.ts`) are **not** supported; the entry i
 
 ```js
 // gqlbase.config.js
-import { defineConfig } from "@gqlbase/cli/config";
-import { zodSchemaGeneratorPlugin } from "@gqlbase/plugins/zod";
-import { dsqlbase } from "@gqlbase/plugins/dsql";
+import { defineConfig } from "gqlbase/config";
+import { zodSchemaGeneratorPlugin } from "gqlbase/plugins/zod";
+import { dsqlbase } from "gqlbase/plugins/dsql";
 
 export default defineConfig({
   source: "src/schema",
@@ -37,12 +37,12 @@ Defined in `packages/cli/src/config/config.ts`.
 
 | Option | Type | Default | Description |
 | --- | --- | --- | --- |
-| `source` | `string \| string[]` | `"**/*.graphql"` | Files, globs or directories. A directory is expanded to every `.graphql`, `.gql` and `.graphqls` file below it. `node_modules`, `dist`, `build` and `.git` are always ignored. |
+| `source` | `string \| string[]` | `"**/*.graphql"` | Files, globs or directories. A directory is expanded to every `.graphql`, `.gql` and `.graphqls` file below it. `node_modules`, `dist`, `build`, `.git` and the `output` directory are always ignored, so generated `.graphql` files are never read back. |
 | `output` | `string` | `"generated"` | Output directory. Each plugin chooses its file path relative to it. |
 | `plugins` | `(IPluginFactory \| IPluginFactory[])[]` | `[]` | Plugin factories and presets (arrays of factories), in execution order. |
 | `transform` | `object` | `{}` | Transformer options, below. |
 | `verbose` | `boolean` | `false` | Debug logging. |
-| `watch` | `boolean` | `false` | Re-run on changes to `source` (the output directory is ignored). |
+| `watch` | `boolean` | `false` | Re-run when a GraphQL file under `source` is added, changed or removed (the output directory is ignored). |
 
 ### Transformer options
 
@@ -80,16 +80,15 @@ Resolution order is defaults → config file → CLI flags (`packages/cli/src/co
 
 A plugin factory is a function returning `{ create(context) }`; presets are plain functions returning an array of factories. Nested arrays are flattened one level, so presets and single plugins can be mixed freely.
 
-**Core plugins.** The transformer always registers these first, in this order (`packages/core/src/plugins/corePlugins.ts`): `InternalUtilsPlugin` (which provides `@gqlbase_internal` and `@gqlbase_typehint`), `UtilitiesPlugin`, `InterfaceUtilsPlugin`, `ScalarsPlugin`, then `RfcFeaturesPlugin` when `semanticNullability` is on, then `ModelPlugin`, `FilterPlugin`, `RelationsPlugin`, then `NodeInterfacePlugin` and `ConnectionPlugin` when `relay` is on, then `SchemaGeneratorPlugin`, `ModelTypesGeneratorPlugin`. They cannot be removed or reordered, and are configured only through the [transformer options](#transformer-options).
+**Core plugins.** The transformer always registers these first, in this order (`packages/core/src/plugins/corePlugins.ts`): `InternalUtilsPlugin` (which provides `@gqlbase_internal` and `@gqlbase_typehint`), `UtilitiesPlugin`, `InterfaceUtilsPlugin`, `ScalarsPlugin`, then `RfcFeaturesPlugin` when `semanticNullability` is on, then `ModelPlugin`, then `TenancyPlugin` when `tenancy` declares a scope, then `DataSourcesPlugin` when `dataSources` declares a source, then `FilterPlugin`, `RelationsPlugin`, then `NodeInterfacePlugin` and `ConnectionPlugin` when `relay` is on, then `SchemaGeneratorPlugin`, `ModelTypesGeneratorPlugin`. They cannot be removed or reordered, and are configured only through the [transformer options](#transformer-options).
 
 **Order matters.** Your plugins are registered after the core plugins, in the order listed. Within every phase, plugins run in registration order. Plugin names must be unique, so the same plugin cannot be registered twice.
 
 | Preset / factory | Import | Plugins |
 | --- | --- | --- |
-| `appsyncPreset({ … })` | `@gqlbase/plugins` | `AppSyncUtilsPlugin`, `AppSyncSchemaGeneratorPlugin`, `MiddyAppSyncGraphQLPlugin` (optional) |
-| `zodSchemaGeneratorPlugin({ … })` | `@gqlbase/plugins/zod` | `ZodSchemaGeneratorPlugin` |
-| `dsqlbase()` | `@gqlbase/plugins/dsql` | `DsqlBaseSchemaGeneratorPlugin` |
-| `drizzleSchemaGeneratorPlugin({ … })` | `@gqlbase/plugins/drizzle` | `DrizzleSchemaGeneratorPlugin` |
+| `appsyncPreset({ … })` | `gqlbase/plugins` | `AppSyncUtilsPlugin`, `AppSyncSchemaGeneratorPlugin`, `MiddyAppSyncGraphQLPlugin` (unless `middyAppSync.enable` is false), `AppSyncDynamoDBFilterPlugin` (with `dynamoDBFilter: true`) |
+| `zodSchemaGeneratorPlugin({ … })` | `gqlbase/plugins/zod` | `ZodSchemaGeneratorPlugin` |
+| `dsqlbase({ … })` | `gqlbase/plugins/dsql` | `DsqlBaseUtilsPlugin`, `DsqlBaseSchemaGeneratorPlugin` |
 
 The core plugins and their helpers (`isModel`, `isRelationField`, `isSemanticNullable`, …) are exported from `@gqlbase/core/plugins` for plugin authors.
 
@@ -103,14 +102,13 @@ The core plugins and their helpers (`isModel`, `isRelationField`, `isSemanticNul
 | `appsync/middy-appsync.types.ts` | `MiddyAppSyncGraphQLPlugin` |
 | `zod/schema.validators.ts` | `ZodSchemaGeneratorPlugin` (`fileName` option) |
 | `dsqlbase/schema.ts` | `DsqlBaseSchemaGeneratorPlugin` |
-| `drizzle/schema.ts` | `DrizzleSchemaGeneratorPlugin` (`fileName` option) |
 
 Existing files are overwritten; files a plugin no longer produces are not deleted.
 
 ## Programmatic use
 
 ```js
-import { createTransformer } from "@gqlbase/core";
+import { createTransformer } from "gqlbase";
 
 const transformer = createTransformer({ semanticNullability: true });
 const output = transformer.transform(sdlString);
@@ -145,7 +143,7 @@ export type FeedItem = AuthorFull | PostFull;
 - **There is no `__typename`.** It is a resolver concern (see [AppSync types](./appsync.md#appsync-types)).
 - A schema type named like a generated one (`PostFull`, `Scalars`, `Maybe`) throws.
 
-The stored outputs reference `<Type>OwnFields`: an object column in dsqlbase or Drizzle holds the stored shape, without relations.
+The stored outputs reference `<Type>OwnFields`: an object column in dsqlbase holds the stored shape, without relations.
 
 `createTransformer` takes the [transformer options](#transformer-options) at the top level, next to `plugins`, with the same defaults. `transform()` returns `{ schema, files }` merged with whatever each plugin's `output()` returns (`schemaTypes` holds the content of `schema.types.ts`). Nothing is written to disk; the CLI does that.
 
@@ -176,6 +174,12 @@ The stored outputs reference `<Type>OwnFields`: an object column in dsqlbase or 
 - `basePreset()`, `relayPreset()` and the `plugins/base` and `plugins/relay` subpaths are removed. The base plugins and their helpers (`isModel`, `isRelationField`, `isSemanticNullable`, …) are exported from `@gqlbase/core/plugins`.
 - `@semanticNonNull` is declared only with `semanticNullability: true`. Without it, a schema that uses the directive fails validation.
 
+**Dependencies.**
+
+- Install `graphql@16` (the peer range is `^16.8.1`). TypeScript is now a dependency of gqlbase, so it no longer has to be in your project.
+- The generated dsqlbase schema needs `dsqlbase@^0.2` (`tenantScope`, `guid`, `array`, `record`, `embedded`, `union` columns; `@index` has no `sort`). See [Install](./install.md#what-the-generated-code-needs-at-runtime).
+- The Drizzle generator (`@gqlbase/plugins/drizzle`, `gqlbase/plugins/drizzle`) is removed. dsqlbase is the database target; a project that needs Drizzle can stay on 0.1 for that output.
+
 **Imports of generated files.**
 
 | 0.1 | 0.2 |
@@ -193,10 +197,30 @@ The stored outputs reference `<Type>OwnFields`: an object column in dsqlbase or 
 - Unused enums, inputs, unions and scalars are no longer printed in `schema.graphql` or the AppSync schema.
 - Without Relay, `@hasMany` fields and list queries return `[T!]` (was `[T]`), or `[T!]!` for a non-null field. `relationPlugin({ usePaginationTypes })` and its `{ items, nextToken }` shape are removed.
 
+**Database (dsqlbase).**
+
+- List fields are `array()` and other object fields are `record()` columns, both `jsonb` (was `json`). DSQL cannot change a column's type in place: add the new column, backfill it, then switch. See [Embedded objects](./embedded-objects.md).
+- `$enum` is emitted only for enums a column uses, so an import of another enum from `dsqlbase/schema` fails; import it from `schema.types`.
+
+**Relations to unions and interfaces** ([Relations](./relations.md#union-and-interface-targets)).
+
+- `@belongsTo` adds a `<field>Type: String` discriminator (`@serverOnly @writeOnly`) beside the key; rename it with `discriminator:`.
+- `@hasOne` and `@hasMany` keys on the members are nullable, as the relation is (they were non-null). On an interface they go on each implementing type, not on the interface.
+- Members that mix `GUID` ids with other id types throw.
+
+**Schemas that now fail the transform.** Each of these used to pass silently and lose something:
+
+- a scalar named `SafeInt` or `GUID` (now built in), or `Long` with `appsyncPreset` (declared by it): remove your declaration;
+- `extend` of a type that is not declared (other than `Query`, `Mutation` and `Subscription`), or an extension whose kind does not match the declaration;
+- a declared `key:` on a relation that gets no key field, when that field does not exist;
+- `@gqlbase_typehint(type: "string")`: the value is an enum literal, `type: string`.
+
 **Client operations: filters and ordering** ([decision 0004](../decisions/0004-filters-ordering-and-relation-keys.md)).
 
 - Filter operators are renamed: `ne` → `neq`, `le` → `lte`, `ge` → `gte`; `notContains` becomes `not: { <field>: { contains } }`; `size` is removed. The full table is in [Models → Migrating from the 0.1 operators](./models.md#migrating-from-the-01-operators).
 - `SortDirection` is `asc`/`desc` (was `ASC`/`DESC`, unused) and every `@hasMany` takes `orderBy`.
+- `Date`, `DateTime` and `Time` filters lose `beginsWith`, `endsWith` and `contains`; scope by range instead (`{ between: ["2026-09-01", "2026-09-30"] }`).
+- `@writeOnly` fields are no longer in `<Model>FilterInput`. Add `@filterOnly` to keep one.
 - Relation keys are added only between stored types: a `@hasMany` on a plain type no longer adds a key to its target.
 - With Relay and without `semanticNullability`, `edges` is `[XEdge!]!` and `XEdge.node` is non-null.
 
@@ -213,6 +237,13 @@ The stored outputs reference `<Type>OwnFields`: an object column in dsqlbase or 
 
 - A model gets a create or update schema only if it has that input, so `@model(operations: [...])` without `create` or `update` means no schema for it. Nested objects reference `<Type>InputSchema` instead of `<Type>Schema`.
 - `<Type>Schema` has no `@serverOnly` fields, and `@serverOnly` types get no schema. Parsing a database row with it drops those values; use the dsqlbase row types for rows.
+
+**Plugin authors.**
+
+- `ModelTypesGeneratorPluginOptions` (`fileName`) is removed: the schema types are always `schema.types.ts`, and `transform()` returns them as `schemaTypes`.
+- `shouldIncludeInZodCreate`, `shouldIncludeInZodUpdate` and `isPaginationConnection` are removed. Filter inputs moved from `ModelPlugin` to the core `FilterPlugin`.
+- `@constraint` is removed from input fields and arguments as well as object fields.
+- Duplicate definitions throw `InvalidDefinitionError` (was `Error`).
 
 ## Related
 

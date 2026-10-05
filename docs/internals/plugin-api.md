@@ -43,7 +43,7 @@ The interface is `packages/core/src/context/ITransformerContext.ts` and the impl
 
 | Member | Use |
 |---|---|
-| `options: Readonly<TransformerOptions>` | The transformer options (`relay`, `semanticNullability`, `operations`, `tenancy`), resolved with their defaults and frozen (`packages/core/src/context/TransformerOptions.ts`). Read them here to decide what to generate; do not probe the document for a directive definition. |
+| `options: Readonly<TransformerOptions>` | The transformer options (`relay`, `semanticNullability`, `operations`, `tenancy`, `dataSources`), resolved with their defaults and frozen (`packages/core/src/context/TransformerOptions.ts`). Read them here to decide what to generate; do not probe the document for a directive definition. |
 | `base: DocumentNode` | Definitions the plugin contributes: directive definitions, internal enums, built-in scalars. It is merged with the user's source at `startWork`. A name that appears in both throws. |
 | `document: DocumentNode` | The working document. It exists only between `startWork` and `finishWork`; reading it outside that window throws. Plugins mutate it in place. |
 | `files: FileArtifact[]` | Generated files: `{ type, path, filename, content }`, where `path` is relative to the configured output directory. Like `document`, it is only valid during work. |
@@ -53,7 +53,7 @@ The interface is `packages/core/src/context/ITransformerContext.ts` and the impl
 
 ## Depending on other plugins
 
-The core plugins (`packages/core/src/plugins/`, listed in `corePlugins.ts`) are registered before any configured plugin. Feature plugins among them (`RfcFeaturesPlugin`, `TenancyPlugin`, `NodeInterfacePlugin`, `ConnectionPlugin`) are registered only when their option is on, so check `context.options` rather than assuming their definitions exist. A plugin may rely on what they add and import their helpers (`isModel`, `isRelationField`, `isSemanticNullable`, `isRelayConnection`, …) from `@gqlbase/core/plugins`.
+The core plugins (`packages/core/src/plugins/`, listed in `corePlugins.ts`) are registered before any configured plugin. Feature plugins among them (`RfcFeaturesPlugin`, `TenancyPlugin`, `DataSourcesPlugin`, `NodeInterfacePlugin`, `ConnectionPlugin`) are registered only when their option is on, so check `context.options` rather than assuming their definitions exist. A plugin may rely on what they add and import their helpers (`isModel`, `isRelationField`, `isSemanticNullable`, `isRelayConnection`, …) from `@gqlbase/core/plugins`.
 
 A plugin must not depend on an optional plugin, because a config can leave it out: capability plugins in `@gqlbase/plugins` never import each other. If two of them need the same helper, move it into core.
 

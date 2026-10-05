@@ -127,7 +127,7 @@ export class ZodSchemaGeneratorPlugin extends TransformerPluginBase {
     );
 
     const printer = ts.createPrinter({
-      newLine: ts.NewLineKind.CarriageReturnLineFeed,
+      newLine: ts.NewLineKind.LineFeed,
       removeComments: false,
     });
 

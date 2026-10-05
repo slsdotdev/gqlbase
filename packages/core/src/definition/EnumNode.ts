@@ -8,6 +8,7 @@ import {
 import { WithDirectivesNode } from "./WithDirectivesNode.js";
 import { DirectiveNode } from "./DirectiveNode.js";
 import { EnumValueNode } from "./EnumValueNode.js";
+import { InvalidDefinitionError } from "@gqlbase/shared/errors";
 
 export class EnumNode extends WithDirectivesNode {
   kind: Kind.ENUM_TYPE_DEFINITION = Kind.ENUM_TYPE_DEFINITION;
@@ -39,7 +40,7 @@ export class EnumNode extends WithDirectivesNode {
           : EnumValueNode.fromDefinition(value);
 
     if (this.hasValue(valueNode.name)) {
-      throw new Error(`Value ${valueNode.name} already exists on enum ${this.name}`);
+      throw new InvalidDefinitionError(`Value ${valueNode.name} already exists on enum ${this.name}`);
     }
 
     this.values = this.values ?? [];

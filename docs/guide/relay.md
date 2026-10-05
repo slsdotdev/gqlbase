@@ -85,7 +85,7 @@ type PageInfo {
 - `edges` and `node` are non-null, as above. With the `semanticNullability` option on, they stay nullable and carry `@semanticNonNull` instead: `edges: [PostEdge] @semanticNonNull(levels: [0, 1])` and `node: Post @semanticNonNull`.
 - `cursor` and `node` on the edge are marked `@clientOnly` internally. They get no stored column and no input entry.
 - Connection and edge types are shared per target. A type already named `<Target>Connection` or `<Target>Edge` is reused.
-- Backward pagination (`last`/`before`), `totalCount` and ordering arguments are not generated.
+- Backward pagination (`last`/`before`) and `totalCount` are not generated. Ordering is: every connection takes `orderBy` ([Models → Ordering](./models.md#ordering)).
 - Union and interface targets produce `<Union>Connection` / `<Union>Edge` the same way.
 
 ## Related
