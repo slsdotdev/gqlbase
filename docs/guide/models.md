@@ -80,7 +80,7 @@ With the `relay` option on, `listPosts` returns `PostConnection!` and gains `fir
 | Operation | Generated field | Notes |
 | --- | --- | --- |
 | `get` | `Query.get<Model>(id: ID!): <Model>` | The argument takes the model's `id` type (`GUID!`, `UUID!`, …); `ID!` when the model has none. |
-| `list` | `Query.list<Models>(filter: <Model>FilterInput, orderBy: <Model>OrderByInput): [<Model>]` | Name is pluralized. The field is marked as a `@hasMany` relation internally, so Relay turns it into a connection. |
+| `list` | `Query.list<Models>(filter: <Model>FilterInput, orderBy: <Model>OrderByInput): [<Model>!]` | Name is pluralized. The field is marked as a `@hasMany` relation internally, so Relay turns it into a connection. |
 | `create` | `Mutation.create<Model>(input: Create<Model>Input!): <Model>` | |
 | `update` | `Mutation.update<Model>(input: Update<Model>Input!): <Model>` | |
 | `upsert` | `Mutation.upsert<Model>(input: Upsert<Model>Input!): <Model>` | Opt-in only; not part of `write`. The input follows the update rules. |
@@ -212,7 +212,7 @@ input PricingModelFilterInput {
 | a list of a built-in scalar filtered with the element's filter (`tags: StringFilterInput`) | `tags: StringListFilterInput` (`contains: [String!]`, `exists`) |
 | `and: [XFilterInput]`, `or: [XFilterInput]` | `[XFilterInput!]` |
 
-`eq`, `lt`, `gt`, `in`, `between`, `beginsWith`, `contains` and `exists` are unchanged. `endsWith` is new.
+`eq`, `lt`, `gt`, `in`, `between`, `beginsWith`, `contains` and `exists` are unchanged, except on dates: `Date`, `DateTime` and `Time` lose `beginsWith` and `contains` ([operator sets](#operator-sets)). `endsWith` is new.
 
 ### Where the filter is accepted
 

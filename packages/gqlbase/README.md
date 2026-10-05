@@ -7,10 +7,10 @@ Define your GraphQL schema with directives like `@model`, `@hasOne`, and `@hasMa
 ## Install
 
 ```bash
-npm install gqlbase graphql
+npm install --save-dev gqlbase graphql@16
 ```
 
-`graphql` is a required peer dependency.
+`graphql` 16 is a required peer dependency. TypeScript comes with gqlbase. Node.js 22 or later.
 
 ## Quick Start
 
@@ -30,7 +30,7 @@ type Post @model {
   id: ID!
   title: String!
   content: String
-  author: User! @hasOne
+  author: User! @belongsTo
 }
 ```
 
@@ -88,58 +88,46 @@ export default defineConfig({
 
 | Property | Type | Default | Description |
 |---|---|---|---|
-| `source` | `string \| string[]` | `**/*.graphql` | Glob pattern(s) for schema files |
+| `source` | `string \| string[]` | `**/*.graphql` | Files, globs or directories of schema files. The output directory is never read. |
 | `output` | `string` | `generated` | Output directory |
-| `plugins` | `IPluginFactory[]` | — | Plugins and presets to apply |
+| `transform` | `object` | `{}` | Transformer options: `relay`, `semanticNullability`, `operations`, `tenancy`, `dataSources` |
+| `plugins` | `IPluginFactory[]` | `[]` | Plugins and presets to apply, in order |
 | `verbose` | `boolean` | `false` | Enable debug logging |
 | `watch` | `boolean` | `false` | Watch for file changes |
 
-## Directives
+See [Configuration](https://github.com/slsdotdev/gqlbase/blob/main/docs/guide/configuration.md) for every option.
 
-| Directive | Description |
-|---|---|
-| `@model` | Generates query, mutation, and input types for the annotated type |
-| `@hasOne` | Defines a one-to-one relation |
-| `@hasMany` | Defines a one-to-many relation |
-| `@readOnly` | Excludes the field from input types |
-| `@writeOnly` | Excludes the field from output types |
-| `@clientOnly` | Computed at runtime: the field (or type) is never stored or written |
-| `@serverOnly` | Stored, but the field (or type) is removed from client-facing schemas |
-| `@createOnly` | Includes the field only in create inputs |
-| `@updateOnly` | Includes the field only in update inputs |
-| `@filterOnly` | Includes the field only in filter inputs |
+## Generators
 
-## Built-in Scalars
-
-The core plugins register the following scalar types:
-
-`DateTime` · `Date` · `Time` · `Timestamp` · `UUID` · `URL` · `EmailAddress` · `PhoneNumber` · `IPAddress` · `JSON`
-
-## Presets and Plugins
-
-The core plugins are always registered, before any plugin in your config:
-
-- `ScalarsPlugin` — registers built-in scalar types
-- `UtilitiesPlugin` — processes visibility and scope directives
-- `InterfaceUtilsPlugin` — copies interface fields into implementing types
-- `RfcFeaturesPlugin` — `@semanticNonNull`, when `transform.semanticNullability` is on
-- `ModelPlugin` — generates CRUD operations from `@model` types
-- `RelationsPlugin` — resolves `@hasOne`, `@hasMany` and `@belongsTo` relations
-- `NodeInterfacePlugin` and `ConnectionPlugin` — the Relay `Node` interface and connections, when `transform.relay` is on
-- `SchemaGeneratorPlugin` — outputs the transformed `schema.graphql`
-- `ModelTypesGeneratorPlugin` — outputs TypeScript type definitions
-
-Transformer options switch core features on:
+Add generators as plugins:
 
 ```js
+import { defineConfig } from "gqlbase/config";
+import { appsyncPreset } from "gqlbase/plugins";
+import { zodSchemaGeneratorPlugin } from "gqlbase/plugins/zod";
+import { dsqlbase } from "gqlbase/plugins/dsql";
+
 export default defineConfig({
-  transform: {
-    relay: true, // Relay-style connections and the Node interface
-  },
+  source: "src/schema",
+  output: "generated",
+  transform: { relay: true },
+  plugins: [appsyncPreset(), zodSchemaGeneratorPlugin(), dsqlbase()],
 });
 ```
 
-Additional presets for specific use cases (AppSync, Zod, etc.) are planned.
+| Import | Generates |
+|---|---|
+| `gqlbase/plugins` → `appsyncPreset()` | The AppSync schema and typed resolver definitions for `@middy-appsync/graphql` |
+| `gqlbase/plugins/zod` → `zodSchemaGeneratorPlugin()` | Zod validators for the public inputs and objects |
+| `gqlbase/plugins/dsql` → `dsqlbase()` | A [dsqlbase](https://www.npmjs.com/package/dsqlbase) schema: tables, relations, indexes |
+
+The generated files import their own runtime packages; [Install](https://github.com/slsdotdev/gqlbase/blob/main/docs/guide/install.md#what-the-generated-code-needs-at-runtime) lists them.
+
+## Directives and scalars
+
+`@model` generates operations and inputs; `@hasOne`, `@hasMany` and `@belongsTo` declare relations; `@readOnly`, `@writeOnly`, `@serverOnly`, `@clientOnly`, `@createOnly`, `@updateOnly` and `@filterOnly` control where a field appears. The core also declares `@scope` (tenancy), `@dataSource`, `@sortable`, `@constraint` and `@semanticNonNull`, and the scalars `DateTime`, `Date`, `Time`, `Timestamp`, `SafeInt`, `UUID`, `GUID`, `URL`, `EmailAddress`, `PhoneNumber`, `IPAddress` and `JSON`.
+
+The [directive reference](https://github.com/slsdotdev/gqlbase/blob/main/docs/guide/README.md#directive-quick-reference) lists every directive with its arguments, including the generators' own.
 
 ## Programmatic API
 
@@ -159,7 +147,7 @@ The full documentation lives in the repository's [`docs/`](https://github.com/sl
 
 ## Packages
 
-The `gqlbase` package re-exports all functionality. These internal packages are available for advanced use cases:
+`gqlbase` re-exports the CLI config (`gqlbase/config`), the plugins (`gqlbase/plugins`, `gqlbase/plugins/<name>`) and `createTransformer`. The scoped packages it is built from:
 
 | Package | Description |
 |---|---|

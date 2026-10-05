@@ -5,7 +5,7 @@ Utilities shared by the gqlbase packages: the scoped logger, error classes, stri
 This is an internal package. Install the main [`gqlbase`](https://www.npmjs.com/package/gqlbase) package instead:
 
 ```bash
-npm install gqlbase graphql
+npm install --save-dev gqlbase graphql@16
 ```
 
 ## Documentation

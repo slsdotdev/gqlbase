@@ -3,7 +3,7 @@
 _Audience: people generating a [dsqlbase](https://github.com/slsdotdev/dsqlbase) schema (Aurora DSQL ORM) from their `@model` types._
 
 ```js
-import { dsqlbase } from "@gqlbase/plugins/dsql";
+import { dsqlbase } from "gqlbase/plugins/dsql";
 
 plugins: [dsqlbase()];
 ```
@@ -98,7 +98,7 @@ export const postRelations = relations(posts, {
 - **Relations.** One `relations(table, {...})` per model, exported as `<camel>Relations`. A relation to a model in another data source keeps its key column but gets no relation, since there is no table to relate to:
   - `@belongsTo` → `belongsTo(target, { from: [source.key], to: [target.id] })`;
   - `@hasOne` / `@hasMany` → `hasOne` / `hasMany(target, { from: [source.id], to: [target.key] })`.
-  - Relay connections and `{ items }` connections are resolved back to the node type.
+  - A Relay connection (or a plain `[T!]` list) is resolved back to its node type.
   - A union or interface target becomes a `union()`; see [Polymorphic relations](#polymorphic-relations). A plain-object target throws.
 
 ### `SafeInt` columns

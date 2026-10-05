@@ -5,7 +5,7 @@ The command-line interface for gqlbase. It provides the `gqlbase` binary, `defin
 This is an internal package. Install the main [`gqlbase`](https://www.npmjs.com/package/gqlbase) package instead:
 
 ```bash
-npm install gqlbase graphql
+npm install --save-dev gqlbase graphql@16
 ```
 
 ## Documentation

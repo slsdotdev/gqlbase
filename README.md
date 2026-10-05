@@ -7,7 +7,7 @@ gqlbase takes annotated GraphQL schemas and generates full schemas with CRUD ope
 ## Quick Start
 
 ```bash
-npm install gqlbase graphql
+npm install --save-dev gqlbase graphql@16
 ```
 
 Create a config file and run the CLI:

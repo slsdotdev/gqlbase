@@ -55,6 +55,6 @@
     "typescript": "^6.0.3"
   },
   "peerDependencies": {
-    "graphql": "^16.8.0"
+    "graphql": "^16.8.1"
   }
 }

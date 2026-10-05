@@ -3,7 +3,7 @@
 _Audience: people validating data with Zod schemas generated from the GraphQL schema._
 
 ```js
-import { zodSchemaGeneratorPlugin } from "@gqlbase/plugins/zod";
+import { zodSchemaGeneratorPlugin } from "gqlbase/plugins/zod";
 
 plugins: [zodSchemaGeneratorPlugin({ generateArgumentSchemas: true })];
 ```

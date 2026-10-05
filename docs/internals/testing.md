@@ -25,7 +25,7 @@ Run from the repo root:
 - The root `vitest.config.ts` defines one project rooted at `./packages`. Each package has its own `vitest.config.ts`: node environment, globals, and coverage written to `../../coverage/<pkg>`.
 - Unit tests sit next to the code they test (`Foo.ts` / `Foo.test.ts`):
   - **core:** every definition node, `TransformerContext`, `GraphQLTransformer`, and `createPluginFactory`.
-  - **plugins:** one `<Plugin>.test.ts` per plugin directory. `ScalarsPlugin` and a few others have none.
+  - **plugins:** one `<Plugin>.test.ts` per plugin directory.
   - **shared:** string, logger and util helpers.
   - **cli:** the watcher.
 - End-to-end specs live in `example/test/` (see [End-to-end tests](#end-to-end-tests)).
@@ -90,7 +90,7 @@ AppSync cannot run locally, so `example/test/appsync.ts` stands in for it:
 
 The example is never deployed. `example/src/lib/dsql.ts` creates a dsqlbase client on an in-memory PGlite database (`dsqlbase/pglite`). `migrate()` applies the generated dsqlbase schema, with `asyncIndexes: false` because PGlite has no async indexes. Vitest isolates modules per file, so each spec file gets its own empty database. Seed data directly through `dsql` in `beforeAll` when a spec needs rows it is not testing the creation of.
 
-The example depends on `dsqlbase@latest`.
+The example depends on `dsqlbase@^0.2`, the version the generated schema targets.
 
 ### Adding a capability behaviour
 

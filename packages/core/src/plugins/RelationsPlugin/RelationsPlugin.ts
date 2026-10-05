@@ -54,7 +54,7 @@ import { BaseScalar } from "../ScalarsPlugin/ScalarsPlugin.utils.js";
  * ```graphql
  * directive `@hasOne(key: String)` on FIELD_DEFINITION
  * directive `@hasMany(key: String)` on FIELD_DEFINITION
- * directive `@belongsTo(key: String)` on FIELD_DEFINITION
+ * directive `@belongsTo(key: String, discriminator: String)` on FIELD_DEFINITION
  * ```
  *
  * @example

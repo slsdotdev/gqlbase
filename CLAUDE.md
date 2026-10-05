@@ -50,5 +50,5 @@ npm test -w example            # E2E only: codegen, typecheck, specs against PGl
 - **Docs are part of done.**
   - A change to documented behaviour updates the doc page in the same change.
   - A fix for a listed gap deletes its entry in `known-gaps.md`.
-  - Every changeset carries a `Docs:` line.
+  - Every changeset ends with links to the guide pages a user should read; the PR lists the docs it touched.
 - **Changesets.** Every change to a published package gets one (`npm run changeset`). `@gqlbase/*` and `gqlbase` version together as a `fixed` group. CI publishes from `main`.

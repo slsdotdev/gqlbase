@@ -7,7 +7,7 @@ The optional plugins and presets for gqlbase. Models, relations, field visibilit
 This is an internal package. Install the main [`gqlbase`](https://www.npmjs.com/package/gqlbase) package instead:
 
 ```bash
-npm install gqlbase graphql
+npm install --save-dev gqlbase graphql@16
 ```
 
 ## Documentation

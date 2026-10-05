@@ -3,7 +3,7 @@
 _Audience: people deploying the generated schema to AWS AppSync and writing resolvers with `@middy-appsync/graphql`._
 
 ```js
-import { appsyncPreset } from "@gqlbase/plugins";
+import { appsyncPreset } from "gqlbase/plugins";
 
 appsyncPreset({
   middyAppSync: { authorizationModes: ["cognito", "iam"] },
