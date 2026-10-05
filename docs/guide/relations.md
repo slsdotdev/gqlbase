@@ -157,5 +157,5 @@ With `GUID` members, nothing has to set the discriminator: [dsqlbase](./dsqlbase
 - [Models](./models.md)
 - [Relay](./relay.md)
 - [Field visibility](./field-visibility.md)
-- [dsqlbase](./dsqlbase.md), [Drizzle](./drizzle.md) — relation output
+- [dsqlbase](./dsqlbase.md) — relation output
 - [Known gaps](../internals/known-gaps.md)

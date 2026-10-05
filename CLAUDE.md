@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-gqlbase is a GraphQL schema transformer and code generator. It reads SDL, expands directives (`@model`, `@hasMany`, …) into operations, inputs and relation types through an ordered plugin pipeline, and generates TypeScript types, Zod validators, ORM schemas (dsqlbase, Drizzle) and an AppSync schema from the result.
+gqlbase is a GraphQL schema transformer and code generator. It reads SDL, expands directives (`@model`, `@hasMany`, …) into operations, inputs and relation types through an ordered plugin pipeline, and generates TypeScript types, Zod validators, a dsqlbase schema and an AppSync schema from the result.
 
 ## Read first
 

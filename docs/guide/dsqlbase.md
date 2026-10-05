@@ -380,5 +380,4 @@ const rows = await dsql.categories.findMany({
 - [Relations](./relations.md)
 - [Field visibility](./field-visibility.md)
 - [Data sources](./data-sources.md)
-- [Drizzle](./drizzle.md) — the equivalent Drizzle generator
 - [Known gaps](../internals/known-gaps.md)

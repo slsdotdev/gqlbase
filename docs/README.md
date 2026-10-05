@@ -28,7 +28,6 @@ This directory is the one reference for `gqlbase`. It serves people using the li
   - [AppSync](./guide/appsync.md)
   - [Zod](./guide/zod.md)
   - [dsqlbase](./guide/dsqlbase.md)
-  - [Drizzle](./guide/drizzle.md)
 
 ### Internals (contributors and agents)
 

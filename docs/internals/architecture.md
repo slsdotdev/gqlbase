@@ -29,7 +29,6 @@ Each package exposes subpaths through `"./*": "./dist/*/index.js"`, for example 
 | `appsync/` | `AppSyncUtilsPlugin`, `AppSyncSchemaGeneratorPlugin`, `MiddyAppSyncGraphQLPlugin` | `appsyncPreset()` |
 | `zod/` | `ZodSchemaGeneratorPlugin` | `@gqlbase/plugins/zod` |
 | `dsql/` | `DsqlBaseSchemaGeneratorPlugin` | `@gqlbase/plugins/dsql` |
-| `drizzle/` | `DrizzleSchemaGeneratorPlugin` | `@gqlbase/plugins/drizzle` |
 
 The root `packages/plugins/src/index.ts` exports only the appsync preset. Each plugin's options, directives and output are covered in the [guide](../guide/README.md).
 

@@ -19,7 +19,7 @@ _Audience: contributors and agents._
 - **Directive names:** keep them in a constant object in the owning plugin's utils (e.g. `UtilityDirective`, `RelationDirective`), never as string literals scattered through other plugins.
 - **Errors:** throw the classes from `@gqlbase/shared/errors`. A plugin rejecting a schema throws `TransformerPluginExecutionError` with its own name.
 - **Logging:** use `context.logger`, or a child from `logger.createChild(scope)`. Do not use `console`.
-- **Generated files:** each capability plugin writes into its own folder under the output directory (`appsync/`, `zod/`, `dsqlbase/`, `drizzle/`); only core writes to the root (`schema.graphql`, `schema.types.ts`). Generated files that hold only TypeScript types end in `.types.ts` (`schema.types.ts`, `appsync/middy-appsync.types.ts`).
+- **Generated files:** each capability plugin writes into its own folder under the output directory (`appsync/`, `zod/`, `dsqlbase/`); only core writes to the root (`schema.graphql`, `schema.types.ts`). Generated files that hold only TypeScript types end in `.types.ts` (`schema.types.ts`, `appsync/middy-appsync.types.ts`).
 - **Mutation:** mutate definition nodes in place through their methods ([Definition nodes](./definition-nodes.md)). Do not rebuild graphql-js AST by hand.
 
 ## Design workflow

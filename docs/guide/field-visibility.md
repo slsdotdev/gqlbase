@@ -25,7 +25,7 @@ One core rule decides what reaches the client schema: `isPublicSchemaField(field
 - **GraphQL inputs**: `ModelPlugin.utils.ts`; filters: `FilterPlugin.utils.ts`.
 - **TS**: `ModelTypesGeneratorPlugin`.
 - **Zod**: `ZodSchemaGeneratorPlugin`; its create/update schemas take their fields from the GraphQL inputs.
-- **DB**: `DsqlBaseSchemaGeneratorPlugin` and `DrizzleSchemaGeneratorPlugin`.
+- **DB**: `DsqlBaseSchemaGeneratorPlugin`.
 
 The entries were checked by running the transformer.
 

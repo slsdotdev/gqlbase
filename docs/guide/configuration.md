@@ -89,7 +89,6 @@ A plugin factory is a function returning `{ create(context) }`; presets are plai
 | `appsyncPreset({ … })` | `@gqlbase/plugins` | `AppSyncUtilsPlugin`, `AppSyncSchemaGeneratorPlugin`, `MiddyAppSyncGraphQLPlugin` (optional) |
 | `zodSchemaGeneratorPlugin({ … })` | `@gqlbase/plugins/zod` | `ZodSchemaGeneratorPlugin` |
 | `dsqlbase()` | `@gqlbase/plugins/dsql` | `DsqlBaseSchemaGeneratorPlugin` |
-| `drizzleSchemaGeneratorPlugin({ … })` | `@gqlbase/plugins/drizzle` | `DrizzleSchemaGeneratorPlugin` |
 
 The core plugins and their helpers (`isModel`, `isRelationField`, `isSemanticNullable`, …) are exported from `@gqlbase/core/plugins` for plugin authors.
 
@@ -103,7 +102,6 @@ The core plugins and their helpers (`isModel`, `isRelationField`, `isSemanticNul
 | `appsync/middy-appsync.types.ts` | `MiddyAppSyncGraphQLPlugin` |
 | `zod/schema.validators.ts` | `ZodSchemaGeneratorPlugin` (`fileName` option) |
 | `dsqlbase/schema.ts` | `DsqlBaseSchemaGeneratorPlugin` |
-| `drizzle/schema.ts` | `DrizzleSchemaGeneratorPlugin` (`fileName` option) |
 
 Existing files are overwritten; files a plugin no longer produces are not deleted.
 
@@ -145,7 +143,7 @@ export type FeedItem = AuthorFull | PostFull;
 - **There is no `__typename`.** It is a resolver concern (see [AppSync types](./appsync.md#appsync-types)).
 - A schema type named like a generated one (`PostFull`, `Scalars`, `Maybe`) throws.
 
-The stored outputs reference `<Type>OwnFields`: an object column in dsqlbase or Drizzle holds the stored shape, without relations.
+The stored outputs reference `<Type>OwnFields`: an object column in dsqlbase holds the stored shape, without relations.
 
 `createTransformer` takes the [transformer options](#transformer-options) at the top level, next to `plugins`, with the same defaults. `transform()` returns `{ schema, files }` merged with whatever each plugin's `output()` returns (`schemaTypes` holds the content of `schema.types.ts`). Nothing is written to disk; the CLI does that.
 

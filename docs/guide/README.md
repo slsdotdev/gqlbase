@@ -32,7 +32,6 @@ These pages describe what the library does **today**. Planned behaviour is not d
 | [AppSync](./appsync.md) | `@gqlbase/plugins` → `appsyncPreset` | `appsync/schema.graphql`, `appsync/middy-appsync.types.ts` |
 | [Zod](./zod.md) | `@gqlbase/plugins/zod` | `zod/schema.validators.ts` |
 | [dsqlbase](./dsqlbase.md) | `@gqlbase/plugins/dsql` | `dsqlbase/schema.ts` |
-| [Drizzle](./drizzle.md) | `@gqlbase/plugins/drizzle` | `drizzle/schema.ts` |
 
 ## Directive quick reference
 
