@@ -49,10 +49,10 @@ type User implements Timestamped & SoftDeletable & Versioned
   """
   vendorMembership: VendorMember @hasOne @access(allow: [ADMIN, VENDOR])
 
-  createdAt: DateTime @semanticNonNull @readOnly
-  updatedAt: DateTime @semanticNonNull @readOnly
+  createdAt: DateTime @semanticNonNull @readOnly @defaultNow
+  updatedAt: DateTime @semanticNonNull @readOnly @defaultNow @default(onUpdate: "() => new Date().toISOString()")
   deletedAt: DateTime @serverOnly
-  isArchived: Boolean @readOnly
+  isArchived: Boolean @readOnly @default(value: "false")
 }
 
 enum Locale {
@@ -167,8 +167,8 @@ type RefreshTokenFamily implements Node & Timestamped
 
   user: User! @hasOne
 
-  createdAt: DateTime! @readOnly
-  updatedAt: DateTime! @readOnly
+  createdAt: DateTime! @readOnly @defaultNow
+  updatedAt: DateTime! @readOnly @defaultNow @default(onUpdate: "() => new Date().toISOString()")
 }
 
 """
@@ -188,8 +188,8 @@ type VerificationToken implements Node & Timestamped
 
   user: User! @hasOne
 
-  createdAt: DateTime! @readOnly
-  updatedAt: DateTime! @readOnly
+  createdAt: DateTime! @readOnly @defaultNow
+  updatedAt: DateTime! @readOnly @defaultNow @default(onUpdate: "() => new Date().toISOString()")
 }
 
 enum VerificationPurpose {

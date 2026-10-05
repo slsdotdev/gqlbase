@@ -70,12 +70,12 @@ type Vendor implements Node & Timestamped & Auditable & SoftDeletable & Versione
   averageRating: Float @clientOnly @readOnly
   totalReviewCount: Int! @clientOnly @readOnly
 
-  createdAt: DateTime! @readOnly
-  updatedAt: DateTime! @readOnly
+  createdAt: DateTime! @readOnly @defaultNow
+  updatedAt: DateTime! @readOnly @defaultNow @default(onUpdate: "() => new Date().toISOString()")
   createdBy: UUID @readOnly @serverOnly
   updatedBy: UUID @readOnly @serverOnly
   deletedAt: DateTime @readOnly @serverOnly
-  isArchived: Boolean! @readOnly
+  isArchived: Boolean! @readOnly @default(value: "false")
 }
 
 enum VendorStatus {
@@ -131,8 +131,8 @@ type VendorApplication implements Node & Timestamped & Auditable @model @access(
   vendor: Vendor! @hasOne
   applicant: User! @hasOne(key: "applicantUserId")
 
-  createdAt: DateTime! @readOnly
-  updatedAt: DateTime! @readOnly
+  createdAt: DateTime! @readOnly @defaultNow
+  updatedAt: DateTime! @readOnly @defaultNow @default(onUpdate: "() => new Date().toISOString()")
   createdBy: UUID @readOnly @serverOnly
   updatedBy: UUID @readOnly @serverOnly
 }
@@ -188,8 +188,8 @@ type VendorMember implements Node & Timestamped
   vendor: Vendor! @hasOne
   user: User! @hasOne
 
-  createdAt: DateTime! @readOnly
-  updatedAt: DateTime! @readOnly
+  createdAt: DateTime! @readOnly @defaultNow
+  updatedAt: DateTime! @readOnly @defaultNow @default(onUpdate: "() => new Date().toISOString()")
 }
 
 enum VendorMemberRole {
@@ -236,8 +236,8 @@ type OperatingSchedule implements Node & Timestamped
   vendor: Vendor! @hasOne
   marketLocation: MarketLocation @hasOne
 
-  createdAt: DateTime! @readOnly
-  updatedAt: DateTime! @readOnly
+  createdAt: DateTime! @readOnly @defaultNow
+  updatedAt: DateTime! @readOnly @defaultNow @default(onUpdate: "() => new Date().toISOString()")
 }
 
 # ------------------------------------------------------------------------------
@@ -272,10 +272,10 @@ type MarketLocation implements Node & Timestamped & SoftDeletable
   operatingSchedules: [OperatingSchedule!]! @hasMany
   media: [MediaAsset!]! @hasMany(key: "subjectId")
 
-  createdAt: DateTime! @readOnly
-  updatedAt: DateTime! @readOnly
+  createdAt: DateTime! @readOnly @defaultNow
+  updatedAt: DateTime! @readOnly @defaultNow @default(onUpdate: "() => new Date().toISOString()")
   deletedAt: DateTime @readOnly @serverOnly
-  isArchived: Boolean! @readOnly
+  isArchived: Boolean! @readOnly @default(value: "false")
 }
 
 enum MarketAmenity {
@@ -309,8 +309,8 @@ type MarketVendorAssignment implements Node & Timestamped
   vendor: Vendor! @belongsTo(key: "vendorId")
   marketLocation: MarketLocation! @belongsTo(key: "marketLocationId")
 
-  createdAt: DateTime! @readOnly
-  updatedAt: DateTime! @readOnly
+  createdAt: DateTime! @readOnly @defaultNow
+  updatedAt: DateTime! @readOnly @defaultNow @default(onUpdate: "() => new Date().toISOString()")
 }
 
 enum AssignmentStatus {

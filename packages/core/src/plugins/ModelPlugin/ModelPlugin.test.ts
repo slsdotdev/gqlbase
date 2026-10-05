@@ -166,3 +166,38 @@ describe("ModelPlugin mutation inputs for a self-referencing object", () => {
     );
   });
 });
+
+describe("ModelPlugin mutation inputs for fields the server fills", () => {
+  let schema: string;
+
+  beforeAll(() => {
+    ({ schema } = createTransformer().transform(/* GraphQL */ `
+      type Money {
+        amount: Float!
+        currency: String! @gqlbase_hasDefault
+      }
+
+      type Product @model {
+        id: ID!
+        name: String!
+        status: String! @gqlbase_hasDefault
+        price: Money! @gqlbase_hasDefault
+      }
+    `));
+  });
+
+  it("makes a marked field optional in the create input", () => {
+    expect(schema).toMatch(
+      /input CreateProductInput \{\s+id: ID\s+name: String!\s+status: String\s+price: MoneyInput\s+\}/
+    );
+  });
+
+  it("keeps a marked member of a nested input, which updates share, as declared", () => {
+    expect(schema).toMatch(/input MoneyInput \{\s+amount: Float!\s+currency: String!\s+\}/);
+  });
+
+  it("keeps the field non-null in the output type and removes the marker", () => {
+    expect(schema).toMatch(/type Product \{[^}]*status: String!/);
+    expect(schema).not.toContain("gqlbase_hasDefault");
+  });
+});

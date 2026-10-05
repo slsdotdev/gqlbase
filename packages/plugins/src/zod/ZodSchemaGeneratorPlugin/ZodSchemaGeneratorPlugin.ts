@@ -464,9 +464,20 @@ export class ZodSchemaGeneratorPlugin extends TransformerPluginBase {
 
     for (const inputField of input.fields ?? []) {
       const field = source.getField(inputField.name);
-      const zodExpr = field
+      let zodExpr = field
         ? this._createModelFieldZodExpression(field, field.type, mode)
         : this._createInputFieldZodExpression(inputField, inputField.type);
+
+      // A non-null field the create input leaves optional, because the server fills it (`@gqlbase_hasDefault`).
+      if (
+        field &&
+        mode === "create" &&
+        !isPrimaryKeyField(field) &&
+        !isSemanticNullable(field, 0) &&
+        !(inputField.type instanceof NonNullTypeNode)
+      ) {
+        zodExpr = this._chainCall(zodExpr, "optional");
+      }
 
       properties.push(
         ts.factory.createPropertyAssignment(ts.factory.createIdentifier(inputField.name), zodExpr)

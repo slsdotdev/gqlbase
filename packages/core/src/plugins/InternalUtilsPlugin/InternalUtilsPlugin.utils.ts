@@ -6,6 +6,7 @@ export const InternalDirective = Object.freeze({
   INTERNAL: "gqlbase_internal",
   TYPE_HINT: "gqlbase_typehint",
   TUPLE: "gqlbase_tuple",
+  HAS_DEFAULT: "gqlbase_hasDefault",
 });
 
 export const TypeHintValue = Object.freeze({
@@ -31,6 +32,14 @@ export const isInternal = (node: unknown): boolean => {
   }
 
   return false;
+};
+
+/**
+ * Whether a field is marked _@gqlbase_hasDefault_: the server fills it when a create leaves it out, so it is optional in
+ * the model's create input. A storage plugin sets it for the defaults it declares.
+ */
+export const hasDefault = (node: WithDirectivesNode): boolean => {
+  return node.hasDirective(InternalDirective.HAS_DEFAULT);
 };
 
 /**

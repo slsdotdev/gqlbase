@@ -113,6 +113,7 @@ Which fields appear in which input is decided by `packages/core/src/plugins/Mode
 - `@createOnly` fields appear only in the create input, `@updateOnly` only in update/upsert, `@filterOnly` only in the filter input.
 - **`id`:** optional in create (`id: ID`), required in update, upsert and delete.
 - **Nullability:** the create input keeps the field's nullability (honouring `@semanticNonNull`); update and upsert make every field except `id` nullable.
+- **Fields the server fills** are optional in the create input, whatever their type says: a field marked `@gqlbase_hasDefault`, which a storage plugin sets for the defaults it declares (the dsqlbase plugin's [column defaults](./dsqlbase.md#column-defaults)). It stays non-null in the output type. Nested `<Type>Input`s keep their own nullability, since updates share them.
 - **Scalars and enums** are copied with their list shape.
 - **Fields whose type is another `@model`** are skipped. Use a relation and its key instead.
 - **Fields whose type is a non-model object** get a generated `<Type>Input`, built recursively from the object's fields, and are referenced from the model input. An existing type with that name is reused as is.
@@ -126,7 +127,7 @@ Update inputs are partial: an omitted field is left unchanged, and `null` sets a
 - Validate the update with the generated `Update<Model>InputSchema` ([Zod](./zod.md)). A required field is `.optional()`, so `null` is rejected with an error the client sees. A nullable field is `.nullable().optional()`, so `null` clears it.
 - Do not drop `null` values in the resolver. The resolver cannot tell "clear this" from "ignore this", and silently skipping a write hides a client bug.
 
-`Create<Model>InputSchema` has the fields of `Create<Model>Input`, so validate `args.input` with it, then add the values the server sets, such as timestamps. Validation also enforces `@constraint`. `example/src/resolvers/category.ts` shows both.
+`Create<Model>InputSchema` has the fields of `Create<Model>Input`, so validate `args.input` with it, then add the values the server sets that no column default fills. Validation also enforces `@constraint`. `example/src/resolvers/category.ts` shows both.
 
 ## Filter inputs
 

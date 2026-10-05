@@ -652,3 +652,191 @@ describe("embedded objects: errors", () => {
     ).toThrow(/@embedded type Items would be exported as "items"/);
   });
 });
+
+describe("column defaults", () => {
+  let tables: string;
+  let schema: string;
+  let validators: string;
+
+  beforeAll(() => {
+    const output = createTransformer({
+      plugins: [dsqlbase(), zodSchemaGeneratorPlugin()],
+    }).transform(/* GraphQL */ `
+      enum Status {
+        ACTIVE
+        ARCHIVED
+      }
+
+      interface Timestamped {
+        createdAt: DateTime! @defaultNow
+        updatedAt: DateTime! @defaultNow @default(onUpdate: "() => new Date().toISOString()")
+      }
+
+      type Money @embedded {
+        amount: Int!
+        currency: String! @default(value: "\\"EUR\\"")
+      }
+
+      type Product implements Timestamped @model {
+        id: ID!
+        name: String!
+        status: Status! @default(value: "\\"ACTIVE\\"")
+        archived: Boolean! @default(value: "false")
+        token: UUID! @defaultRandom
+        slug: String! @default(onCreate: "() => crypto.randomUUID()")
+        touchedAt: DateTime @default(onUpdate: "() => new Date().toISOString()")
+        price: Money! @default(value: "{ amount: 0 }")
+      }
+    `);
+
+    tables = output.files.find((file) => file.path === "dsqlbase/schema.ts")?.content ?? "";
+    validators =
+      output.files.find((file) => file.path === "zod/schema.validators.ts")?.content ?? "";
+    schema = output.schema;
+  });
+
+  it("emits @default(value:) as .default() with the value as written", () => {
+    expect(tables).toContain('status: statusEnum.column("status").notNull().default("ACTIVE")');
+    expect(tables).toContain('archived: bool("archived").notNull().default(false)');
+  });
+
+  it("emits @defaultRandom and @defaultNow", () => {
+    expect(tables).toContain('token: uuid("token").notNull().defaultRandom()');
+    expect(tables).toContain(
+      'createdAt: timestamp("created_at", { mode: "iso" }).notNull().defaultNow()'
+    );
+  });
+
+  it("emits onCreate and onUpdate as hooks, and reaches fields an interface adds", () => {
+    expect(tables).toContain('slug: text("slug").notNull().$onCreate(() => crypto.randomUUID())');
+    expect(tables).toContain(
+      'updatedAt: timestamp("updated_at", { mode: "iso" }).notNull().defaultNow().$onUpdate(() => new Date().toISOString())'
+    );
+  });
+
+  it("emits a default on an @embedded member and on a group", () => {
+    expect(tables).toContain('currency: text("currency").notNull().default("EUR")');
+    expect(tables).toContain('price: money.column("price").default({ amount: 0 })');
+  });
+
+  it("makes the fields filled on create optional in the create input", () => {
+    expect(schema).toMatch(
+      /input CreateProductInput \{\s+id: ID\s+name: String!\s+status: Status\s+archived: Boolean\s+token: UUID\s+slug: String\s+touchedAt: DateTime\s+price: MoneyInput\s+createdAt: DateTime\s+updatedAt: DateTime\s+\}/
+    );
+  });
+
+  it("keeps a field with only onUpdate as declared, and nested inputs too", () => {
+    expect(schema).toMatch(/input MoneyInput \{\s+amount: Int!\s+currency: String!\s+\}/);
+  });
+
+  it("makes them optional in the Zod create schema, following the input", () => {
+    expect(validators).toMatch(/CreateProductInputSchema = z\.object\(\{[^}]*name: z\.string\(\),/);
+    expect(validators).toMatch(
+      /CreateProductInputSchema = z\.object\(\{[^}]*archived: z\.boolean\(\)\.optional\(\),/
+    );
+  });
+
+  it("keeps the fields non-null in the output and removes the directives", () => {
+    expect(schema).toMatch(/type Product implements Timestamped \{[^}]*archived: Boolean!/);
+    expect(schema).not.toMatch(/@default|@defaultNow|@defaultRandom|gqlbase_hasDefault/);
+  });
+});
+
+describe("column defaults: errors", () => {
+  const transform = (sdl: string) => createTransformer({ plugins: [dsqlbase()] }).transform(sdl);
+
+  it("rejects @defaultNow on a column that is not a timestamp", () => {
+    expect(() =>
+      transform(/* GraphQL */ `
+        type Event @model {
+          id: ID!
+          day: Date! @defaultNow
+        }
+      `)
+    ).toThrow(/@defaultNow on day needs a timestamp column/);
+  });
+
+  it("rejects @defaultRandom on a column that is not a uuid", () => {
+    expect(() =>
+      transform(/* GraphQL */ `
+        type Event @model {
+          id: ID!
+          code: String! @defaultRandom
+        }
+      `)
+    ).toThrow(/@defaultRandom on code needs a uuid or guid column/);
+  });
+
+  it("rejects two database defaults", () => {
+    expect(() =>
+      transform(/* GraphQL */ `
+        type Event @model {
+          id: ID!
+          at: DateTime! @defaultNow @default(value: "\\"2026-01-01T00:00:00Z\\"")
+        }
+      `)
+    ).toThrow(/Event.at has more than one database default \(@defaultNow, @default\(value:\)\)/);
+  });
+
+  it("rejects @default without arguments", () => {
+    expect(() =>
+      transform(/* GraphQL */ `
+        type Event @model {
+          id: ID!
+          name: String! @default
+        }
+      `)
+    ).toThrow(/@default on Event.name sets nothing/);
+  });
+
+  it("rejects code that is not a TypeScript expression", () => {
+    expect(() =>
+      transform(/* GraphQL */ `
+        type Event @model {
+          id: ID!
+          name: String! @default(onCreate: "() => {")
+        }
+      `)
+    ).toThrow(/@default\(onCreate:\) on name is not a TypeScript expression/);
+  });
+
+  it("rejects defaults on a type that has no columns", () => {
+    expect(() =>
+      transform(/* GraphQL */ `
+        type Meta {
+          rows: Int! @default(value: "0")
+        }
+
+        type Event @model {
+          id: ID!
+          meta: Meta
+        }
+      `)
+    ).toThrow(/Meta is neither, so Meta.rows has no column/);
+  });
+
+  it("rejects hooks on an @embedded group", () => {
+    expect(() =>
+      transform(/* GraphQL */ `
+        type Money @embedded {
+          amount: Int!
+        }
+
+        type Event @model {
+          id: ID!
+          fee: Money @default(onCreate: "() => ({ amount: 0 })")
+        }
+      `)
+    ).toThrow(/Event.fee is an @embedded group, which takes only @default\(value:\)/);
+  });
+
+  it("rejects a default other than @defaultRandom on the primary key", () => {
+    expect(() =>
+      transform(/* GraphQL */ `
+        type Event @model {
+          id: ID! @default(onCreate: "() => crypto.randomUUID()")
+        }
+      `)
+    ).toThrow(/Event.id is the primary key/);
+  });
+});

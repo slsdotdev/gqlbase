@@ -47,8 +47,8 @@ type Cart implements Node & Timestamped @model @scope(name: user) @access(allow:
 
   user: User @hasOne
 
-  createdAt: DateTime! @readOnly
-  updatedAt: DateTime! @readOnly
+  createdAt: DateTime! @readOnly @defaultNow
+  updatedAt: DateTime! @readOnly @defaultNow @default(onUpdate: "() => new Date().toISOString()")
 }
 
 type CartItem implements Node & Timestamped @model @access(allow: [SHOP]) {
@@ -72,8 +72,8 @@ type CartItem implements Node & Timestamped @model @access(allow: [SHOP]) {
   cart: Cart! @hasOne
   variant: ProductVariant! @hasOne
 
-  createdAt: DateTime! @readOnly
-  updatedAt: DateTime! @readOnly
+  createdAt: DateTime! @readOnly @defaultNow
+  updatedAt: DateTime! @readOnly @defaultNow @default(onUpdate: "() => new Date().toISOString()")
 }
 
 # ------------------------------------------------------------------------------
@@ -139,8 +139,8 @@ type Order implements Node & Timestamped & Versioned
 
   user: User! @hasOne
 
-  createdAt: DateTime! @readOnly
-  updatedAt: DateTime! @readOnly
+  createdAt: DateTime! @readOnly @defaultNow
+  updatedAt: DateTime! @readOnly @defaultNow @default(onUpdate: "() => new Date().toISOString()")
 }
 
 """
@@ -251,8 +251,8 @@ type VendorOrder implements Node & Timestamped & Versioned
   order: Order! @hasOne
   vendor: Vendor! @hasOne
 
-  createdAt: DateTime! @readOnly
-  updatedAt: DateTime! @readOnly
+  createdAt: DateTime! @readOnly @defaultNow
+  updatedAt: DateTime! @readOnly @defaultNow @default(onUpdate: "() => new Date().toISOString()")
 }
 
 enum VendorOrderStatus {
@@ -314,8 +314,8 @@ type LineItem implements Node & Timestamped @model @access(allow: [ADMIN, VENDOR
   vendorOrder: VendorOrder! @hasOne
   variant: ProductVariant! @hasOne
 
-  createdAt: DateTime! @readOnly
-  updatedAt: DateTime! @readOnly
+  createdAt: DateTime! @readOnly @defaultNow
+  updatedAt: DateTime! @readOnly @defaultNow @default(onUpdate: "() => new Date().toISOString()")
 }
 
 enum LineItemFulfillmentStatus {
@@ -369,8 +369,8 @@ type Fulfillment implements Node & Timestamped @model @access(allow: [ADMIN, VEN
 
   vendorOrder: VendorOrder! @hasOne
 
-  createdAt: DateTime! @readOnly
-  updatedAt: DateTime! @readOnly
+  createdAt: DateTime! @readOnly @defaultNow
+  updatedAt: DateTime! @readOnly @defaultNow @default(onUpdate: "() => new Date().toISOString()")
 }
 
 enum FulfillmentStatus {
@@ -417,8 +417,8 @@ type OrderTimelineEvent implements Node & Timestamped @model @access(allow: [ADM
   """
   metadata: JSON @access(allow: [ADMIN, VENDOR])
 
-  createdAt: DateTime! @readOnly
-  updatedAt: DateTime! @readOnly
+  createdAt: DateTime! @readOnly @defaultNow
+  updatedAt: DateTime! @readOnly @defaultNow @default(onUpdate: "() => new Date().toISOString()")
 }
 
 enum OrderEvent {
