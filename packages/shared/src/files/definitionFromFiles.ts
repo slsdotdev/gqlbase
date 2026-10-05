@@ -1,6 +1,7 @@
 import { globSync } from "tinyglobby";
 import { readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
+import { ConfigurationError } from "../errors/index.js";
 
 export const GRAPHQL_EXTENSIONS = [".gql", ".graphql", ".graphqls"] as const;
 
@@ -58,11 +59,11 @@ export const getValidPathsFormSource = (
   return paths.filter(isGraphQLFile);
 };
 
-export function definitionFromFiles(source: string | string[]): string {
-  const paths = getValidPathsFormSource(source);
+export function definitionFromFiles(source: string | string[], ignore: string[] = []): string {
+  const paths = getValidPathsFormSource(source, ignore);
 
   if (!paths.length) {
-    throw new Error(
+    throw new ConfigurationError(
       `No valid GraphQL files (.graphql, .gql, .graphqls) found at provided source: ${[source].flat().join(", ")}`
     );
   }

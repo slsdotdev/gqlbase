@@ -8,6 +8,7 @@ import {
 import { DirectiveNode } from "./DirectiveNode.js";
 import { NamedTypeNode } from "./TypeNode.js";
 import { WithDirectivesNode } from "./WithDirectivesNode.js";
+import { InvalidDefinitionError } from "@gqlbase/shared/errors";
 
 export class UnionNode extends WithDirectivesNode {
   kind: Kind.UNION_TYPE_DEFINITION = Kind.UNION_TYPE_DEFINITION;
@@ -37,7 +38,7 @@ export class UnionNode extends WithDirectivesNode {
           : NamedTypeNode.fromDefinition(type);
 
     if (this.hasType(typeNode.name)) {
-      throw new Error(`Type ${typeNode.name} already exists on union ${this.name}`);
+      throw new InvalidDefinitionError(`Type ${typeNode.name} already exists on union ${this.name}`);
     }
 
     this.types = this.types ?? [];

@@ -4,6 +4,7 @@ import { DirectiveNode } from "./DirectiveNode.js";
 import { FieldNode } from "./FieldNode.js";
 import { NamedTypeNode } from "./TypeNode.js";
 import { WithFieldsNode } from "./WithFieldsNode.js";
+import { InvalidDefinitionError } from "@gqlbase/shared/errors";
 
 export abstract class WithInterfaceNode extends WithFieldsNode {
   interfaces?: NamedTypeNode[];
@@ -37,7 +38,7 @@ export abstract class WithInterfaceNode extends WithFieldsNode {
           : NamedTypeNode.fromDefinition(iface);
 
     if (this.hasInterface(node.name)) {
-      throw new Error(`Interface ${node.name} already exists on node ${this.name}`);
+      throw new InvalidDefinitionError(`Interface ${node.name} already exists on node ${this.name}`);
     }
     this.interfaces = this.interfaces ?? [];
     this.interfaces.push(node);

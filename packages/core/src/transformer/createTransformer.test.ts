@@ -206,4 +206,23 @@ describe("createTransformer", () => {
     );
     expect(() => createTransformer().transform(source)).toThrow(TransformerValidationError);
   });
+
+  // Watch mode reuses one transformer for every rebuild.
+  it("produces the same output when it transforms twice", () => {
+    const source = /* GraphQL */ `
+      type Post @model {
+        id: ID!
+        url: URL
+        publishedAt: DateTime
+      }
+    `;
+    const transformer = createTransformer({ relay: true });
+
+    const first = transformer.transform(source);
+    const second = transformer.transform(source);
+
+    expect(second.schema).toBe(first.schema);
+    expect(second.schemaTypes).toBe(first.schemaTypes);
+    expect(second.files).toEqual(first.files);
+  });
 });

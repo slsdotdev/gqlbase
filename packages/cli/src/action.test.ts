@@ -38,6 +38,17 @@ describe("run", () => {
     );
   });
 
+  it("does not read its own output as source on the next run", async () => {
+    await rm(join(directory, "invalid.graphql"), { force: true });
+    await writeFile(join(directory, "valid.graphql"), "type Post @model { id: ID! }");
+
+    // No source: the default `**/*.graphql` also matches `generated/schema.graphql`.
+    await run(undefined, {});
+    await run(undefined, {});
+
+    expect(exit).not.toHaveBeenCalled();
+  });
+
   it("exits with 1 when the transform fails", async () => {
     await writeFile(join(directory, "invalid.graphql"), "type Post @unknown { id: ID! }");
     await run("invalid.graphql", {});

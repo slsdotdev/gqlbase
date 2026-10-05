@@ -6,6 +6,7 @@ import {
 } from "graphql";
 import { InputValueNode } from "./InputValueNode.js";
 import { WithDescriptionNode } from "./WithDescriptionNode.js";
+import { InvalidDefinitionError } from "@gqlbase/shared/errors";
 
 type Location =
   | "SCHEMA"
@@ -53,7 +54,7 @@ export class DirectiveDefinitionNode extends WithDescriptionNode {
       argument instanceof InputValueNode ? argument : InputValueNode.fromDefinition(argument);
 
     if (this.hasArgument(argumentNode.name)) {
-      throw new Error(`Argument ${argument.name} already exists on field ${this.name}`);
+      throw new InvalidDefinitionError(`Argument ${argument.name} already exists on field ${this.name}`);
     }
 
     this.arguments = this.arguments ?? [];

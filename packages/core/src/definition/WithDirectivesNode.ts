@@ -1,6 +1,7 @@
 import { ConstDirectiveNode, StringValueNode } from "graphql";
 import { DirectiveNode } from "./DirectiveNode.js";
 import { WithDescriptionNode } from "./WithDescriptionNode.js";
+import { InvalidDefinitionError } from "@gqlbase/shared/errors";
 
 export abstract class WithDirectivesNode extends WithDescriptionNode {
   directives?: DirectiveNode[] | undefined;
@@ -27,7 +28,7 @@ export abstract class WithDirectivesNode extends WithDescriptionNode {
           : DirectiveNode.fromDefinition(directive);
 
     if (this.hasDirective(node.name)) {
-      throw new Error(`Directive ${node.name} already exists on node ${this.name}`);
+      throw new InvalidDefinitionError(`Directive ${node.name} already exists on node ${this.name}`);
     }
 
     this.directives = this.directives ?? [];

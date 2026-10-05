@@ -37,12 +37,12 @@ Defined in `packages/cli/src/config/config.ts`.
 
 | Option | Type | Default | Description |
 | --- | --- | --- | --- |
-| `source` | `string \| string[]` | `"**/*.graphql"` | Files, globs or directories. A directory is expanded to every `.graphql`, `.gql` and `.graphqls` file below it. `node_modules`, `dist`, `build` and `.git` are always ignored. |
+| `source` | `string \| string[]` | `"**/*.graphql"` | Files, globs or directories. A directory is expanded to every `.graphql`, `.gql` and `.graphqls` file below it. `node_modules`, `dist`, `build`, `.git` and the `output` directory are always ignored, so generated `.graphql` files are never read back. |
 | `output` | `string` | `"generated"` | Output directory. Each plugin chooses its file path relative to it. |
 | `plugins` | `(IPluginFactory \| IPluginFactory[])[]` | `[]` | Plugin factories and presets (arrays of factories), in execution order. |
 | `transform` | `object` | `{}` | Transformer options, below. |
 | `verbose` | `boolean` | `false` | Debug logging. |
-| `watch` | `boolean` | `false` | Re-run on changes to `source` (the output directory is ignored). |
+| `watch` | `boolean` | `false` | Re-run when a GraphQL file under `source` is added, changed or removed (the output directory is ignored). |
 
 ### Transformer options
 

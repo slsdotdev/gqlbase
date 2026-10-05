@@ -58,7 +58,7 @@ export class DocumentNode {
 
   public addNode(node: DefinitionNode) {
     if (this.hasNode(node.name)) {
-      throw new Error(`Node with name ${node.name} already exists`);
+      throw new InvalidDefinitionError(`Node with name ${node.name} already exists`);
     }
 
     this.definitions.set(node.name, node);

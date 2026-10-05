@@ -31,6 +31,8 @@ GraphQL's own scalars map as follows:
 | `Float` | `number` | `z.number()` | `real` | `doublePrecision` |
 | `Boolean` | `boolean` | `z.boolean()` | `bool` | `boolean` |
 
+> **Known gap:** the dsqlbase `Timestamp` column reads a JS `Date`, while every other output types `Timestamp` as a `number` of seconds. Convert the value in the resolver until this is fixed ([Known gaps → 20](../internals/known-gaps.md#20-dsqlbase-types-timestamp-and-some-list-columns-differently-from-the-rest)).
+
 ### `SafeInt`
 
 `SafeInt` is an integer a JS `number` holds exactly: between `Number.MIN_SAFE_INTEGER` and `Number.MAX_SAFE_INTEGER` (±9,007,199,254,740,991), as defined by [`Number.isSafeInteger`](https://tc39.es/ecma262/#sec-number.issafeinteger). It is typed `number` everywhere and stored in a 64-bit column, so it is not capped at the `Int` (int4) range. That covers money in minor units.

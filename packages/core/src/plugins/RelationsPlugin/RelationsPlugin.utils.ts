@@ -12,6 +12,7 @@ import {
   UnionNode,
 } from "../../definition/index.js";
 import { camelCase } from "@gqlbase/shared/format";
+import { TransformerPluginExecutionError } from "@gqlbase/shared/errors";
 
 export const RelationDirective = {
   HAS_ONE: "hasOne",
@@ -91,7 +92,10 @@ export const parseFieldRelation = (
   ].filter(Boolean);
 
   if (relationships.length > 1) {
-    throw new Error(`Multiple relationship directives detected for field: ${field.name}`);
+    throw new TransformerPluginExecutionError(
+      "RelationsPlugin",
+      `Multiple relationship directives detected for field: ${field.name}`
+    );
   }
 
   if (isOneRelationship(field)) {

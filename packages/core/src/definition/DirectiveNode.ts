@@ -1,6 +1,7 @@
 import { ConstArgumentNode, ConstDirectiveNode, Kind } from "graphql";
 import { ArgumentNode } from "./ArgumentNode.js";
 import { ValueType } from "./ValueNode.js";
+import { InvalidDefinitionError } from "@gqlbase/shared/errors";
 
 export class DirectiveNode {
   kind: Kind.DIRECTIVE = Kind.DIRECTIVE;
@@ -25,7 +26,7 @@ export class DirectiveNode {
       argument instanceof ArgumentNode ? argument : ArgumentNode.fromDefinition(argument);
 
     if (this.hasArgument(argumentNode.name)) {
-      throw new Error(`Argument ${argument.name} already exists on field ${this.name}`);
+      throw new InvalidDefinitionError(`Argument ${argument.name} already exists on field ${this.name}`);
     }
 
     this.arguments = this.arguments ?? [];
