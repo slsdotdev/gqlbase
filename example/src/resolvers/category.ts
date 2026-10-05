@@ -1,9 +1,4 @@
-import {
-  createMutationResolver,
-  createQueryResolver,
-  createResolver,
-  defineResolvers,
-} from "@middy-appsync/graphql";
+import { query, mutation, object, defineResolvers } from "@middy-appsync/graphql";
 import { dsql } from "../lib/dsql";
 import { withoutNulls } from "../lib/filter";
 import { orderOf, pageOf, toConnection } from "../lib/connection";
@@ -13,16 +8,14 @@ import {
   UpdateCategoryInputSchema,
 } from "../../generated/zod/schema.validators";
 
-const getCategory = createQueryResolver({
-  fieldName: "getCategory",
-  resolve: async ({ args }) => {
+const getCategory = query({
+  getCategory: async ({ args }) => {
     return await dsql.categories.findOne({ where: { id: args.id } });
   },
 });
 
-const listCategories = createQueryResolver({
-  fieldName: "listCategories",
-  resolve: async ({ args }) => {
+const listCategories = query({
+  listCategories: async ({ args }) => {
     const { first, offset, limit } = pageOf(args);
     const rows = await dsql.categories.findMany({
       where: withoutNulls(args.filter) ?? undefined,
@@ -36,9 +29,8 @@ const listCategories = createQueryResolver({
 });
 
 // The name argument is the generated StringFilterInput, referenced from the source schema.
-const searchCategories = createQueryResolver({
-  fieldName: "searchCategories",
-  resolve: async ({ args }) => {
+const searchCategories = query({
+  searchCategories: async ({ args }) => {
     const { first, offset, limit } = pageOf(args);
     const rows = await dsql.categories.findMany({
       where: withoutNulls({ name: args.name }),
@@ -51,9 +43,8 @@ const searchCategories = createQueryResolver({
   },
 });
 
-const createCategory = createMutationResolver({
-  fieldName: "createCategory",
-  resolve: async ({ args }) => {
+const createCategory = mutation({
+  createCategory: async ({ args }) => {
     // The schema checks what the client sent. The timestamps and isArchived are column defaults
     // (@defaultNow, @default), so the table fills them.
     const input = validate(CreateCategoryInputSchema, args.input);
@@ -65,9 +56,8 @@ const createCategory = createMutationResolver({
   },
 });
 
-const updateCategory = createMutationResolver({
-  fieldName: "updateCategory",
-  resolve: async ({ args }) => {
+const updateCategory = mutation({
+  updateCategory: async ({ args }) => {
     // Omitted fields stay unchanged, `null` clears a nullable field, and `null` on a required
     // field is rejected by the schema. The client decides; the resolver never drops values.
     const { id, ...input } = validate(UpdateCategoryInputSchema, args.input);
@@ -81,29 +71,21 @@ const updateCategory = createMutationResolver({
   },
 });
 
-const deleteCategory = createMutationResolver({
-  fieldName: "deleteCategory",
-  resolve: async ({ args }) => {
+const deleteCategory = mutation({
+  deleteCategory: async ({ args }) => {
     return await dsql.categories.delete({ where: { id: args.id }, return: true as const });
   },
 });
 
-const categoryParent = createResolver({
-  typeName: "Category",
-  fieldName: "parent",
-  resolve: async ({ source }) => {
+const categoryFields = object("Category", {
+  parent: async ({ source }) => {
     if (!source.parentId) {
       return null;
     }
 
     return await dsql.categories.findOne({ where: { id: source.parentId } });
   },
-});
-
-const categoryChildren = createResolver({
-  typeName: "Category",
-  fieldName: "children",
-  resolve: async ({ source, args }) => {
+  children: async ({ source, args }) => {
     const { first, offset, limit } = pageOf(args);
     const rows = await dsql.categories.findMany({
       where: { and: [{ parentId: source.id }, withoutNulls(args.filter) ?? {}] },
@@ -123,6 +105,5 @@ export default defineResolvers(
   createCategory,
   updateCategory,
   deleteCategory,
-  categoryParent,
-  categoryChildren
+  categoryFields
 );

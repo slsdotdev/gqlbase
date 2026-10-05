@@ -1,4 +1,4 @@
-import { createQueryResolver, defineResolvers, Unauthorized } from "@middy-appsync/graphql";
+import { query, defineResolvers, Unauthorized } from "@middy-appsync/graphql";
 import { decodeGlobalId, TenancyError } from "dsqlbase";
 import { callerDb, vendorClaims } from "../lib/claims";
 import { INTEGRATION_NODE_KEY, integrationsService } from "../lib/integrations";
@@ -10,9 +10,8 @@ const hidden = new Set(["importJobs"]);
 // The id names its node: an integration is the integrations service's, anything else a dsqlbase table, read through
 // a client scoped to the caller, so another tenant's row is a miss, and a node in a scope whose claim the caller lacks is
 // unauthorized. A malformed id throws.
-const node = createQueryResolver({
-  fieldName: "node",
-  resolve: async ({ args, identity }) => {
+const node = query({
+  node: async ({ args, identity }) => {
     const { key } = decodeGlobalId(args.id);
 
     if (hidden.has(key)) {

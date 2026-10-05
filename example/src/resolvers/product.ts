@@ -1,23 +1,16 @@
-import { createResolver, defineResolvers, GraphQLError } from "@middy-appsync/graphql";
+import { object, GraphQLError } from "@middy-appsync/graphql";
 import { dsqlUnscoped } from "../lib/dsql";
 
 // The @computed fields of Product have their own resolvers, so the resolver that returns a product
 // (search, a relation, …) leaves them out. They summarise every shopper's reviews, so they read unscoped.
 
-const reviewCount = createResolver({
-  typeName: "Product",
-  fieldName: "reviewCount",
-  resolve: async ({ source }) => {
+const productFields = object("Product", {
+  reviewCount: async ({ source }) => {
     const reviews = await dsqlUnscoped.reviews.findMany({ where: { productId: source.id } });
 
     return reviews.length;
   },
-});
-
-const averageRating = createResolver({
-  typeName: "Product",
-  fieldName: "averageRating",
-  resolve: async ({ source }) => {
+  averageRating: async ({ source }) => {
     const reviews = await dsqlUnscoped.reviews.findMany({ where: { productId: source.id } });
 
     if (!reviews.length) {
@@ -26,12 +19,7 @@ const averageRating = createResolver({
 
     return reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length;
   },
-});
-
-const startingPrice = createResolver({
-  typeName: "Product",
-  fieldName: "startingPrice",
-  resolve: async ({ source }) => {
+  startingPrice: async ({ source }) => {
     const variants = await dsqlUnscoped.productVariants.findMany({
       where: { productId: source.id },
     });
@@ -49,4 +37,4 @@ const startingPrice = createResolver({
   },
 });
 
-export default defineResolvers(reviewCount, averageRating, startingPrice);
+export default productFields;

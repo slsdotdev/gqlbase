@@ -1,8 +1,4 @@
-import {
-  createMutationResolver,
-  createQueryResolver,
-  defineResolvers,
-} from "@middy-appsync/graphql";
+import { query, mutation, defineResolvers } from "@middy-appsync/graphql";
 import { vendorDb } from "../lib/claims";
 import { withoutNulls } from "../lib/filter";
 import { orderOf, pageOf, toConnection } from "../lib/connection";
@@ -11,9 +7,8 @@ import { CreateOperatingScheduleInputSchema } from "../../generated/zod/schema.v
 
 // OperatingSchedule is in the `vendor` scope: vendorId is a claim, never part of the API, and the vendor's client sets
 // and filters it.
-const listOperatingSchedules = createQueryResolver({
-  fieldName: "listOperatingSchedules",
-  resolve: async ({ args, identity }) => {
+const listOperatingSchedules = query({
+  listOperatingSchedules: async ({ args, identity }) => {
     const { first, offset, limit } = pageOf(args);
     const rows = await vendorDb(identity).operatingSchedules.findMany({
       where: withoutNulls(args.filter),
@@ -26,9 +21,8 @@ const listOperatingSchedules = createQueryResolver({
   },
 });
 
-const createOperatingSchedule = createMutationResolver({
-  fieldName: "createOperatingSchedule",
-  resolve: async ({ args, identity }) => {
+const createOperatingSchedule = mutation({
+  createOperatingSchedule: async ({ args, identity }) => {
     const input = validate(CreateOperatingScheduleInputSchema, args.input);
 
     return await vendorDb(identity).operatingSchedules.create({

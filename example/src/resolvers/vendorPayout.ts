@@ -1,19 +1,16 @@
-import { createQueryResolver, createResolver, defineResolvers } from "@middy-appsync/graphql";
+import { query, object, defineResolvers } from "@middy-appsync/graphql";
 import { vendorDb } from "../lib/claims";
 
-const getVendorPayout = createQueryResolver({
-  fieldName: "getVendorPayout",
-  resolve: async ({ args, identity }) => {
+const getVendorPayout = query({
+  getVendorPayout: async ({ args, identity }) => {
     return await vendorDb(identity).vendorPayouts.findOne({ where: { id: args.id } });
   },
 });
 
 // lineItemSummary is @computed but stored: a completed payout returns its stored summary, any other payout is
 // summarised from its vendor orders on every read.
-const lineItemSummary = createResolver({
-  typeName: "VendorPayout",
-  fieldName: "lineItemSummary",
-  resolve: async ({ source, identity }) => {
+const lineItemSummary = object("VendorPayout", {
+  lineItemSummary: async ({ source, identity }) => {
     if (source.status === "COMPLETED" && source.lineItemSummary) {
       return source.lineItemSummary;
     }

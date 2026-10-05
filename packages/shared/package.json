@@ -41,7 +41,7 @@
     "test": "vitest run"
   },
   "peerDependencies": {
-    "graphql": "^16.14.0"
+    "graphql": "^16.14.2"
   },
   "dependencies": {
     "picocolors": "^1.1.1",

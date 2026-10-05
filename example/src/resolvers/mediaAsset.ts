@@ -1,7 +1,8 @@
 import {
-  createMutationResolver,
-  createQueryResolver,
-  createResolver,
+  query,
+  mutation,
+  object,
+  resolver,
   defineResolvers,
   GraphQLError,
 } from "@middy-appsync/graphql";
@@ -15,16 +16,14 @@ import type { MediaSubject } from "../../generated/appsync/middy-appsync.types";
 // MediaAsset.subject is a @belongsTo to the MediaSubject union. The client sends the subject's global id, which names
 // its member; the hidden subjectType is that member's alias.
 
-const getMediaAsset = createQueryResolver({
-  fieldName: "getMediaAsset",
-  resolve: async ({ args }) => {
+const getMediaAsset = query({
+  getMediaAsset: async ({ args }) => {
     return await dsql.mediaAssets.findOne({ where: { id: args.id } });
   },
 });
 
-const createMediaAsset = createMutationResolver({
-  fieldName: "createMediaAsset",
-  resolve: async ({ args }) => {
+const createMediaAsset = mutation({
+  createMediaAsset: async ({ args }) => {
     const input = validate(CreateMediaAssetInputSchema, args.input);
 
     // dsqlbase fills the discriminator from a global id at runtime, but its create type still requires it.
@@ -38,10 +37,8 @@ const createMediaAsset = createMutationResolver({
 });
 
 // Through the generated relation: the join reads only the member the discriminator names.
-const mediaAssetSubject = createResolver({
-  typeName: "MediaAsset",
-  fieldName: "subject",
-  resolve: async ({ source }) => {
+const mediaAssetSubject = object("MediaAsset", {
+  subject: async ({ source }) => {
     const asset = await dsql.mediaAssets.findOne({
       where: { id: source.id },
       join: { subject: true },
@@ -60,7 +57,7 @@ const mediaAssetSubject = createResolver({
 // A member's reverse relation. Filtering by the parent's global id matches the discriminator too, so a row pointing
 // at another member with the same uuid is not listed.
 const mediaOf = (typeName: "Category" | "MarketLocation") =>
-  createResolver({
+  resolver({
     typeName,
     fieldName: "media",
     resolve: async ({ source, args }) => {
