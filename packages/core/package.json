@@ -1,7 +1,7 @@
 {
   "name": "@gqlbase/core",
   "description": "Core library for gqlbase, providing the GraphQL transformer and plugin system.",
-  "version": "0.1.11",
+  "version": "0.2.0",
   "sideEffects": false,
   "type": "module",
   "license": "MIT",
@@ -51,7 +51,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@gqlbase/shared": "^0.1.11",
+    "@gqlbase/shared": "^0.2.0",
     "typescript": "^6.0.3"
   },
   "peerDependencies": {
