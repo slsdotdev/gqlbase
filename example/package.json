@@ -16,7 +16,7 @@
   "dependencies": {
     "@dsqlbase/core": "^0.2.0",
     "@dsqlbase/migration": "^0.2.0",
-    "@electric-sql/pglite": "^0.4.6",
+    "@electric-sql/pglite": "^0.5.8",
     "@middy-appsync/graphql": "^0.1.5",
     "dsqlbase": "^0.2.0",
     "zod": "^4.6.5"
