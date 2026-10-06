@@ -53,6 +53,6 @@
   "dependencies": {
     "@gqlbase/core": "^0.2.1",
     "@gqlbase/shared": "^0.2.1",
-    "typescript": "^6.0.3"
+    "typescript": "^7.0.2"
   }
 }
