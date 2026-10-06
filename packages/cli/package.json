@@ -1,7 +1,7 @@
 {
   "name": "@gqlbase/cli",
   "description": "Command-line interface for gqlbase, providing tools for schema transformation and development workflow",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "sideEffects": false,
   "type": "module",
   "license": "MIT",
@@ -55,14 +55,14 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@gqlbase/core": "^0.2.0",
-    "@gqlbase/shared": "^0.2.0",
+    "@gqlbase/core": "^0.2.1",
+    "@gqlbase/shared": "^0.2.1",
     "cac": "^7.0.0",
     "chokidar": "^5.0.0",
     "picomatch": "^4.0.3"
   },
   "devDependencies": {
-    "@gqlbase/plugins": "^0.2.0",
+    "@gqlbase/plugins": "^0.2.1",
     "@types/picomatch": "^4.0.3"
   }
 }
