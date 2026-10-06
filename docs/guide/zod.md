@@ -25,12 +25,14 @@ The plugin is `ZodSchemaGeneratorPlugin` (`packages/plugins/src/zod/ZodSchemaGen
 | object or interface `T` | `TSchema = z.object({...})` |
 | union `U` | `USchema = z.union([...])` |
 | `@model` type `M` | `MSchema`, plus `CreateMInputSchema` and `UpdateMInputSchema` for the inputs it has, and `TInputSchema` for nested objects |
-| input type `I` | `ISchema`, only with `generateArgumentSchemas` |
+| input type `I` | `ISchema`, with `generateArgumentSchemas` or when a generated schema references `I` |
+| `@oneOf` input `I` | `ISchema = z.union([z.strictObject({ a }), z.strictObject({ b }), ...])` |
 
 - Root types, scalars, directive definitions and `@gqlbase_internal` definitions produce nothing.
 - The schemas guard the API, so they follow the public schema. Definitions the client schema does not reach produce nothing (`collectPublicDefinitions`): a `@serverOnly` type, including a `@serverOnly @model` or one implementing a public interface, and anything only `@serverOnly` fields reach.
 - Schemas are emitted in dependency order, and cycles are wrapped in `z.lazy(...)`.
 - Self-referencing inputs (for example `and: [XFilterInput]`) are built as a base object plus `.extend(...)`.
+- A `@oneOf` input gets one strict object per field, holding that field as non-null. A value with no field, two fields or a `null` field fails.
 
 ### Object schemas (`<Type>Schema`)
 
@@ -47,7 +49,7 @@ The plugin is `ZodSchemaGeneratorPlugin` (`packages/plugins/src/zod/ZodSchemaGen
   - create: `id` is `.optional()`, and so is a non-null field the create input leaves optional because the server fills it ([Models](./models.md#mutation-inputs)); other fields keep their nullability;
   - update: `id` is required; non-null fields become `.optional()`, so `null` is rejected; nullable fields become `.nullable().optional()`.
 - **Non-model object fields** reference `<Type>InputSchema`, derived the same way from the nested `<Type>Input`. It has that input's fields, follows the create rules for every operation (a nested object is written whole), and is emitted with or without `generateArgumentSchemas`.
-- A hand-written `Create<Model>Input` that the model reuses gets the same treatment, field by field; a field the model does not declare is read from the input.
+- A hand-written `Create<Model>Input` that the model reuses gets the same treatment, field by field. A field the model does not declare, or declares with another type, is read from the input; relation fields are always read from it. So `schedule: CreateEmployeeScheduleInput!` references `CreateEmployeeScheduleInputSchema`, which is emitted too.
 
 The full comparison with the GraphQL inputs is in [Field visibility](./field-visibility.md).
 
