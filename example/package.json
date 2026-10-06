@@ -25,7 +25,7 @@
     "@gqlbase/cli": "^0.2.1",
     "@gqlbase/plugins": "^0.2.1",
     "@types/aws-lambda": "^8.10.164",
-    "graphql": "^16.14.2",
+    "graphql": "^17.0.2",
     "tsx": "^4.23.15",
     "vitest": "^4.1.6"
   }
