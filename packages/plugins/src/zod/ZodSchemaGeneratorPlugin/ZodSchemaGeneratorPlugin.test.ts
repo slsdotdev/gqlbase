@@ -1396,4 +1396,115 @@ describe("ZodSchemaGeneratorPlugin", () => {
       expect(validators).not.toContain("vendorId");
     });
   });
+
+  describe("declared overrides", () => {
+    let schema: string;
+
+    beforeAll(() => {
+      const output = createTransformer({
+        semanticNullability: true,
+        plugins: [zodSchemaGeneratorPlugin()],
+      }).transform(/* GraphQL */ `
+        type Employee @model {
+          id: ID!
+          name: String @semanticNonNull
+          email: String
+          position: String @semanticNonNull
+          schedule: EmployeeSchedule @hasOne @semanticNonNull
+        }
+
+        type EmployeeSchedule @model {
+          id: ID!
+
+          startDate: Date @semanticNonNull
+          endDate: Date
+          employee: Employee @belongsTo @semanticNonNull
+          workSchedule: WorkSchedule @belongsTo @semanticNonNull
+        }
+
+        type WorkSchedule @model {
+          id: ID!
+
+          name: String @semanticNonNull
+          startTime: Time @semanticNonNull
+          duration: String @semanticNonNull
+          rrule: String @semanticNonNull
+        }
+
+        input CreateEmployeeInput {
+          id: ID
+          name: String!
+          email: String
+          position: String!
+          schedule: CreateEmployeeScheduleInput!
+        }
+
+        input CreateEmployeeScheduleInput {
+          id: ID
+          startDate: Date!
+          endDate: Date
+          workSchedule: EmployeeScheduleWorkScheduleInput!
+        }
+
+        input EmployeeScheduleWorkScheduleInput @oneOf {
+          workScheduleId: ID
+          workSchedule: CreateWorkScheduleInput
+        }
+      `);
+
+      schema = output.files.find((file) => file.path === "zod/schema.validators.ts")?.content ?? "";
+    });
+
+    it("folows declared overrides structure", () => {
+      expect(schema).toContain("export const CreateEmployeeInputSchema");
+      expect(schema).toContain("export const CreateEmployeeScheduleInputSchema");
+      expect(schema).toContain("export const EmployeeScheduleWorkScheduleInputSchema");
+      expect(schema).toContain("export const CreateWorkScheduleInputSchema");
+    });
+
+    it("follows the declared input for a relation field", () => {
+      const createEmployee = schema.slice(
+        schema.indexOf("export const CreateEmployeeInputSchema"),
+        schema.indexOf("export const UpdateEmployeeInputSchema")
+      );
+
+      expect(createEmployee).toContain("schedule: CreateEmployeeScheduleInputSchema");
+      expect(createEmployee).not.toContain("EmployeeScheduleSchema");
+    });
+
+    it("reads the nested declared input's fields from the input", () => {
+      let createSchedule = schema.slice(
+        schema.indexOf("export const CreateEmployeeScheduleInputSchema")
+      );
+      createSchedule = createSchedule.slice(0, createSchedule.indexOf("});"));
+
+      expect(createSchedule).toContain("startDate: z.iso.date()");
+      expect(createSchedule).toContain("workSchedule: EmployeeScheduleWorkScheduleInputSchema");
+      expect(createSchedule).not.toContain("employee");
+      expect(createSchedule).not.toContain("WorkScheduleSchema");
+    });
+
+    it("emits a @oneOf input as a union of single-field strict objects", () => {
+      expect(schema).toContain(
+        [
+          "export const EmployeeScheduleWorkScheduleInputSchema = z.union([",
+          "    z.strictObject({ workScheduleId: z.string() }),",
+          "    z.strictObject({ workSchedule: CreateWorkScheduleInputSchema })",
+          "]);",
+        ].join("\n")
+      );
+    });
+
+    it("declares each schema before it is used", () => {
+      const order = [
+        "export const CreateWorkScheduleInputSchema",
+        "export const EmployeeScheduleWorkScheduleInputSchema",
+        "export const CreateEmployeeScheduleInputSchema",
+        "export const CreateEmployeeInputSchema",
+      ].map((name) => schema.indexOf(name));
+
+      expect(order.every((index) => index >= 0)).toBe(true);
+      expect(order).toEqual([...order].sort((a, b) => a - b));
+    });
+  });
 });

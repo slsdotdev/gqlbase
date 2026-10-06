@@ -20,6 +20,14 @@ A list column takes its element type from the same map's `type`, so `[Timestamp!
 
 The fix changes the `Timestamp` column type (to a `bigint` of seconds), which existing tables have to migrate.
 
+### 22. Zod mutation-input schemas read the model, not the input
+
+`ZodSchemaGeneratorPlugin` (`packages/plugins/src/zod/ZodSchemaGeneratorPlugin/ZodSchemaGeneratorPlugin.ts`) builds a `Create<Model>Input`/`Update<Model>Input` field from the model field when the two match by name and type (`_getMirroredField`). It does this because the input does not carry two things the schema needs. `ModelPlugin` creates input fields without the model's `@constraint`, and SDL cannot say that a field may be left out but not set to `null` (update fields, and create fields the server fills).
+
+At generate time a hand-written input that replaces a model input cannot be told apart from a generated one. So a declared field that mirrors a model field takes the model's rules over its own SDL: `email: String` declared over a non-null model `email` rejects `null`, and the model's `@constraint` applies, while a `@constraint` on the declared field is ignored.
+
+The fix moves that knowledge onto the input. `ModelPlugin` copies `@constraint` to the fields it creates and marks the "omittable, not null" ones with an internal directive, stripped in `cleanup` like `@gqlbase_tuple`. The Zod plugin then reads every input from the input alone.
+
 ## Related
 
 - [Architecture](./architecture.md)

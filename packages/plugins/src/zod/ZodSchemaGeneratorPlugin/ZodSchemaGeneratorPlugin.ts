@@ -220,6 +220,11 @@ export class ZodSchemaGeneratorPlugin extends TransformerPluginBase {
       }
     }
 
+    // A referenced input gets its schema, whether or not it is an argument somewhere.
+    if (isInputObjectNode(typeDef) && suffix === "Schema") {
+      this._generateInputSchema(typeDef);
+    }
+
     return this.currentRef(`${typeName}${suffix}`);
   }
 
@@ -463,7 +468,7 @@ export class ZodSchemaGeneratorPlugin extends TransformerPluginBase {
     const properties: ts.ObjectLiteralElementLike[] = [];
 
     for (const inputField of input.fields ?? []) {
-      const field = source.getField(inputField.name);
+      const field = this._getMirroredField(inputField, source);
       let zodExpr = field
         ? this._createModelFieldZodExpression(field, field.type, mode)
         : this._createInputFieldZodExpression(inputField, inputField.type);
@@ -485,6 +490,28 @@ export class ZodSchemaGeneratorPlugin extends TransformerPluginBase {
     }
 
     return properties;
+  }
+
+  /**
+   * The source field an input field was derived from: same name, and the type the model inputs give it (the field's
+   * own type, or `<Type>Input` for a plain object). `undefined` when the input declares the field differently, for
+   * example a relation written through a nested create input.
+   */
+  private _getMirroredField(inputField: InputValueNode, source: ObjectNode): FieldNode | undefined {
+    const field = source.getField(inputField.name);
+
+    if (!field || isRelationField(field)) {
+      return undefined;
+    }
+
+    const typeName = field.type.getTypeName();
+    const typeDef = this.context.document.getNode(typeName);
+    const expected =
+      typeDef && isObjectNode(typeDef) && !isModel(typeDef)
+        ? pascalCase(typeName, "input")
+        : typeName;
+
+    return inputField.type.getTypeName() === expected ? field : undefined;
   }
 
   private _createInputFieldProperties(
@@ -694,6 +721,10 @@ export class ZodSchemaGeneratorPlugin extends TransformerPluginBase {
   }
 
   private _generateInputObject(definition: InputObjectNode) {
+    if (definition.hasDirective("oneOf")) {
+      return this._generateOneOfInput(definition);
+    }
+
     const selfRefs = this._getSelfReferenceFields(definition);
 
     if (selfRefs.length > 0) {
@@ -734,6 +765,32 @@ export class ZodSchemaGeneratorPlugin extends TransformerPluginBase {
     this._registerSchema(`${definition.name}Schema`, () => {
       const properties = this._createInputFieldProperties(definition);
       return this._zCall("object", [ts.factory.createObjectLiteralExpression(properties, true)]);
+    });
+  }
+
+  /**
+   * A `@oneOf` input takes exactly one of its fields, non-null: a union of single-field strict objects, so a value
+   * with two fields fails instead of matching the first branch and losing the second.
+   */
+  private _generateOneOfInput(definition: InputObjectNode) {
+    this._registerSchema(`${definition.name}Schema`, () => {
+      const branches = (definition.fields ?? []).map((field) => {
+        // `@oneOf` fields are nullable in the SDL; the chosen one must not be null.
+        const fieldType =
+          field.type instanceof NonNullTypeNode ? field.type : NonNullTypeNode.create(field.type);
+        const value = this._createInputFieldZodExpression(
+          InputValueNode.create(field.name, undefined, field.directives, fieldType),
+          fieldType
+        );
+
+        return this._zCall("strictObject", [
+          ts.factory.createObjectLiteralExpression([
+            ts.factory.createPropertyAssignment(ts.factory.createIdentifier(field.name), value),
+          ]),
+        ]);
+      });
+
+      return this._zCall("union", [ts.factory.createArrayLiteralExpression(branches, true)]);
     });
   }
 
@@ -786,17 +843,18 @@ export class ZodSchemaGeneratorPlugin extends TransformerPluginBase {
 
     visited.add(typeName);
 
+    this._generateInputSchema(node);
+  }
+
+  /**
+   * The schema of an input: derived from its model or object for a mutation input, read from the input otherwise.
+   * The inputs it references are registered as their fields are built.
+   */
+  private _generateInputSchema(node: InputObjectNode): void {
     const mutationInput = this._getMutationInputSource(node);
 
     if (mutationInput) {
       return this._generateMutationInput(node, mutationInput.source, mutationInput.mode);
-    }
-
-    for (const field of node.fields ?? []) {
-      const depName = field.type.getTypeName();
-      if (depName !== typeName) {
-        this._emitArgumentInput(depName, visited);
-      }
     }
 
     this._generateInputObject(node);
