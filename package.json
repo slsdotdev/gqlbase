@@ -43,7 +43,7 @@
     "pnpm": "use-npm"
   },
   "devDependencies": {
-    "@changesets/cli": "^2.31.1",
+    "@changesets/cli": "^3.0.3",
     "@eslint/js": "^10.0.1",
     "@types/node": "^25.9.8",
     "@vitest/coverage-v8": "^4.1.2",
