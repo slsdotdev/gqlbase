@@ -1,7 +1,7 @@
 {
   "name": "@gqlbase/plugins",
   "description": "Code generators for gqlbase: AppSync schema and resolver types, Zod validators and the dsqlbase schema.",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "sideEffects": false,
   "type": "module",
   "license": "MIT",
@@ -51,8 +51,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@gqlbase/core": "^0.2.0",
-    "@gqlbase/shared": "^0.2.0",
+    "@gqlbase/core": "^0.2.1",
+    "@gqlbase/shared": "^0.2.1",
     "typescript": "^6.0.3"
   }
 }
