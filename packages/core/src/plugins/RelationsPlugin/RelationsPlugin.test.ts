@@ -581,7 +581,7 @@ describe("RelationsPlugin polymorphic targets", () => {
     expect(docKindType && print(docKindType.serialize())).toBe("String!");
   });
 
-  it("puts a @hasMany key on every member, with the relation's nullability", () => {
+  it("puts a nullable @hasMany key on every member", () => {
     const folder = context.document.getNodeOrThrow("Folder") as ObjectNode;
 
     plugin.normalize(folder);
@@ -616,5 +616,328 @@ describe("RelationsPlugin polymorphic targets", () => {
         }
       `)
     ).toThrow(/Owner, whose members mix GUID ids with ID/);
+  });
+});
+
+describe("RelationsPlugin shared keys", () => {
+  let context: TransformerContext;
+  let plugin: RelationsPlugin;
+
+  beforeAll(() => {
+    context = new TransformerContext({});
+    plugin = new RelationsPlugin(context);
+    context.registerPlugin(plugin);
+  });
+
+  beforeEach(() => {
+    context.finishWork();
+    context.startWork(
+      DocumentNode.fromSource(/* GraphQL */ `
+        union Owner = Invoice | PaymentOrder
+
+        type Invoice @model {
+          id: GUID!
+          resources: [Resource!]! @hasMany(key: "ownerId")
+        }
+
+        type PaymentOrder @model {
+          id: GUID!
+          resources: Resource! @hasMany(key: "ownerId")
+        }
+
+        type User @model {
+          id: ID!
+          posts: [Post!]! @hasMany(key: "authorId")
+          drafts: [Draft] @hasMany(key: "authorId")
+          comments: Comment! @hasMany
+          profile: Profile! @hasOne
+        }
+
+        type Comment @model {
+          id: ID!
+        }
+
+        type Profile @model {
+          id: ID!
+        }
+
+        type Resource @model {
+          id: GUID!
+          owner: Owner @belongsTo(key: "ownerId")
+        }
+
+        type Post @model {
+          id: ID!
+          author: User @belongsTo(key: "authorId")
+        }
+
+        type Draft @model {
+          id: ID!
+          author: User! @belongsTo(key: "authorId")
+        }
+      `)
+    );
+  });
+
+  it("keeps a union key nullable as its @belongsTo when the inverse comes first", () => {
+    const resource = context.document.getNodeOrThrow("Resource") as ObjectNode;
+
+    plugin.normalize(context.document.getNodeOrThrow("Invoice") as ObjectNode);
+    plugin.normalize(context.document.getNodeOrThrow("PaymentOrder") as ObjectNode);
+    plugin.normalize(resource);
+
+    const ownerIdType = resource.getField("ownerId")?.type;
+    expect(ownerIdType && print(ownerIdType.serialize())).toBe("GUID");
+    const ownerTypeType = resource.getField("ownerType")?.type;
+    expect(ownerTypeType && print(ownerTypeType.serialize())).toBe("String");
+  });
+
+  it("keeps a union key nullable as its @belongsTo when the inverse comes last", () => {
+    const resource = context.document.getNodeOrThrow("Resource") as ObjectNode;
+
+    plugin.normalize(resource);
+    plugin.normalize(context.document.getNodeOrThrow("Invoice") as ObjectNode);
+    plugin.normalize(context.document.getNodeOrThrow("PaymentOrder") as ObjectNode);
+
+    const ownerIdType = resource.getField("ownerId")?.type;
+    expect(ownerIdType && print(ownerIdType.serialize())).toBe("GUID");
+  });
+
+  it("keeps an object key nullable as its @belongsTo, whatever the order", () => {
+    const user = context.document.getNodeOrThrow("User") as ObjectNode;
+    const post = context.document.getNodeOrThrow("Post") as ObjectNode;
+
+    plugin.normalize(user);
+    plugin.normalize(post);
+
+    const authorIdType = post.getField("authorId")?.type;
+    expect(authorIdType && print(authorIdType.serialize())).toBe("ID");
+  });
+
+  it("makes a key non-null when its @belongsTo is, over a nullable inverse", () => {
+    const user = context.document.getNodeOrThrow("User") as ObjectNode;
+    const draft = context.document.getNodeOrThrow("Draft") as ObjectNode;
+
+    plugin.normalize(user);
+    plugin.normalize(draft);
+
+    const authorIdType = draft.getField("authorId")?.type;
+    expect(authorIdType && print(authorIdType.serialize())).toBe("ID!");
+  });
+
+  it("leaves a key a @belongsTo stores to it, when the inverse comes first", () => {
+    const invoice = context.document.getNodeOrThrow("Invoice") as ObjectNode;
+    const resource = context.document.getNodeOrThrow("Resource") as ObjectNode;
+
+    plugin.normalize(invoice);
+
+    expect(resource.hasField("ownerId")).toBe(false);
+  });
+
+  it("adds a nullable key for a non-null inverse with no @belongsTo", () => {
+    const comment = context.document.getNodeOrThrow("Comment") as ObjectNode;
+
+    plugin.normalize(context.document.getNodeOrThrow("User") as ObjectNode);
+
+    const userIdType = comment.getField("userId")?.type;
+    expect(userIdType && print(userIdType.serialize())).toBe("ID");
+  });
+
+  it("adds a nullable key for a non-null @hasOne", () => {
+    const profile = context.document.getNodeOrThrow("Profile") as ObjectNode;
+
+    plugin.normalize(context.document.getNodeOrThrow("User") as ObjectNode);
+
+    const userIdType = profile.getField("userId")?.type;
+    expect(userIdType && print(userIdType.serialize())).toBe("ID");
+  });
+});
+
+describe("RelationsPlugin discriminatorSuffix", () => {
+  let context: TransformerContext;
+  let plugin: RelationsPlugin;
+
+  beforeAll(() => {
+    context = new TransformerContext({ discriminatorSuffix: "kind" });
+    plugin = new RelationsPlugin(context);
+    context.registerPlugin(plugin);
+  });
+
+  beforeEach(() => {
+    context.finishWork();
+    context.startWork(
+      DocumentNode.fromSource(/* GraphQL */ `
+        union Owner = Invoice | PaymentOrder
+
+        type Invoice @model {
+          id: GUID!
+        }
+
+        type PaymentOrder @model {
+          id: GUID!
+        }
+
+        type Resource @model {
+          id: GUID!
+          owner: Owner @belongsTo
+          payer: Owner @belongsTo(discriminator: "payerSource")
+        }
+      `)
+    );
+  });
+
+  it("names the discriminator with the configured suffix", () => {
+    const resource = context.document.getNodeOrThrow("Resource") as ObjectNode;
+
+    plugin.normalize(resource);
+
+    expect(resource.hasField("ownerKind")).toBe(true);
+    expect(resource.hasField("ownerType")).toBe(false);
+  });
+
+  it("keeps a discriminator named by the relation", () => {
+    const resource = context.document.getNodeOrThrow("Resource") as ObjectNode;
+
+    plugin.normalize(resource);
+
+    expect(resource.hasField("payerSource")).toBe(true);
+  });
+});
+
+describe("RelationsPlugin key pairing", () => {
+  it("pairs a @hasMany with a @belongsTo to a union that includes its source", () => {
+    const output = createTransformer().transform(/* GraphQL */ `
+      union Owner = Invoice | Vendor
+
+      type Invoice @model {
+        id: ID!
+        resources: Resource! @hasMany(key: "ownerId")
+      }
+
+      type Vendor @model {
+        id: ID!
+      }
+
+      type Resource @model {
+        id: ID!
+        owner: Owner @belongsTo
+      }
+    `);
+
+    expect(output.schema).toContain("type Resource");
+  });
+
+  it("pairs an interface's @hasMany with a @belongsTo to a union of its implementors", () => {
+    const output = createTransformer().transform(/* GraphQL */ `
+      interface Document {
+        id: ID!
+        resources: [Resource!]! @hasMany(key: "ownerId")
+      }
+
+      union Owner = Invoice | PaymentOrder | Vendor
+
+      type Invoice implements Document @model {
+        id: ID!
+        resources: [Resource!]! @hasMany(key: "ownerId")
+      }
+
+      type PaymentOrder implements Document @model {
+        id: ID!
+        resources: [Resource!]! @hasMany(key: "ownerId")
+      }
+
+      type Vendor @model {
+        id: ID!
+      }
+
+      type Resource @model {
+        id: ID!
+        owner: Owner @belongsTo
+      }
+    `);
+
+    expect(output.schema).toContain("type Resource");
+  });
+
+  it("keeps relations with different keys apart", () => {
+    const context = new TransformerContext({});
+    const plugin = new RelationsPlugin(context);
+    context.registerPlugin(plugin);
+    context.startWork(
+      DocumentNode.fromSource(/* GraphQL */ `
+        type Source @model {
+          id: ID!
+          many: [Target!]! @hasMany
+        }
+
+        type Target @model {
+          id: ID!
+          owner: Source @belongsTo
+        }
+      `)
+    );
+
+    plugin.normalize(context.document.getNodeOrThrow("Source") as ObjectNode);
+    plugin.normalize(context.document.getNodeOrThrow("Target") as ObjectNode);
+
+    const target = context.document.getNodeOrThrow("Target") as ObjectNode;
+    expect(target.hasField("sourceId")).toBe(true);
+    expect(target.hasField("ownerId")).toBe(true);
+  });
+
+  it("throws when the @belongsTo with the same key points at another type", () => {
+    expect(() =>
+      createTransformer().transform(/* GraphQL */ `
+        type Other @model {
+          id: ID!
+        }
+
+        type Source @model {
+          id: ID!
+          many: Target! @hasMany(key: "ownerId")
+        }
+
+        type Target @model {
+          id: ID!
+          owner: Other! @belongsTo
+        }
+      `)
+    ).toThrow(
+      /Source.many and Target.owner both use key "ownerId", but Target.owner points at Other, which does not include Source/
+    );
+  });
+
+  it("throws when the @belongsTo target misses one of the source's implementors", () => {
+    expect(() =>
+      createTransformer().transform(/* GraphQL */ `
+        interface Document {
+          id: ID!
+          resources: [Resource!]! @hasMany(key: "ownerId")
+        }
+
+        union Owner = Invoice | PaymentOrder
+
+        type Invoice implements Document @model {
+          id: ID!
+          resources: [Resource!]! @hasMany(key: "ownerId")
+        }
+
+        type Contract implements Document @model {
+          id: ID!
+          resources: [Resource!]! @hasMany(key: "ownerId")
+        }
+
+        type PaymentOrder @model {
+          id: ID!
+        }
+
+        type Resource @model {
+          id: ID!
+          owner: Owner @belongsTo
+        }
+      `)
+    ).toThrow(
+      /Document.resources and Resource.owner both use key "ownerId", .*does not include Contract/
+    );
   });
 });

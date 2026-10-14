@@ -90,7 +90,7 @@ export default defineConfig({
 |---|---|---|---|
 | `source` | `string \| string[]` | `**/*.graphql` | Files, globs or directories of schema files. The output directory is never read. |
 | `output` | `string` | `generated` | Output directory |
-| `transform` | `object` | `{}` | Transformer options: `relay`, `semanticNullability`, `operations`, `tenancy`, `dataSources` |
+| `transform` | `object` | `{}` | Transformer options: `relay`, `semanticNullability`, `discriminatorSuffix`, `operations`, `tenancy`, `dataSources` |
 | `plugins` | `IPluginFactory[]` | `[]` | Plugins and presets to apply, in order |
 | `verbose` | `boolean` | `false` | Enable debug logging |
 | `watch` | `boolean` | `false` | Watch for file changes |

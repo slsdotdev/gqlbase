@@ -60,8 +60,8 @@ describe("ScalarsPlugin GUID", () => {
     types = output.files.find((file) => file.path === "schema.types.ts")?.content ?? "";
   });
 
-  it("declares GUID in the schema", () => {
-    expect(schema).toContain("scalar GUID");
+  it("prints GUID as ID in the schema", () => {
+    expect(schema).not.toContain("GUID");
   });
 
   it("types GUID as string", () => {
@@ -71,19 +71,27 @@ describe("ScalarsPlugin GUID", () => {
   it("gives a model without an id the id Node declares", () => {
     const category = schema.match(/type Category implements Node \{[^}]*\}/)?.[0] ?? "";
 
-    expect(category).toContain("id: GUID!");
+    expect(category).toContain("id: ID!");
   });
 
   it("takes the id as the model's id type in get, delete and node", () => {
-    expect(schema).toContain("getCategory(id: GUID!): Category");
-    expect(schema).toContain("node(id: GUID!): Node");
-    expect(schema).toContain("deleteProduct(id: GUID!): Product");
+    expect(schema).toContain("getCategory(id: ID!): Category");
+    expect(schema).toContain("node(id: ID!): Node");
+    expect(schema).toContain("deleteProduct(id: ID!): Product");
   });
 
-  it("filters GUID like an id", () => {
-    const filterInput = schema.match(/input GUIDFilterInput \{[^}]*\}/)?.[0] ?? "";
+  it("filters GUID with the ID filter input", () => {
+    const filterInput = schema.match(/input IDFilterInput \{[^}]*\}/)?.[0] ?? "";
+    const productFilter = schema.match(/input ProductFilterInput \{[^}]*\}/)?.[0] ?? "";
 
-    expect(filterInput).toContain("eq: GUID");
-    expect(filterInput).toContain("in: [GUID!]");
+    expect(filterInput).toContain("eq: ID");
+    expect(filterInput).toContain("in: [ID!]");
+    expect(productFilter).toContain("id: IDFilterInput");
+  });
+
+  it("prints GUID inputs as ID", () => {
+    const createProduct = schema.match(/input CreateProductInput \{[^}]*\}/)?.[0] ?? "";
+
+    expect(createProduct).toContain("id: ID\n");
   });
 });

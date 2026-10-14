@@ -61,9 +61,18 @@ export interface TransformerOptions {
 
   /**
    * Enables the `@semanticNonNull` directive. Generated fields that are null only on error use it instead of plain non-null.
+   * `"force"` also turns every non-null output field except `id` into a nullable one with `@semanticNonNull` in the output
+   * schema, level by level.
    * @default false
    */
-  semanticNullability: boolean;
+  semanticNullability: boolean | "force";
+
+  /**
+   * The suffix of the discriminator field a `@belongsTo` to a union or an interface adds when it names none:
+   * `camelCase(<field>, discriminatorSuffix)`.
+   * @default "type"
+   */
+  discriminatorSuffix: string;
 
   /**
    * Operations generated for a `@model` that does not list its own.
@@ -90,6 +99,7 @@ export interface TransformerOptions {
 export const DEFAULT_TRANSFORMER_OPTIONS = Object.freeze<TransformerOptions>({
   relay: false,
   semanticNullability: false,
+  discriminatorSuffix: "type",
   operations: ["read", "write"],
   tenancy: {},
   dataSources: {},
@@ -102,6 +112,8 @@ export function resolveTransformerOptions(
     relay: options.relay ?? DEFAULT_TRANSFORMER_OPTIONS.relay,
     semanticNullability:
       options.semanticNullability ?? DEFAULT_TRANSFORMER_OPTIONS.semanticNullability,
+    discriminatorSuffix:
+      options.discriminatorSuffix ?? DEFAULT_TRANSFORMER_OPTIONS.discriminatorSuffix,
     operations: Object.freeze([
       ...(options.operations ?? DEFAULT_TRANSFORMER_OPTIONS.operations),
     ]) as OperationType[],

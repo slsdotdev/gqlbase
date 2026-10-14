@@ -1,4 +1,5 @@
 import { beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { print } from "graphql";
 import { TransformerContext } from "../../context/index.js";
 import {
   DocumentNode,
@@ -13,6 +14,7 @@ import {
   ValueNode,
 } from "../../definition/index.js";
 import { RfcFeaturesPlugin } from "./RfcFeaturesPlugin.js";
+import { createTransformer } from "../../transformer/index.js";
 import { isSemanticNullable, RfcDirective } from "./RfcFeaturesPlugin.utils.js";
 
 describe("RfcFeaturesPlugin", () => {
@@ -262,5 +264,184 @@ describe("isSemanticNullable", () => {
 
     expect(isSemanticNullable(field, 0)).toBe(false); // covered by directive
     expect(isSemanticNullable(field, 1)).toBe(false); // covered by schema NonNull
+  });
+});
+
+describe("RfcFeaturesPlugin force", () => {
+  let plugin: RfcFeaturesPlugin;
+  let context: TransformerContext;
+
+  beforeAll(() => {
+    context = new TransformerContext({ semanticNullability: "force" });
+    plugin = new RfcFeaturesPlugin(context);
+    context.registerPlugin(plugin);
+  });
+
+  beforeEach(() => {
+    context.finishWork();
+    context.startWork(
+      DocumentNode.fromSource(/* GraphQL */ `
+        interface Named {
+          name: String!
+        }
+
+        type User implements Named {
+          id: ID!
+          name: String!
+          tags: [String!]!
+          matrix: [[Int!]]!
+          aliases: [String!] @semanticNonNull
+          bio: String
+          nickname: String @semanticNonNull
+          posts(first: Int!): [String]
+        }
+
+        input UserInput {
+          name: String!
+        }
+      `)
+    );
+
+    for (const name of ["Named", "User"]) {
+      const node = context.document.getNodeOrThrow(name) as ObjectNode;
+
+      if (plugin.match(node)) {
+        plugin.cleanup(node);
+      }
+    }
+  });
+
+  it("moves a non-null field into @semanticNonNull", () => {
+    const field = (context.document.getNodeOrThrow("User") as ObjectNode).getField("name");
+
+    expect(field && print(field.serialize())).toBe("name: String @semanticNonNull");
+  });
+
+  it("keeps the list structure, level by level", () => {
+    const user = context.document.getNodeOrThrow("User") as ObjectNode;
+    const tags = user.getField("tags");
+    const matrix = user.getField("matrix");
+
+    expect(tags && print(tags.serialize())).toBe("tags: [String] @semanticNonNull(levels: [0, 1])");
+    expect(matrix && print(matrix.serialize())).toBe(
+      "matrix: [[Int]] @semanticNonNull(levels: [0, 2])"
+    );
+  });
+
+  it("merges the levels a field already declares", () => {
+    const field = (context.document.getNodeOrThrow("User") as ObjectNode).getField("aliases");
+
+    expect(field && print(field.serialize())).toBe(
+      "aliases: [String] @semanticNonNull(levels: [0, 1])"
+    );
+  });
+
+  it("keeps id non-null", () => {
+    const field = (context.document.getNodeOrThrow("User") as ObjectNode).getField("id");
+
+    expect(field && print(field.serialize())).toBe("id: ID!");
+  });
+
+  it("leaves nullable fields and arguments as they are", () => {
+    const user = context.document.getNodeOrThrow("User") as ObjectNode;
+    const bio = user.getField("bio");
+    const nickname = user.getField("nickname");
+    const posts = user.getField("posts");
+
+    expect(bio && print(bio.serialize())).toBe("bio: String");
+    expect(nickname && print(nickname.serialize())).toBe("nickname: String @semanticNonNull");
+    expect(posts && print(posts.serialize())).toBe("posts(first: Int!): [String]");
+  });
+
+  it("converts interfaces alike, so implementations still match", () => {
+    const named = context.document.getNodeOrThrow("Named") as ObjectNode;
+    const field = named.getField("name");
+
+    expect(field && print(field.serialize())).toBe("name: String @semanticNonNull");
+    expect(context.document.validate()).toEqual([]);
+  });
+
+  it("does not match input types", () => {
+    expect(plugin.match(context.document.getNodeOrThrow("UserInput"))).toBe(false);
+  });
+});
+
+describe("RfcFeaturesPlugin force in the pipeline", () => {
+  let schema: string;
+  let types: string;
+
+  beforeAll(() => {
+    const output = createTransformer({ relay: true, semanticNullability: "force" }).transform(
+      /* GraphQL */ `
+        type User @model {
+          name: String!
+          posts: [Post!]! @hasMany
+        }
+
+        type Post @model {
+          title: String!
+          author: User! @belongsTo
+        }
+      `
+    );
+
+    schema = output.schema;
+    types = output.files.find((file) => file.path === "schema.types.ts")?.content ?? "";
+  });
+
+  it("prints output fields with @semanticNonNull", () => {
+    const user = schema.match(/type User implements Node \{[^}]*\}/)?.[0] ?? "";
+
+    expect(user).toContain("id: ID!");
+    expect(user).toContain("name: String @semanticNonNull");
+    expect(user).toContain("posts(");
+    expect(user).toContain("): PostConnection @semanticNonNull");
+  });
+
+  it("converts generated types", () => {
+    const pageInfo = schema.match(/type PageInfo \{[^}]*\}/)?.[0] ?? "";
+
+    expect(pageInfo).toContain("hasNextPage: Boolean @semanticNonNull");
+  });
+
+  it("keeps create inputs required", () => {
+    const createUser = schema.match(/input CreateUserInput \{[^}]*\}/)?.[0] ?? "";
+
+    expect(createUser).toContain("name: String!");
+  });
+
+  it("keeps the generated types non-null", () => {
+    expect(types).toMatch(/name: Scalars\["String"\]\["output"\];/);
+  });
+});
+
+describe("RfcFeaturesPlugin force without relay", () => {
+  let schema: string;
+
+  beforeAll(() => {
+    schema = createTransformer({ semanticNullability: "force" }).transform(/* GraphQL */ `
+      type User @model {
+        id: ID!
+        posts: Post! @hasMany
+        drafts: [Post] @hasMany
+      }
+
+      type Post @model {
+        id: ID!
+        author: User! @belongsTo
+      }
+    `).schema;
+  });
+
+  it("converts the list a @hasMany wraps a bare type in", () => {
+    const user = schema.match(/type User \{[^}]*\}/)?.[0] ?? "";
+
+    expect(user).toMatch(/posts\([^)]*\): \[Post\] @semanticNonNull\(levels: \[0, 1\]\)/);
+  });
+
+  it("leaves a list written as nullable as it is", () => {
+    const user = schema.match(/type User \{[^}]*\}/)?.[0] ?? "";
+
+    expect(user).toMatch(/drafts\([^)]*\): \[Post\]\n/);
   });
 });

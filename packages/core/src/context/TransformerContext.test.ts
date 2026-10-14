@@ -71,6 +71,7 @@ describe("TransformerContext", () => {
     expect(context.options).toEqual({
       relay: false,
       semanticNullability: false,
+      discriminatorSuffix: "type",
       operations: ["read", "write"],
       tenancy: {},
       dataSources: {},
@@ -80,7 +81,8 @@ describe("TransformerContext", () => {
   it("keeps the transformer options it is given", () => {
     const context = new TransformerContext({
       relay: true,
-      semanticNullability: true,
+      semanticNullability: "force",
+      discriminatorSuffix: "kind",
       operations: ["read"],
       tenancy: { workspace: { claims: { workspaceId: "ID" } } },
       dataSources: { db: { type: "dsqlbase", default: true } },
@@ -88,7 +90,8 @@ describe("TransformerContext", () => {
 
     expect(context.options).toEqual({
       relay: true,
-      semanticNullability: true,
+      semanticNullability: "force",
+      discriminatorSuffix: "kind",
       operations: ["read"],
       tenancy: { workspace: { claims: { workspaceId: "ID" } } },
       dataSources: { db: { type: "dsqlbase", default: true } },

@@ -11,7 +11,7 @@ import { InterfaceNode } from "./InterfaceNode.js";
 import { ObjectNode } from "./ObjectNode.js";
 import { ScalarNode } from "./ScalarNode.js";
 import { UnionNode } from "./UnionNode.js";
-import { ListTypeNode, NonNullTypeNode, TypeNode } from "./TypeNode.js";
+import { ListTypeNode, NamedTypeNode, NonNullTypeNode, TypeNode } from "./TypeNode.js";
 
 export type DefinitionNode =
   | InterfaceNode
@@ -113,6 +113,48 @@ export const isNullableTypeNode = (type: TypeNode, level = 0): boolean => {
   const typeAtLevel = getTypeAtLevel(type, level);
 
   return !(typeAtLevel instanceof NonNullTypeNode);
+};
+
+/**
+ * A nullable copy of a type with the same list structure, and the levels that were non-null, counted as in
+ * `isNullableTypeNode`. `[[X!]]!` gives `[[X]]` and `[0, 2]`.
+ */
+export const stripNonNull = (
+  type: TypeNode
+): { type: NamedTypeNode | ListTypeNode; levels: number[] } => {
+  const levels: number[] = [];
+
+  const strip = (node: TypeNode, level: number): NamedTypeNode | ListTypeNode => {
+    if (node instanceof NonNullTypeNode) {
+      levels.push(level);
+      return strip(node.type, level);
+    }
+
+    if (node instanceof ListTypeNode) {
+      return ListTypeNode.create(strip(node.type, level + 1));
+    }
+
+    return NamedTypeNode.create(node.name);
+  };
+
+  return { type: strip(type, 0), levels };
+};
+
+/**
+ * A copy of a type with the named type `from` replaced by `to`, keeping its list and non-null wrappers.
+ */
+export const replaceNamedType = (type: TypeNode, from: string, to: string): TypeNode => {
+  if (type instanceof NonNullTypeNode) {
+    return NonNullTypeNode.create(
+      replaceNamedType(type.type, from, to) as NamedTypeNode | ListTypeNode
+    );
+  }
+
+  if (type instanceof ListTypeNode) {
+    return ListTypeNode.create(replaceNamedType(type.type, from, to));
+  }
+
+  return type.name === from ? NamedTypeNode.create(to) : NamedTypeNode.create(type.name);
 };
 
 export const OPERATION_NODE_NAME = ["Query", "Mutation", "Subscription"] as const;

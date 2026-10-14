@@ -43,7 +43,7 @@ The interface is `packages/core/src/context/ITransformerContext.ts` and the impl
 
 | Member | Use |
 |---|---|
-| `options: Readonly<TransformerOptions>` | The transformer options (`relay`, `semanticNullability`, `operations`, `tenancy`, `dataSources`), resolved with their defaults and frozen (`packages/core/src/context/TransformerOptions.ts`). Read them here to decide what to generate; do not probe the document for a directive definition. |
+| `options: Readonly<TransformerOptions>` | The transformer options (`relay`, `semanticNullability`, `discriminatorSuffix`, `operations`, `tenancy`, `dataSources`), resolved with their defaults and frozen (`packages/core/src/context/TransformerOptions.ts`). Read them here to decide what to generate; do not probe the document for a directive definition. |
 | `base: DocumentNode` | Definitions the plugin contributes: directive definitions, internal enums, built-in scalars. It is merged with the user's source at `startWork`. A name that appears in both throws. |
 | `document: DocumentNode` | The working document. It exists only between `startWork` and `finishWork`; reading it outside that window throws. Plugins mutate it in place. |
 | `files: FileArtifact[]` | Generated files: `{ type, path, filename, content }`, where `path` is relative to the configured output directory. Like `document`, it is only valid during work. |
@@ -69,7 +69,7 @@ public init() {
 }
 ```
 
-It then removes the directive's usages in `cleanup` and its definition in `after`, so the public schema carries neither. Examples include `packages/core/src/plugins/UtilitiesPlugin/UtilitiesPlugin.ts` and `packages/core/src/plugins/ModelPlugin/ModelPlugin.ts`. `RfcFeaturesPlugin` keeps `@semanticNonNull` in the output on purpose, and is registered only when `context.options.semanticNullability` is on.
+It then removes the directive's usages in `cleanup` and its definition in `after`, so the public schema carries neither. Examples include `packages/core/src/plugins/UtilitiesPlugin/UtilitiesPlugin.ts` and `packages/core/src/plugins/ModelPlugin/ModelPlugin.ts`. `RfcFeaturesPlugin` keeps `@semanticNonNull` in the output on purpose, and is registered only when `context.options.semanticNullability` is on. With `"force"` its `cleanup` also moves non-null output levels into the directive. `ScalarsPlugin.after` likewise rewrites `GUID` to `ID`. Both run after `generate`, so they change only the printed schemas. A rewrite of the public schema that generators must not see belongs in `cleanup` or `after`.
 
 Internal-only definitions carry `@gqlbase_internal`. Scalars carry `@gqlbase_typehint(type: …, input: …)` to tell generators how to type them (`input`, optional, for arguments and input fields). A list input field carries `@gqlbase_tuple(size: n)` when generators should type it as an `n`-tuple (a filter's `between`). A model field carries `@gqlbase_hasDefault` when the server fills it on create, so `ModelPlugin` makes it optional in the create input; a storage plugin sets it in `normalize`, before `execute` builds the inputs (the dsqlbase plugin does, for its column defaults). All four come from `InternalUtilsPlugin` (`packages/core/src/plugins/InternalUtilsPlugin/`), which removes them in `cleanup` and `after`. Internal definitions never reach the client schema, so `SchemaGeneratorPlugin` removes any that are left before printing.
 

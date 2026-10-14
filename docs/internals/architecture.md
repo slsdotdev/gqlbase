@@ -51,7 +51,7 @@ The root `packages/plugins/src/index.ts` exports only the appsync preset. Each p
 
 `SchemaGeneratorPlugin.output` runs once every plugin has cleaned up. Before printing `schema.graphql`, it removes every definition that nothing public reaches (`collectPublicDefinitions`), leftover `@gqlbase_internal` definitions included. The AppSync schema is printed in a later `output` hook, from the same pruned document, so both contain only what the client can reach.
 
-The transformer options (`relay`, `semanticNullability`, `operations`, `tenancy`, `dataSources`) are resolved with their defaults and frozen onto `context.options` before any plugin is created.
+The transformer options (`relay`, `semanticNullability`, `discriminatorSuffix`, `operations`, `tenancy`, `dataSources`) are resolved with their defaults and frozen onto `context.options` before any plugin is created.
 
 Presets are plain arrays of factories, so they expand in place. Registering a plugin calls its `init()` straight away. Plugin names must be unique.
 

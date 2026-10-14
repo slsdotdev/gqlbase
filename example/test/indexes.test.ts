@@ -28,6 +28,7 @@ const product = (slug: string) => ({
   version: 1,
   reviewId: randomUUID(),
   wishlistItemId: randomUUID(),
+  categoryId: randomUUID(),
   ...timestamps,
 });
 

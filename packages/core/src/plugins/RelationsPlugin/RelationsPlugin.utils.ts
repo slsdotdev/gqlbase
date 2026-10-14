@@ -13,6 +13,7 @@ import {
 } from "../../definition/index.js";
 import { camelCase } from "@gqlbase/shared/format";
 import { TransformerPluginExecutionError } from "@gqlbase/shared/errors";
+import { type TransformerOptions } from "../../context/index.js";
 
 export const RelationDirective = {
   HAS_ONE: "hasOne",
@@ -55,7 +56,9 @@ export const isValidRelationTarget = (node: DefinitionNode): node is RelationTar
 /**
  * Whether a relation target stands for several types: a union, or an interface.
  */
-export const isPolymorphicTarget = (target: RelationTarget): target is InterfaceNode | UnionNode => {
+export const isPolymorphicTarget = (
+  target: RelationTarget
+): target is InterfaceNode | UnionNode => {
   return isUnionNode(target) || isInterfaceNode(target);
 };
 
@@ -63,7 +66,10 @@ export const isPolymorphicTarget = (target: RelationTarget): target is Interface
  * The object types a relation target stands for: the target itself, a union's members, or the objects implementing an
  * interface.
  */
-export const getRelationMembers = (document: DocumentNode, target: RelationTarget): ObjectNode[] => {
+export const getRelationMembers = (
+  document: DocumentNode,
+  target: RelationTarget
+): ObjectNode[] => {
   if (isObjectNode(target)) {
     return [target];
   }
@@ -83,7 +89,8 @@ export const getRelationMembers = (document: DocumentNode, target: RelationTarge
 export const parseFieldRelation = (
   object: ObjectNode | InterfaceNode,
   field: FieldNode,
-  target: RelationTarget
+  target: RelationTarget,
+  options: Pick<TransformerOptions, "discriminatorSuffix">
 ): FieldRelationship | null => {
   const relationships = [
     isOneRelationship(field),
@@ -125,7 +132,7 @@ export const parseFieldRelation = (
 
     const discriminator =
       key && isPolymorphicTarget(target)
-        ? (args?.discriminator ?? camelCase(field.name, "type"))
+        ? (args?.discriminator ?? camelCase(field.name, options.discriminatorSuffix))
         : null;
 
     return {

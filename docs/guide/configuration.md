@@ -51,7 +51,8 @@ Defined in `packages/cli/src/config/config.ts`.
 | Option | Type | Default | Description |
 | --- | --- | --- | --- |
 | `relay` | `boolean` | `false` | Relay output: the `Node` interface on models and Relay connections for list relations. Registers `NodeInterfacePlugin` and `ConnectionPlugin`. See [Relay](./relay.md). |
-| `semanticNullability` | `boolean` | `false` | Declares `@semanticNonNull`. When off, a schema that uses the directive fails validation. See [Models](./models.md#nullability-and-semanticnonnull). |
+| `semanticNullability` | `boolean \| "force"` | `false` | Declares `@semanticNonNull`. When off, a schema that uses the directive fails validation. `"force"` also prints every non-null output field except `id` as nullable with `@semanticNonNull`. See [Models](./models.md#nullability-and-semanticnonnull). |
+| `discriminatorSuffix` | `string` | `"type"` | The suffix of the discriminator a `@belongsTo` to a union or an interface adds when it names none: `owner` gives `ownerType`, or `ownerKind` with `"kind"`. See [Relations](./relations.md#union-and-interface-targets). |
 | `operations` | `OperationType[]` | `["read", "write"]` | Operations generated for every `@model` that does not list its own. See [Models](./models.md#operations). |
 | `tenancy` | `Record<string, { default?, claims }>` | `{}` | Tenancy scopes and their claims. Registers `TenancyPlugin` and declares `@scope` when it declares a scope. See [Tenancy](./tenancy.md). |
 | `dataSources` | `Record<string, { type, default? }>` | `{}` | Data sources and the store type of each. Registers `DataSourcesPlugin` and declares `@dataSource` when it declares a source. See [Data sources](./data-sources.md). |
@@ -204,7 +205,7 @@ The stored outputs reference `<Type>OwnFields`: an object column in dsqlbase hol
 
 **Relations to unions and interfaces** ([Relations](./relations.md#union-and-interface-targets)).
 
-- `@belongsTo` adds a `<field>Type: String` discriminator (`@serverOnly @writeOnly`) beside the key; rename it with `discriminator:`.
+- `@belongsTo` adds a `<field>Type: String` discriminator (`@serverOnly @writeOnly`) beside the key; rename it with `discriminator:`, or change the suffix with `discriminatorSuffix`.
 - `@hasOne` and `@hasMany` keys on the members are nullable, as the relation is (they were non-null). On an interface they go on each implementing type, not on the interface.
 - Members that mix `GUID` ids with other id types throw.
 

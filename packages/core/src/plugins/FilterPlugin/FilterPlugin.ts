@@ -32,6 +32,7 @@ import { createPluginFactory } from "../createPluginFactory.js";
 import { TransformerPluginBase } from "../TransformerPluginBase.js";
 import { getTypeHint, InternalDirective } from "../InternalUtilsPlugin/index.js";
 import { isManyRelationship } from "../RelationsPlugin/RelationsPlugin.utils.js";
+import { BaseScalar } from "../ScalarsPlugin/ScalarsPlugin.utils.js";
 import {
   DATE_SCALARS,
   FilterDirective,
@@ -226,7 +227,8 @@ export class FilterPlugin extends TransformerPluginBase {
    * validation that runs after execute).
    */
   private _getFieldFilterInputName(field: FieldNode): string | null {
-    const typeName = field.type.getTypeName();
+    // The output schema prints `GUID` as `ID`, and both filter as ids: a `GUID` field shares the `ID` inputs.
+    const typeName = field.type.getTypeName() === BaseScalar.GUID ? "ID" : field.type.getTypeName();
     const typeDef = isBuildInScalar(typeName)
       ? ScalarNode.create(typeName)
       : this.context.document.getNode(typeName);

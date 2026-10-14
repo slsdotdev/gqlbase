@@ -32,4 +32,6 @@ export {
   OPERATION_NODE_NAME,
   isListTypeNode,
   isNullableTypeNode,
+  stripNonNull,
+  replaceNamedType,
 } from "./utils.js";
