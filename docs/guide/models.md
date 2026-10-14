@@ -278,6 +278,24 @@ type User @model {
 }
 ```
 
+### Forcing it on every field
+
+With `semanticNullability: "force"`, you declare plain non-null types and the output schema does the rest. Every non-null field of an object or an interface is printed nullable, with `@semanticNonNull` on the levels that were non-null:
+
+```graphql
+# source                        # schema.graphql
+name: String!                   name: String @semanticNonNull
+tags: [String!]!                tags: [String] @semanticNonNull(levels: [0, 1])
+matrix: [[Int!]]!               matrix: [[Int]] @semanticNonNull(levels: [0, 2])
+aliases: [String!] @semanticNonNull   aliases: [String] @semanticNonNull(levels: [0, 1])
+```
+
+- **Generated fields too.** Relation fields, connections, `PageInfo` and operation results are converted like declared ones.
+- **`id` keeps its `!`.** Clients such as Relay need a non-null id. Every type is converted the same way, so implementations still match their interfaces.
+- **Only output fields.** Arguments and input types keep their `!`, and create inputs stay required.
+- **Generators are unchanged.** The conversion runs after generation, and the generators already treat `!` and `@semanticNonNull` alike. The TypeScript types, Zod schemas and database columns are the same as without `"force"`.
+- **The AppSync schema becomes nullable.** AppSync [drops `@semanticNonNull`](./appsync.md), so every converted field is plain nullable there. AppSync then nulls a field that errors instead of its parent.
+
 ## Interfaces
 
 `InterfaceUtilsPlugin` copies fields from implemented interfaces into each implementor, and adds transitively implemented interfaces. If a field is redeclared with a different type, it logs a warning and uses the interface's type. So a `@model` implementing an interface gets the interface's fields in all of its generated inputs.

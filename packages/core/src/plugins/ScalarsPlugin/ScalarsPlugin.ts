@@ -1,5 +1,16 @@
 import { type ITransformerContext } from "../../context/index.js";
-import { ArgumentNode, DirectiveNode, ScalarNode, ValueNode } from "../../definition/index.js";
+import {
+  ArgumentNode,
+  DirectiveNode,
+  isInputObjectNode,
+  isInterfaceNode,
+  isObjectNode,
+  replaceNamedType,
+  ScalarNode,
+  type TypeNode,
+  ValueNode,
+} from "../../definition/index.js";
+import { BaseScalar } from "./ScalarsPlugin.utils.js";
 import { createPluginFactory } from "../createPluginFactory.js";
 import { TransformerPluginBase } from "../TransformerPluginBase.js";
 
@@ -56,6 +67,7 @@ import { TransformerPluginBase } from "../TransformerPluginBase.js";
  *
  * - `GUID`: A global id: a model's id that also names its model. Stored as a uuid; on the wire an opaque string
  *    (`guid:<base64url>`), though a raw uuid is accepted on the way in. Only a model's `id` and relation keys are `GUID`.
+ *    Generators see `GUID`; the output schema prints it as `ID` (see `after`), which clients such as Relay expect.
  *    Example: `"guid:WyJjYXRlZ29yaWVzIix7ImlkIjoiNTUwZTg0MDAtZTI5Yi00MWQ0LWE3MTYtNDQ2NjU1NDQwMDAwIn1d"`
  *
  */
@@ -192,6 +204,34 @@ export class ScalarsPlugin extends TransformerPluginBase {
           ]),
         ])
       );
+  }
+
+  /**
+   * `GUID` is a storage concept: on the wire a global id is an opaque `ID`. Once every plugin has generated and cleaned
+   * up, every reference to it becomes `ID`, so `Type.id`, `getType(id:)`, keys and inputs agree, and the scalar goes.
+   */
+  public after() {
+    const { document } = this.context;
+    const rename = (node: { type: TypeNode }) => {
+      if (node.type.getTypeName() === BaseScalar.GUID) {
+        node.type = replaceNamedType(node.type, BaseScalar.GUID, "ID");
+      }
+    };
+
+    for (const definition of document.definitions.values()) {
+      if (isObjectNode(definition) || isInterfaceNode(definition)) {
+        for (const field of definition.fields ?? []) {
+          rename(field);
+          field.arguments?.forEach(rename);
+        }
+      }
+
+      if (isInputObjectNode(definition)) {
+        definition.fields?.forEach(rename);
+      }
+    }
+
+    document.removeNode(BaseScalar.GUID);
   }
 }
 

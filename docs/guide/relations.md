@@ -23,7 +23,10 @@ A relation field says "this field is resolved from another record", linked by a 
 - `key:` overrides the name.
 - If a field with that name already exists, it is kept as declared. Where `GUID` is involved its type must match the key type; see [`GUID`](./scalars.md#guid).
 - Otherwise the added key field is marked `@serverOnly @writeOnly`: it exists on the stored record, in the TS model type and in the database table, but not in the public schema, the GraphQL inputs or the Zod schemas.
-- The key is nullable when the relation field is nullable (after `@semanticNonNull`), and non-null otherwise.
+- **Only a `@belongsTo` decides whether a key is required.** Its key is nullable when the relation field is nullable (after `@semanticNonNull`), and non-null otherwise.
+- **A `@hasOne`/`@hasMany` adds a nullable key**, whatever its own nullability. Its nullability is about what it resolves, not what a target row must store: a target with a null key just isn't in any parent's relation. When the target has a `@belongsTo` that stores the same key, the inverse relation adds nothing and the `@belongsTo` decides, whatever the order of the types. To require a key without a `@belongsTo`, declare it.
+- **Relations pair by key name.** A `@hasMany` and a `@belongsTo` are inverses only when they use the same key. `User.posts: [Post!]! @hasMany` adds `userId`, while `Post.author: User @belongsTo` adds `authorId`, so give one of them `key:` to pair them. The `@belongsTo` must then point back at the source: the same type, or a union or an interface that includes every object the source stands for. A `@belongsTo` with the same key that points elsewhere throws, since one column cannot hold two relations' ids.
+- **A non-null `@hasOne` is a promise your writes keep.** `profile: Profile! @hasOne` says every `User` has a `Profile`, which no key on `Profile` can enforce. A `@belongsTo` on `Profile` constrains the other direction. If the resolver finds no row, GraphQL raises its usual non-null error, which `@semanticNonNull` turns into a field error.
 
 ```graphql
 type User @model {
@@ -128,10 +131,10 @@ Every `@hasMany` gets the `filter` and `orderBy` arguments, whatever its parent 
 
 The target must be an object, interface or union type. A union stands for its members, and an interface for the object types implementing it. A relation to one is keyed only when every member is a stored model, as for an object target.
 
-- **`@hasOne` / `@hasMany`** put the key on **every member**, typed with the source's id and nullable as the relation is. Nothing is added to the interface itself.
+- **`@hasOne` / `@hasMany`** put the key on **every member**, typed with the source's id and nullable (unless a `@belongsTo` stores the same key; see above). Nothing is added to the interface itself.
 - **`@belongsTo`** stores two fields on the source, both `@serverOnly @writeOnly` like any key:
   - the key, `<field>Id` (or `key:`), typed with the members' id type (`ID` when they differ);
-  - the **discriminator**, `<field>Type` (or `discriminator:`), a `String` naming which member the row points at.
+  - the **discriminator**, `<field>Type` (or `discriminator:`), a `String` naming which member the row points at. The suffix is the [`discriminatorSuffix`](./configuration.md#transformer-options) option, `type` by default. Both fields are nullable as the relation is.
 - **Members cannot mix `GUID` ids with others**: the key is a global id for all of them or for none. A mix throws.
 
 ```graphql

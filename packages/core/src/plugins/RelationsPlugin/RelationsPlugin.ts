@@ -98,6 +98,7 @@ import { BaseScalar } from "../ScalarsPlugin/ScalarsPlugin.utils.js";
 export class RelationsPlugin implements ITransformerPlugin {
   readonly name = "RelationsPlugin";
   readonly context: ITransformerContext;
+
   constructor(context: ITransformerContext) {
     this.context = context;
   }
@@ -203,7 +204,7 @@ export class RelationsPlugin implements ITransformerPlugin {
     }
 
     const target = this._getRelationshipTarget(object, field);
-    return target ? parseFieldRelation(object, field, target) : null;
+    return target ? parseFieldRelation(object, field, target, this.context.options) : null;
   }
 
   /**
@@ -235,8 +236,8 @@ export class RelationsPlugin implements ITransformerPlugin {
   private _setRelationKey(
     node: RelationTarget,
     key: string,
-    typeName = "ID",
-    isNullable = false
+    typeName: string,
+    isNullable: boolean
   ) {
     // A union or an interface stands for its members: each one stores the key.
     if (isUnionNode(node) || isInterfaceNode(node)) {
@@ -267,6 +268,75 @@ export class RelationsPlugin implements ITransformerPlugin {
           : NonNullTypeNode.create(NamedTypeNode.create(typeName))
       )
     );
+  }
+
+  /**
+   * The key of a `@hasOne` or `@hasMany`, on every member of the target. The relation's nullability is about what it
+   * resolves, not what a target row must store, so the key is nullable. A member whose own `@belongsTo` stores the same
+   * key is left to it: that relation says whether the key is required, whichever is normalized first.
+   */
+  private _setInverseRelationKey(
+    source: ObjectNode | InterfaceNode,
+    target: RelationTarget,
+    key: string,
+    typeName: string,
+    relation: string
+  ) {
+    for (const member of getRelationMembers(this.context.document, target)) {
+      if (!this._hasBelongsToKey(member, key, source, relation)) {
+        this._setRelationKey(member, key, typeName, true);
+      }
+    }
+  }
+
+  /**
+   * Whether a keyed `@belongsTo` of the type, or of an interface it implements, stores `key` on it. Relations pair by
+   * key name, so that `@belongsTo` must point back at the source of the inverse relation: every object the source stands
+   * for must be one its target stands for (the same type, or a union or an interface that includes them). Otherwise one
+   * column would hold the ids of two different relations, which throws.
+   */
+  private _hasBelongsToKey(
+    node: ObjectNode,
+    key: string,
+    source: ObjectNode | InterfaceNode,
+    relation: string
+  ): boolean {
+    const owners = [
+      node,
+      ...(node.interfaces ?? [])
+        .map((type) => this.context.document.getNode(type.getTypeName()))
+        .filter((owner): owner is InterfaceNode => !!owner && isInterfaceNode(owner)),
+    ];
+
+    for (const owner of owners) {
+      for (const field of owner.fields ?? []) {
+        if (!isBelongsToRelationship(field)) {
+          continue;
+        }
+
+        const belongsTo = this._getFieldRelation(owner, field);
+
+        if (belongsTo?.key !== key || !this._isKeyed(owner, field, belongsTo.target)) {
+          continue;
+        }
+
+        const members = getRelationMembers(this.context.document, belongsTo.target);
+        const outside = getRelationMembers(this.context.document, source).filter(
+          (object) => !members.includes(object)
+        );
+
+        if (outside.length) {
+          throw new TransformerPluginExecutionError(
+            this.name,
+            `${relation} and ${owner.name}.${field.name} both use key "${key}", but ${owner.name}.${field.name} points at ${belongsTo.target.name}, which does not include ${outside.map((object) => object.name).join(", ")}. Give one of them another key.`
+          );
+        }
+
+        return true;
+      }
+    }
+
+    return false;
   }
 
   /**
@@ -406,11 +476,12 @@ export class RelationsPlugin implements ITransformerPlugin {
         continue;
       }
 
-      this._setRelationKey(
+      this._setInverseRelationKey(
+        definition,
         relation.target,
         relation.key,
         this._getKeyTypeName(definition, name),
-        isSemanticNullable(field)
+        name
       );
     }
   }

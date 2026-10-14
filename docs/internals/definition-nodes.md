@@ -61,6 +61,8 @@ These are type guards and predicates in `packages/core/src/definition/utils.ts`:
 | `isOperationNode` | `Query`, `Mutation` or `Subscription`. |
 | `isListTypeNode(type)` | A list, possibly wrapped in non-null. |
 | `isNullableTypeNode(type, level)` | Nullability at a list depth. |
+| `stripNonNull(type)` | A nullable copy with the same list structure, and the levels that were non-null (`[[X!]]!` gives `[[X]]`, `[0, 2]`). |
+| `replaceNamedType(type, from, to)` | A copy with the named type replaced, keeping its wrappers. |
 
 Directive predicates live next to the plugin that owns the directive:
 - `isModel`: `packages/core/src/plugins/ModelPlugin/ModelPlugin.utils.ts`.

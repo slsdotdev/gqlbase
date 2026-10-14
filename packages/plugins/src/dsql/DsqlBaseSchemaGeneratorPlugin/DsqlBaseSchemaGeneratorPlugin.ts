@@ -292,7 +292,7 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
 
         if (!isObjectNode(target) && !isUnionNode(target) && !isInterfaceNode(target)) continue;
 
-        const relation = parseFieldRelation(node, field, target);
+        const relation = parseFieldRelation(node, field, target, this.context.options);
 
         if (!relation?.key) continue;
 
@@ -780,7 +780,7 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
     tableVarName: string
   ): ts.Expression | null {
     const members = getRelationMembers(this.context.document, target);
-    const relation = parseFieldRelation(node, field, target);
+    const relation = parseFieldRelation(node, field, target, this.context.options);
 
     if (
       !relation?.key ||
@@ -924,7 +924,7 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
         continue;
       }
 
-      const relation = parseFieldRelation(node, field, target);
+      const relation = parseFieldRelation(node, field, target, this.context.options);
       const targetTableVarName = pluralize(camelCase(target.name));
 
       if (!relation?.key) {

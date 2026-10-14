@@ -120,6 +120,7 @@ describe("field resolvers", () => {
           version: 1,
           reviewId: randomUUID(),
           wishlistItemId: randomUUID(),
+          categoryId: randomUUID(),
           ...timestamps,
         },
       });

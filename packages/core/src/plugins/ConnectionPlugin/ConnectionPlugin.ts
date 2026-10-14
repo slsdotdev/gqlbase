@@ -119,7 +119,7 @@ export class ConnectionPlugin extends TransformerPluginBase {
 
     const target = this._getConnectionTarget(object, field);
 
-    return target ? parseFieldRelation(object, field, target) : null;
+    return target ? parseFieldRelation(object, field, target, this.context.options) : null;
   }
 
   private _setConnectionArguments(field: FieldNode) {

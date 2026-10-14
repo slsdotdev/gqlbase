@@ -53,7 +53,7 @@ There is no type hint for this: `SafeInt` carries the `number` hint, and each ge
 - **Accepted** wrapped or as a raw uuid, so Zod uses `z.string()` rather than `z.uuid()`.
 - **Opt in** per model with `id: GUID!`, or for every model by declaring `interface Node { id: GUID! }` with [relay](./relay.md#node-interface) on.
 - **Relation keys** take the target's id type, so a key to a `GUID` model is `GUID`. A key you declare must then be `GUID` too, and a declared `GUID` key must point at a `GUID` model; either mismatch throws. (`ID` and `UUID` keys stay interchangeable.) A [tenancy claim](./tenancy.md) used as the key keeps its declared type.
-- **AppSync** has no custom scalars, so `GUID` becomes `ID` there. The public schema keeps `scalar GUID`.
+- **Printed as `ID`.** `GUID` exists for storage and the generators. On the wire a global id is an opaque `ID`, so `schema.graphql` and the AppSync schema print every `GUID` as `ID`: model ids, `node(id:)`, `get<Model>(id:)`, keys, inputs and filters. `GUID` fields filter with the shared `IDFilterInput`. The generated TS types, Zod schemas and dsqlbase columns still see `GUID`.
 
 There is no decimal scalar built in. Declare one with a hint (see [Adding a custom scalar](#adding-a-custom-scalar)).
 

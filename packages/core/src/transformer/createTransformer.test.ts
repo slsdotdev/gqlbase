@@ -28,6 +28,7 @@ describe("createTransformer", () => {
     expect(context?.options).toEqual({
       relay: true,
       semanticNullability: true,
+      discriminatorSuffix: "type",
       operations: ["read", "write"],
       tenancy: {},
       dataSources: {},

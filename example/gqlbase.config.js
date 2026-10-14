@@ -9,7 +9,7 @@ export default defineConfig({
   verbose: false,
   transform: {
     relay: true,
-    semanticNullability: true,
+    semanticNullability: "force",
     // Vendors own their catalog and orders; users own their carts, orders and account records.
     // Admin-managed and public records (categories, markets) are in no scope.
     tenancy: {

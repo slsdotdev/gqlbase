@@ -17,7 +17,7 @@ With `relay` off (the default), neither is registered: there is no `Node` interf
 ## `Node` interface
 
 - **The interface:** adds `interface Node { id: ID! }`, or reuses an existing `Node` interface. Only its `id` field survives; other fields are removed in `after()`.
-- **The id type** is the interface's: declare `interface Node { id: GUID! }` to give every model a [global id](./scalars.md#guid).
+- **The id type** is the interface's: declare `interface Node { id: GUID! }` to give every model a [global id](./scalars.md#guid). The schema still prints `id: ID!`, which Relay requires.
 - **The query:** adds `Query.node(id: <id type>!): Node`.
 - **Implementors:** every `@model` type implements `Node`, and so does every type that already declares `implements Node`. A missing `id` field is added with the interface's type, before relations and operations read it. An `id` of a different type throws.
 

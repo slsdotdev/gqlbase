@@ -504,6 +504,44 @@ describe("polymorphic relations", () => {
   });
 });
 
+describe("polymorphic relations: shared keys and discriminatorSuffix", () => {
+  let tables: string;
+
+  beforeAll(() => {
+    const output = createTransformer({
+      discriminatorSuffix: "kind",
+      plugins: [dsqlbase()],
+    }).transform(/* GraphQL */ `
+      union Owner = Invoice | PaymentOrder
+
+      type Invoice @model {
+        id: GUID!
+        resources: [Resource!]! @hasMany(key: "ownerId")
+      }
+
+      type PaymentOrder @model {
+        id: GUID!
+        resources: [Resource!]! @hasMany(key: "ownerId")
+      }
+
+      type Resource @model {
+        id: GUID!
+        owner: Owner @belongsTo(key: "ownerId")
+      }
+    `);
+
+    tables = output.files.find((file) => file.path === "dsqlbase/schema.ts")?.content ?? "";
+  });
+
+  it("keeps the key nullable as its @belongsTo, when non-null inverses come first", () => {
+    expect(tables).toContain('ownerId: guid("owner_id"),');
+  });
+
+  it("names the discriminator with the configured suffix", () => {
+    expect(tables).toContain('ownerKind: text("owner_kind").$type<"invoices" | "paymentOrders">()');
+  });
+});
+
 describe("polymorphic relations: errors", () => {
   it("rejects a union exported under a table's alias", () => {
     expect(() =>

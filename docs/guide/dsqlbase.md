@@ -211,7 +211,7 @@ export const folderRelations = relations(folders, {
 });
 ```
 
-- **The discriminator** (`<field>Type`) is a `text` column typed with the members' schema aliases, which is what dsqlbase stores in it.
+- **The discriminator** (`<field>Type`, or the [`discriminatorSuffix`](./configuration.md#transformer-options) you set) is a `text` column typed with the members' schema aliases, which is what dsqlbase stores in it.
 - **The key** of a `@belongsTo` is a keyless `guid()` when the members have `GUID` ids: dsqlbase wraps each id with the member its row names, and **writing a global id fills the discriminator**. Without `GUID` ids it is a plain column, and the discriminator must be written with it.
 - **`@hasOne` / `@hasMany`** to a union or an interface name each member's key.
 - **A member's reverse `@hasMany`** onto the polymorphic key (`Invoice.resources @hasMany(key: "ownerId")`) is a plain `hasMany`: dsqlbase correlates it on the id alone (see [Relations](./relations.md#union-and-interface-targets)).
