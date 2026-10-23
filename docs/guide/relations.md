@@ -22,7 +22,7 @@ A relation field says "this field is resolved from another record", linked by a 
 
 - `key:` overrides the name.
 - If a field with that name already exists, it is kept as declared. Where `GUID` is involved its type must match the key type; see [`GUID`](./scalars.md#guid).
-- Otherwise the added key field is marked `@serverOnly @writeOnly`: it exists on the stored record, in the TS model type and in the database table, but not in the public schema, the GraphQL inputs or the Zod schemas.
+- Otherwise the added key field is marked `@serverOnly @writeOnly`: it exists on the stored record, in the schema types, the Zod object schema and the database table, but not in the public schema, the GraphQL inputs or the Zod create/update schemas.
 - **Only a `@belongsTo` decides whether a key is required.** Its key is nullable when the relation field is nullable (after `@semanticNonNull`), and non-null otherwise.
 - **A `@hasOne`/`@hasMany` adds a nullable key**, whatever its own nullability. Its nullability is about what it resolves, not what a target row must store: a target with a null key just isn't in any parent's relation. When the target has a `@belongsTo` that stores the same key, the inverse relation adds nothing and the `@belongsTo` decides, whatever the order of the types. To require a key without a `@belongsTo`, declare it.
 - **Relations pair by key name.** A `@hasMany` and a `@belongsTo` are inverses only when they use the same key. `User.posts: [Post!]! @hasMany` adds `userId`, while `Post.author: User @belongsTo` adds `authorId`, so give one of them `key:` to pair them. The `@belongsTo` must then point back at the source: the same type, or a union or an interface that includes every object the source stands for. A `@belongsTo` with the same key that points elsewhere throws, since one column cannot hold two relations' ids.
@@ -56,7 +56,7 @@ type Post {
 }
 ```
 
-`Post.userId`, `Post.authorId` and `Post.editorUserId` are present in the `posts` table and the AppSync resolver `PostSource` type. They are absent from `schema.graphql`, `schema.types.ts` and the Zod schemas.
+`Post.userId`, `Post.authorId` and `Post.editorUserId` are present in the `posts` table, `PostOwnFields` in `schema.types.ts`, `PostSchema` in Zod and the AppSync resolver `PostSource` type. They are absent from `schema.graphql`, the AppSync `Post` type and the Zod create/update schemas.
 
 > **Choosing between `@hasOne` and `@belongsTo`.** Use `@belongsTo` when the current type stores the foreign key (`Post.author`). Use `@hasOne` when the *other* type stores a key pointing back (`User.profile: Profile @hasOne` puts `userId` on `Profile`).
 

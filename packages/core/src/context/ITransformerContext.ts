@@ -35,6 +35,12 @@ export interface ITransformerContext {
    */
   document: DocumentNode;
 
+  /**
+   * The names of the definitions the source SDL declares, before any plugin adds to it. Generators use it to tell the schema's own
+   * definitions apart from those plugins add, for example to type a declared enum that nothing references.
+   */
+  readonly sourceDefinitions: ReadonlySet<string>;
+
   /** An array of file artifacts generated during the transformation process. Plugins can add new file artifacts to this array, which will be included in the final output of the transformer.
    */
 

@@ -46,6 +46,7 @@ The interface is `packages/core/src/context/ITransformerContext.ts` and the impl
 | `options: Readonly<TransformerOptions>` | The transformer options (`relay`, `semanticNullability`, `discriminatorSuffix`, `operations`, `tenancy`, `dataSources`), resolved with their defaults and frozen (`packages/core/src/context/TransformerOptions.ts`). Read them here to decide what to generate; do not probe the document for a directive definition. |
 | `base: DocumentNode` | Definitions the plugin contributes: directive definitions, internal enums, built-in scalars. It is merged with the user's source at `startWork`. A name that appears in both throws. |
 | `document: DocumentNode` | The working document. It exists only between `startWork` and `finishWork`; reading it outside that window throws. Plugins mutate it in place. |
+| `sourceDefinitions: ReadonlySet<string>` | The names the user's source declares, recorded at `startWork`, before plugins add to the document. Only valid during work. `collectSchemaTypeDefinitions` starts from it, so a declared definition is typed even when nothing uses it. |
 | `files: FileArtifact[]` | Generated files: `{ type, path, filename, content }`, where `path` is relative to the configured output directory. Like `document`, it is only valid during work. |
 | `plugins: ITransformerPlugin[]` | Every registered plugin, in order. Nothing in the repo uses it to find another plugin yet, and there is no lookup helper or shared metadata store. |
 | `logger` | A scoped logger from `@gqlbase/shared/logger`. Use `logger.createChild(scope)`. |
@@ -83,7 +84,10 @@ Generators accumulate state during `generate` (and sometimes `before`/`after`). 
 2. Declare the plugin's directives, enums and scalars on `context.base` in `init()`.
 3. Keep `match()` narrow. It gates every per-definition hook. Read `context.options` for feature switches.
 4. Add schema in `normalize`, transform in `execute`, and collect generated output in `generate`. Anything that depends on another plugin's work must run in a later phase than that work.
-   A generator that describes the client schema must leave out what will not reach it: use `isPublicSchemaField(field, parent)` for fields and `collectPublicDefinitions(context)` for definitions (collect once, on the first `generate` call). A generator that describes stored data uses `collectReachableDefinitions` with its own field rule.
+   Pick the rule for what the output describes, and collect once, on the first `generate` call:
+   - **The client schema** (the AppSync resolver types): leave out what will not reach it, with `isPublicSchemaField(field, parent)` for fields and `collectPublicDefinitions(context)` for definitions.
+   - **What server code reads** (the schema types, Zod object schemas, stored outputs): `isSchemaTypeField(field, parent)` and `collectSchemaTypeDefinitions(context)`, which keep hidden fields and declared definitions nothing public reaches. `TypesGeneratorBase._referenceType` imports any of those from the schema types.
+   - Anything else: `collectReachableDefinitions` with its own field rule.
 5. Remove the plugin's directives and temporary fields in `cleanup`, and its definitions in `after`.
 6. Co-locate `<Plugin>.test.ts` (see [Testing](./testing.md)). If the plugin adds or changes documented behaviour, update the guide page in the same PR ([Conventions → Documentation](./conventions.md#documentation)).
 

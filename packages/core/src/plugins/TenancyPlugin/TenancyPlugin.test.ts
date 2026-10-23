@@ -47,12 +47,19 @@ describe("TenancyPlugin", () => {
 
     it("keeps claims out of the public type, inputs and filters", () => {
       expect(schema).not.toContain("workspaceId");
-      expect(types).not.toContain("workspaceId");
+    });
+
+    it("types claims in the schema types, which server code reads", () => {
+      expect(types).toMatch(
+        /export type InvoiceOwnFields = \{[^}]*workspaceId: Scalars\["ID"\]\["output"\];/
+      );
+      expect(types).not.toMatch(/export type CreateInvoiceInput = \{[^}]*workspaceId/);
     });
 
     it("removes the directive and the scope enum from the output", () => {
       expect(schema).not.toContain("@scope");
       expect(schema).not.toContain("TenancyScope");
+      expect(types).not.toContain("TenancyScope");
     });
   });
 

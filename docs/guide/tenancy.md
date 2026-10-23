@@ -66,7 +66,7 @@ type Invoice @model {
 }
 ```
 
-- Since it is `@serverOnly`, a claim follows that row of the [field visibility](./field-visibility.md) table. It is in the database table and the AppSync `<Type>Source` type, so resolvers can read it from a parent row. It is not in the public schema, the inputs, the filters, the schema types or the Zod schemas.
+- Since it is `@serverOnly`, a claim follows that row of the [field visibility](./field-visibility.md) table. It is in the database table, the schema types, the Zod object schema and the AppSync `<Type>Source` type (optional there), so server code and resolvers can read it from a row. It is not in the public schema, the inputs, the filters or the Zod create/update schemas.
 - **Claims are added before any other plugin normalizes the schema.** A relation keyed on a claim (`Workspace.invoices: Invoice @hasMany(key: "workspaceId")`) reuses the claim field, and the field stays `@serverOnly`, not `@writeOnly`, so it never reaches an input.
 - **A model can declare the claim field itself**, for example to expose it: `workspaceId: ID! @readOnly`. The field is kept as declared, but it must have the claim's type and be non-null, or the transform throws.
 

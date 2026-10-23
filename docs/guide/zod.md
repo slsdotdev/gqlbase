@@ -29,15 +29,15 @@ The plugin is `ZodSchemaGeneratorPlugin` (`packages/plugins/src/zod/ZodSchemaGen
 | `@oneOf` input `I` | `ISchema = z.union([z.strictObject({ a }), z.strictObject({ b }), ...])` |
 
 - Root types, scalars, directive definitions and `@gqlbase_internal` definitions produce nothing.
-- The schemas guard the API, so they follow the public schema. Definitions the client schema does not reach produce nothing (`collectPublicDefinitions`): a `@serverOnly` type, including a `@serverOnly @model` or one implementing a public interface, and anything only `@serverOnly` fields reach.
+- The object schemas describe what the server stores and reads, so they cover the same definitions as the [schema types](./configuration.md#schema-types) (`collectSchemaTypeDefinitions`): every definition the source declares, `@serverOnly` types and definitions only `@serverOnly` fields reach included. Definitions a plugin adds that nothing uses produce nothing.
 - Schemas are emitted in dependency order, and cycles are wrapped in `z.lazy(...)`.
 - Self-referencing inputs (for example `and: [XFilterInput]`) are built as a base object plus `.extend(...)`.
 - A `@oneOf` input gets one strict object per field, holding that field as non-null. A value with no field, two fields or a `null` field fails.
 
 ### Object schemas (`<Type>Schema`)
 
-- **Fields:** the public fields (`isPublicSchemaField`), so `@serverOnly` and `@writeOnly` fields are left out and `@clientOnly` fields are kept. Relation fields are left out.
-- A database row parsed with `<Type>Schema` loses its `@serverOnly` values: Zod drops unknown keys.
+- **Fields:** every non-internal field (`isSchemaTypeField`): `@serverOnly` and `@writeOnly` fields, relation keys and tenancy claims are kept, and so are `@clientOnly` fields. Relation fields are left out.
+- `<Type>Schema` validates a stored row, not a client payload: it requires the non-null hidden fields, such as a relation key or a claim. Mutation arguments are validated with the create/update schemas below.
 - **Nullability:** a nullable field becomes `.nullable().optional()`; nullable list items become `.nullable()`. `@semanticNonNull` counts as non-null.
 
 ### Model create/update schemas

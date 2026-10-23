@@ -76,7 +76,7 @@ describe("ZodSchemaGeneratorPlugin", () => {
       expect(output).toContain('export const StatusSchema = z.enum(["ACTIVE"])');
     });
 
-    it("skips an enum nothing references", () => {
+    it("emits a declared enum nothing references", () => {
       const output = generateSchemas(
         plugin,
         context,
@@ -91,10 +91,10 @@ describe("ZodSchemaGeneratorPlugin", () => {
         ["Unused"]
       );
 
-      expect(output).not.toContain("UnusedSchema");
+      expect(output).toContain('export const UnusedSchema = z.enum(["A"])');
     });
 
-    it("skips an enum used only by a @serverOnly field", () => {
+    it("emits an enum used only by a @serverOnly field", () => {
       const output = generateSchemas(
         plugin,
         context,
@@ -113,7 +113,7 @@ describe("ZodSchemaGeneratorPlugin", () => {
         ["Visibility"]
       );
 
-      expect(output).not.toContain("VisibilitySchema");
+      expect(output).toContain('export const VisibilitySchema = z.enum(["HIDDEN"])');
     });
   });
 
@@ -807,7 +807,7 @@ describe("ZodSchemaGeneratorPlugin", () => {
     });
   });
 
-  describe("object schemas follow the public schema", () => {
+  describe("object schemas describe the stored row", () => {
     let validators: string;
 
     beforeAll(() => {
@@ -846,23 +846,23 @@ describe("ZodSchemaGeneratorPlugin", () => {
         output.files.find((file) => file.path === "zod/schema.validators.ts")?.content ?? "";
     });
 
-    it("leaves out @serverOnly and @writeOnly fields, and keeps @clientOnly ones", () => {
+    it("keeps @serverOnly, @writeOnly and @clientOnly fields", () => {
       const note = validators.slice(validators.indexOf("export const NoteSchema"));
 
       expect(note).toContain("body: z.string()");
       expect(note).toContain("rating: z.int().nullable().optional()");
-      expect(note).not.toContain("deletedAt");
-      expect(note).not.toContain("importRef");
-      expect(note).not.toContain("audit");
+      expect(note).toContain("deletedAt: z.string().nullable().optional()");
+      expect(note).toContain("importRef: z.string().nullable().optional()");
+      expect(note).toContain("audit:");
     });
 
-    it("emits nothing for types only @serverOnly fields reach", () => {
-      expect(validators).not.toContain("AuditRecordSchema");
+    it("emits types only @serverOnly fields reach", () => {
+      expect(validators).toContain("export const AuditRecordSchema");
     });
 
-    it("emits nothing for a @serverOnly type, even one implementing a public interface", () => {
+    it("emits a @serverOnly type", () => {
       expect(validators).toContain("export const EntrySchema");
-      expect(validators).not.toContain("SecretSchema");
+      expect(validators).toContain("export const SecretSchema");
     });
   });
 
@@ -1391,9 +1391,16 @@ describe("ZodSchemaGeneratorPlugin", () => {
         output.files.find((file) => file.path === "zod/schema.validators.ts")?.content ?? "";
     });
 
-    it("leaves a claim out of every schema", () => {
-      expect(validators).toContain("export const CreateProductInputSchema");
-      expect(validators).not.toContain("vendorId");
+    it("keeps a claim in the row schema and out of the input schemas", () => {
+      const create = validators.match(/export const CreateProductInputSchema = [^;]*;/)?.[0] ?? "";
+      const update = validators.match(/export const UpdateProductInputSchema = [^;]*;/)?.[0] ?? "";
+
+      expect(validators).toMatch(
+        /export const ProductSchema = z\.object\(\{[^;]*vendorId: z\.string\(\)/
+      );
+      expect(create).toContain("name:");
+      expect(create).not.toContain("vendorId");
+      expect(update).not.toContain("vendorId");
     });
   });
 
