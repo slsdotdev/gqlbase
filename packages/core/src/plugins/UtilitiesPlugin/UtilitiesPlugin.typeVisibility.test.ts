@@ -83,3 +83,59 @@ describe("type-level @serverOnly and @clientOnly", () => {
     });
   });
 });
+
+describe("interface without public fields", () => {
+  let schema: string;
+  let types: string;
+
+  beforeAll(() => {
+    const output = createTransformer({ relay: true }).transform(/* GraphQL */ `
+      interface DdbRecord {
+        pk: String! @serverOnly
+        sk: String! @writeOnly
+      }
+
+      interface Entity implements DdbRecord {
+        pk: String! @serverOnly
+        sk: String! @writeOnly
+        name: String!
+      }
+
+      type Post implements Entity @model {
+        id: ID!
+        title: String!
+        record: DdbRecord @serverOnly
+      }
+    `);
+
+    schema = output.schema;
+    types = output.files.find((file) => file.path === "schema.types.ts")?.content ?? "";
+  });
+
+  it("is removed from the output schema, with its implementors' references", () => {
+    expect(schema).not.toContain("DdbRecord");
+    expect(schema).toContain("interface Entity {");
+    expect(schema).toMatch(/type Post implements Entity & Node \{[^}]*title: String!/);
+  });
+
+  it("stays in the schema types, and its implementors keep its fields", () => {
+    expect(types).toMatch(
+      /export type DdbRecordOwnFields = \{[^}]*pk: Scalars\["String"\]\["output"\];[^}]*sk: Scalars\["String"\]\["output"\];/
+    );
+    expect(types).toMatch(/export type PostOwnFields = \{[^}]*pk: Scalars\["String"\]\["output"\];/);
+  });
+
+  it("throws when a public field returns it", () => {
+    expect(() =>
+      createTransformer().transform(/* GraphQL */ `
+        interface DdbRecord {
+          pk: String! @serverOnly
+        }
+
+        type Query {
+          record: DdbRecord
+        }
+      `)
+    ).toThrow(/Query\.record returns DdbRecord, which has no public fields/);
+  });
+});

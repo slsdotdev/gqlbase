@@ -153,6 +153,14 @@ describe("MiddyAppSyncGraphQLPlugin", () => {
           id: ID!
         }
 
+        interface DdbRecord {
+          pk: String! @serverOnly
+        }
+
+        type Shelf implements DdbRecord @model {
+          id: ID!
+        }
+
         type Store @model {
           id: ID!
           address: Address!
@@ -174,6 +182,10 @@ describe("MiddyAppSyncGraphQLPlugin", () => {
 
     it("declares nothing for a @serverOnly type", () => {
       expect(resolverTypes).not.toContain("ImportJob");
+    });
+
+    it("declares nothing for an interface without public fields", () => {
+      expect(resolverTypes).not.toContain("DdbRecord");
     });
   });
 

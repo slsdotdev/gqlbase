@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { beforeAll, describe, expect, it } from "vitest";
 import * as tables from "../generated/dsqlbase/schema";
 import { dsql, migrate } from "../src/lib/dsql";
+import { integrationsService } from "../src/lib/integrations";
 import { cognitoIdentity, execute } from "./appsync";
 
 const CREATE_INTEGRATION = /* GraphQL */ `
@@ -101,6 +102,13 @@ describe("data sources", () => {
     });
 
     expect(result.errors?.[0]?.message).toMatch(/externalAccountId/);
+  });
+
+  it("returns the schema's shape from the service: its claim, not its private fields", async () => {
+    const record = await integrationsService.find(integrationId, farm);
+
+    expect(record).toHaveProperty("vendorId", farm);
+    expect(record).not.toHaveProperty("accessToken");
   });
 
   it("stores the key of a relation into another source, and resolves it there", async () => {
