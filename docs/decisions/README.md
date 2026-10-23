@@ -20,6 +20,7 @@ These are accepted design decisions, numbered in the order they were accepted. A
 | [0010](./0010-tenant-scope-emission.md) | Tenancy scopes as dsqlbase `tenantScope` | 2026-10-04 | accepted |
 | [0011](./0011-column-defaults.md) | Column defaults: dsqlbase directives, a core "filled on create" marker | 2026-10-05 | accepted |
 | [0012](./0012-shared-keys-forced-nullability-guid-as-id.md) | Shared relation keys follow `@belongsTo`, `semanticNullability: "force"`, `GUID` printed as `ID` | 2026-10-14 | accepted |
+| [0013](./0013-schema-types-declared-shape.md) | Schema types and Zod row schemas describe the declared schema | 2026-10-23 | accepted |
 
 ## Template
 

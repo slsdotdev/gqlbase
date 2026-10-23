@@ -120,14 +120,17 @@ output.files; // [{ type, path, filename, content }]
 
 ### Schema types
 
-`schema.types.ts` holds support types for every generator and application to build on. It matches `schema.graphql`: only public fields and definitions.
+`schema.types.ts` holds support types for every generator and for server code to build on. It describes the declared schema, not only the client one:
+
+- **Fields:** every field but gqlbase's internal ones (`isSchemaTypeField`). `@serverOnly` and `@writeOnly` fields, relation keys and tenancy claims are in it, though `schema.graphql` leaves them out.
+- **Definitions:** every definition the source declares, and everything reachable from those or from the operations (`collectSchemaTypeDefinitions`). A `@serverOnly` type, an enum only a hidden field uses and a declared enum nothing uses are in it. A definition a plugin adds that nothing uses, such as the filter input of an unused scalar, is not.
 
 ```ts
 export type Scalars = {
   ID: { input: string; output: string };
   AWSJSON: { input: string; output: Record<string, unknown> };
 };
-export type PostOwnFields = { id: Scalars["ID"]["output"]; title: Scalars["String"]["output"]; price: MoneyFull };
+export type PostOwnFields = { id: Scalars["ID"]["output"]; title: Scalars["String"]["output"]; price: MoneyFull; authorId?: Maybe<Scalars["ID"]["output"]> };
 export type PostRelations = { author?: Maybe<AuthorFull> };
 export type PostFull = PostOwnFields & PostRelations;
 export type FeedItem = AuthorFull | PostFull;
@@ -139,12 +142,12 @@ export type FeedItem = AuthorFull | PostFull;
   - `<Type>Full`: both.
 
   Types without relations get the same three parts (an empty `<Type>Relations`). There is no type under the bare name. Fields reference the `Full` part of other types.
-- **`Scalars`** maps every built-in and public scalar to its `input` and `output` type, from its [type hint](./scalars.md#type-hints). Fields read `output` and input fields read `input`.
+- **`Scalars`** maps every built-in scalar and every scalar the schema types use to its `input` and `output` type, from its [type hint](./scalars.md#type-hints). Fields read `output` and input fields read `input`.
 - Unions, inputs and enums keep their name. A union is a union of its members' `Full` parts.
 - **There is no `__typename`.** It is a resolver concern (see [AppSync types](./appsync.md#appsync-types)).
 - A schema type named like a generated one (`PostFull`, `Scalars`, `Maybe`) throws.
 
-The stored outputs reference `<Type>OwnFields`: an object column in dsqlbase holds the stored shape, without relations.
+The stored outputs reference `<Type>OwnFields`: an object column in dsqlbase holds the stored shape, hidden fields included, without relations. The AppSync resolver types omit the hidden fields from it (see [AppSync types](./appsync.md#appsync-types)).
 
 `createTransformer` takes the [transformer options](#transformer-options) at the top level, next to `plugins`, with the same defaults. `transform()` returns `{ schema, files }` merged with whatever each plugin's `output()` returns (`schemaTypes` holds the content of `schema.types.ts`). Nothing is written to disk; the CLI does that.
 
@@ -191,7 +194,7 @@ The stored outputs reference `<Type>OwnFields`: an object column in dsqlbase hol
 
 **Output changes to check.**
 
-- `schema.types.ts` matches `schema.graphql`: it no longer has `@serverOnly` or `@writeOnly` fields, relation keys or unused definitions. Resolver code that reads those from a parent uses the AppSync `<Type>Source` type, which its `source` now has.
+- `schema.types.ts` matched `schema.graphql` in 0.2: no `@serverOnly` or `@writeOnly` fields, relation keys or unused definitions. This changed again in the next minor ([decision 0013](../decisions/0013-schema-types-declared-shape.md)): the schema types now keep them (see [Schema types](#schema-types)). Resolver code that reads those from a parent uses the AppSync `<Type>Source` type, which its `source` has.
 - `appsyncPreset({ middyAppSync: { relationsOnly } })` is replaced by `resolvers`: `relationsOnly: true` → `resolvers: "declared"` (the default), `relationsOnly: false` → `resolvers: "all"`. `"declared"` also types [`@computed`](./appsync.md#computed-fields) fields.
 - `appsync/middy-appsync.types.ts` declares an [AppSync version](./appsync.md#appsync-types) of each object, interface and union under its schema name, and re-exports only enums, inputs and `Scalars`. Import resolver types from it rather than from `schema.types`.
 - `schema.types.ts` splits each object and interface into `<Type>OwnFields`, `<Type>Relations` and `<Type>Full`, and the bare name is gone: `Post` → `PostFull` (or `PostOwnFields` for a stored shape). Scalars are typed through `Scalars["<Name>"]["input" | "output"]`. `__typename` and `RequiredTypename` are gone. See [Schema types](#schema-types).
@@ -225,7 +228,7 @@ The stored outputs reference `<Type>OwnFields`: an object column in dsqlbase hol
 - Relation keys are added only between stored types: a `@hasMany` on a plain type no longer adds a key to its target.
 - With Relay and without `semanticNullability`, `edges` is `[XEdge!]!` and `XEdge.node` is non-null.
 
-**Zod schemas** ([Zod](./zod.md)). The schemas guard the API, so they follow the public schema.
+**Zod schemas** ([Zod](./zod.md)). In 0.2 the schemas followed the public schema; the object schemas have since gone back to the stored row (see the last bullet).
 
 - `Create<Model>InputSchema` and `Update<Model>InputSchema` have exactly the fields of `Create<Model>Input` and `Update<Model>Input`: no `@readOnly` or `@serverOnly` fields and no relation keys. Validate the client input, then add the values the server sets:
 
@@ -237,7 +240,7 @@ The stored outputs reference `<Type>OwnFields`: an object column in dsqlbase hol
   ```
 
 - A model gets a create or update schema only if it has that input, so `@model(operations: [...])` without `create` or `update` means no schema for it. Nested objects reference `<Type>InputSchema` instead of `<Type>Schema`.
-- `<Type>Schema` has no `@serverOnly` fields, and `@serverOnly` types get no schema. Parsing a database row with it drops those values; use the dsqlbase row types for rows.
+- In 0.2, `<Type>Schema` had no `@serverOnly` fields and `@serverOnly` types got no schema. It now has every non-internal field, and every definition in the schema types gets one (see [Zod](./zod.md#object-schemas-typeschema)).
 
 **Plugin authors.**
 

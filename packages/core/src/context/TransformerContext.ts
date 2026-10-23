@@ -16,6 +16,7 @@ export class TransformerContext implements ITransformerContext {
 
   private _workInProgress: DocumentNode | null = null;
   private _fileArtifacts: FileArtifact[] | null = [];
+  private _sourceDefinitions: ReadonlySet<string> | null = null;
 
   constructor(options: TransformerContextOptions = {}) {
     const { logger, ...transformerOptions } = options;
@@ -31,6 +32,14 @@ export class TransformerContext implements ITransformerContext {
     }
 
     return this._workInProgress;
+  }
+
+  get sourceDefinitions() {
+    if (!this._sourceDefinitions) {
+      throw new Error("Work has not been started yet.");
+    }
+
+    return this._sourceDefinitions;
   }
 
   get files() {
@@ -61,6 +70,7 @@ export class TransformerContext implements ITransformerContext {
 
     // Plugins mutate the work in progress, so it starts from a copy of the base: a transformer
     // can run more than once (watch mode) and every run sees the same base.
+    this._sourceDefinitions = new Set(document.definitions.keys());
     this._workInProgress = DocumentNode.merge(DocumentNode.clone(this.base), document);
     this._fileArtifacts = [];
 
@@ -76,5 +86,7 @@ export class TransformerContext implements ITransformerContext {
     if (this._fileArtifacts) {
       this._fileArtifacts = null;
     }
+
+    this._sourceDefinitions = null;
   }
 }

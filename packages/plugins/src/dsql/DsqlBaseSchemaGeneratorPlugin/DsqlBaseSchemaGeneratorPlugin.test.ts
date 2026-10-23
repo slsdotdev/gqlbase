@@ -6,6 +6,7 @@ import { dsqlbase } from "../index.js";
 describe("type-level visibility in stored outputs", () => {
   let tables: string;
   let validators: string;
+  let types: string;
 
   beforeAll(() => {
     const output = createTransformer({
@@ -17,6 +18,7 @@ describe("type-level visibility in stored outputs", () => {
 
       type Address {
         city: String!
+        geoHash: String @serverOnly
       }
 
       type ImportJob @model @serverOnly {
@@ -54,12 +56,14 @@ describe("type-level visibility in stored outputs", () => {
     tables = output.files.find((file) => file.path === "dsqlbase/schema.ts")?.content ?? "";
     validators =
       output.files.find((file) => file.path === "zod/schema.validators.ts")?.content ?? "";
+    types = output.files.find((file) => file.path === "schema.types.ts")?.content ?? "";
   });
 
-  it("keeps a table for a @serverOnly model, with no Zod schemas", () => {
+  it("keeps a table for a @serverOnly model, with a row schema and no input schemas", () => {
     expect(tables).toContain('table("import_jobs"');
     expect(tables).toContain('lastImportId: uuid("last_import_id")');
-    expect(validators).not.toContain("ImportJob");
+    expect(validators).toContain("export const ImportJobSchema");
+    expect(validators).not.toContain("CreateImportJobInputSchema");
   });
 
   it("gives a @clientOnly model no table and no create/update schemas", () => {
@@ -84,10 +88,19 @@ describe("type-level visibility in stored outputs", () => {
     );
   });
 
-  it("declares a column type locally when the schema types do not export it", () => {
-    expect(tables).toMatch(/export type ImportMeta = \{\s*rows: number;\s*\};/);
-    expect(tables).toContain('record("meta").$type<ImportMeta>()');
-    expect(tables).not.toMatch(/import \{[^}]*ImportMeta[^}]*\} from/);
+  it("types a column with the stored shape, @serverOnly members included", () => {
+    expect(tables).toContain('record("address").$type<AddressOwnFields>()');
+    expect(types).toMatch(
+      /export type AddressOwnFields = \{[^}]*geoHash\?: Maybe<Scalars\["String"\]\["output"\]>;/
+    );
+  });
+
+  it("imports the column type of a @serverOnly type from the schema types", () => {
+    expect(tables).toContain('record("meta").$type<ImportMetaOwnFields>()');
+    expect(tables).toMatch(
+      /import \{[^}]*type ImportMetaOwnFields[^}]*\} from "\.\.\/schema\.types\.js";/
+    );
+    expect(tables).not.toMatch(/export type ImportMeta = /);
   });
 });
 

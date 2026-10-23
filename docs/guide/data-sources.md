@@ -58,7 +58,7 @@ Both read `@dataSource`, so call them before `cleanup`, for example in `generate
 ## Generators
 
 - **dsqlbase** emits a table for each model of the source with `type: "dsqlbase"`, and throws when more than one source has that type. A relation to a model in another source keeps its key column but gets no `belongsTo`/`hasMany`. `@index` and `@unique` apply to its tables only. See [dsqlbase](./dsqlbase.md).
-- Every other generator works on the public schema and is not affected.
+- Every other generator is not affected.
 
 ## Global ids
 

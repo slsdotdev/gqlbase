@@ -14,8 +14,8 @@ import {
   isRelationField,
   isModel,
   isPrimaryKeyField,
-  collectPublicDefinitions,
-  isPublicSchemaField,
+  collectSchemaTypeDefinitions,
+  isSchemaTypeField,
 } from "@gqlbase/core/plugins";
 import {
   DefinitionNode,
@@ -440,7 +440,7 @@ export class ZodSchemaGeneratorPlugin extends TransformerPluginBase {
     const properties: ts.ObjectLiteralElementLike[] = [];
 
     for (const field of definition.fields ?? []) {
-      if (!isPublicSchemaField(field, definition) || isRelationField(field)) {
+      if (!isSchemaTypeField(field, definition) || isRelationField(field)) {
         continue;
       }
 
@@ -894,9 +894,9 @@ export class ZodSchemaGeneratorPlugin extends TransformerPluginBase {
   }
 
   public generate(definition: DefinitionNode) {
-    // The schemas guard the API, so only definitions the client schema reaches get one.
+    // The object schemas describe the stored row, so every definition the schema types declare gets one.
     // Collected on the first call: execute has finished, and nothing changes the document during generate.
-    this.reachable ??= collectPublicDefinitions(this.context);
+    this.reachable ??= collectSchemaTypeDefinitions(this.context);
 
     if (!isOperationNode(definition) && !this.reachable.has(definition.name)) {
       return;

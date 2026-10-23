@@ -52,30 +52,28 @@ describe("MiddyAppSyncGraphQLPlugin", () => {
     expect(content).not.toMatch(/export type Tag\b/);
   });
 
-  it("declares the AppSync version of a type from its own fields and its relations", () => {
+  it("declares the AppSync version of a type from its own fields, without the hidden ones, and its relations", () => {
     expect(content).toMatch(
-      /export type Category = WithTypename<CategoryOwnFields & \{\s+parent\?: Maybe<Category>;\s+\}, "Category">;/
+      /export type Category = WithTypename<Omit<CategoryOwnFields, "importRef" \| "deletedAt" \| "visibility" \| "parentId"> & \{\s+parent\?: Maybe<Category>;\s+\}, "Category">;/
     );
   });
 
-  it("types source as <Type>Source when the type has hidden stored fields", () => {
-    expect(content).toMatch(/export type CategorySource = Category & \{/);
-    expect(content).toMatch(/parentId\?: Maybe<Scalars\["ID"\]\["output"\]>;/);
-    expect(content).toMatch(/importRef\?: Maybe<Scalars\["String"\]\["output"\]>;/);
-    expect(content).toMatch(/deletedAt\?: Maybe<Scalars\["AWSDateTime"\]\["output"\]>;/);
+  it("types source as <Type>Source, with the hidden fields optional, since the parent's result leaves them out", () => {
+    expect(content).toContain(
+      'export type CategorySource = Category & Partial<Pick<CategoryOwnFields, "importRef" | "deletedAt" | "visibility" | "parentId">>;'
+    );
     expect(content).toMatch(/parent: \{\s+source: CategorySource;/);
   });
 
   it("leaves hidden relation fields out of <Type>Source", () => {
-    const source = content.match(/export type CategorySource = Category & \{[^}]*\}/)?.[0] ?? "";
+    const source = content.match(/export type CategorySource = [^;]*;/)?.[0] ?? "";
 
     expect(source).toContain("parentId");
-    expect(source).not.toMatch(/\bparent\??:/);
+    expect(source).not.toMatch(/"parent"/);
   });
 
-  it("declares a hidden field's type locally when the schema types do not export it", () => {
-    expect(content).toMatch(/export type Visibility = "PUBLIC" \| "HIDDEN";/);
-    expect(content).toMatch(/visibility\?: Maybe<Visibility>;/);
+  it("declares no type of its own for a hidden field", () => {
+    expect(content).not.toMatch(/export type Visibility\b/);
     expect(content).not.toMatch(/import type \{[^}]*\bVisibility\b/);
   });
 
@@ -134,10 +132,48 @@ describe("MiddyAppSyncGraphQLPlugin", () => {
         output.files.find((file) => file.path === "appsync/middy-appsync.types.ts")?.content ?? "";
     });
 
-    it("puts a claim on the resolver's <Type>Source", () => {
+    it("puts a claim on the resolver's <Type>Source, optional though it is non-null", () => {
       expect(resolverTypes).toMatch(
-        /export type ProductSource = Product & \{[^}]*vendorId: Scalars\["ID"\]\["output"\]/
+        /export type ProductSource = Product & Partial<Pick<ProductOwnFields, "[^;]*\bvendorId\b/
       );
+    });
+  });
+
+  describe("hidden fields", () => {
+    let resolverTypes: string;
+
+    beforeAll(() => {
+      const output = createTransformer({ plugins: [appsyncPreset()] }).transform(/* GraphQL */ `
+        type Address {
+          city: String!
+          geoHash: String @serverOnly
+        }
+
+        type ImportJob @model @serverOnly {
+          id: ID!
+        }
+
+        type Store @model {
+          id: ID!
+          address: Address!
+        }
+      `);
+
+      resolverTypes =
+        output.files.find((file) => file.path === "appsync/middy-appsync.types.ts")?.content ?? "";
+    });
+
+    it("overrides an own field that holds a type with hidden fields", () => {
+      expect(resolverTypes).toContain(
+        'export type Address = WithTypename<Omit<AddressOwnFields, "geoHash">, "Address">;'
+      );
+      expect(resolverTypes).toMatch(
+        /export type Store = WithTypename<Override<StoreOwnFields, \{\s+address: Address;\s+\}>, "Store">;/
+      );
+    });
+
+    it("declares nothing for a @serverOnly type", () => {
+      expect(resolverTypes).not.toContain("ImportJob");
     });
   });
 
@@ -254,7 +290,7 @@ describe("MiddyAppSyncGraphQLPlugin", () => {
 
     it("lets the parent's resolver leave computed fields out", () => {
       expect(resolverTypes).toMatch(
-        /export type Report = WithTypename<WithOptional<ReportOwnFields, "summary" \| "score"> & \{\s+author\?: Maybe<Author>;\s+\}, "Report">;/
+        /export type Report = WithTypename<WithOptional<Omit<ReportOwnFields, "authorId">, "summary" \| "score"> & \{\s+author\?: Maybe<Author>;\s+\}, "Report">;/
       );
       expect(resolverTypes).toMatch(
         /latest: \{\s+source: null;\s+args: Record<string, never>;\s+result: Report\[\];/
@@ -273,7 +309,9 @@ describe("MiddyAppSyncGraphQLPlugin", () => {
 
     it("types every public field with resolvers: all, and the same fields stay optional", () => {
       expect(allTypes).toMatch(/title: \{\s+source: ReportSource;/);
-      expect(allTypes).toMatch(/WithOptional<ReportOwnFields, "summary" \| "score">/);
+      expect(allTypes).toMatch(
+        /WithOptional<Omit<ReportOwnFields, "authorId">, "summary" \| "score">/
+      );
     });
 
     it("throws on an operation field, a relation field or a field outside the public schema", () => {

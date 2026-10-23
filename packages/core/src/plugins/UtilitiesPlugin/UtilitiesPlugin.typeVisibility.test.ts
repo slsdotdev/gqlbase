@@ -44,7 +44,15 @@ describe("type-level @serverOnly and @clientOnly", () => {
 
     it("makes the fields that return it @serverOnly", () => {
       expect(schema).not.toContain("lastImport");
-      expect(types).not.toContain("lastImport");
+    });
+
+    it("stays in the schema types, with the fields that return it", () => {
+      expect(types).toMatch(
+        /export type ImportJobOwnFields = \{[^}]*source: Scalars\["String"\]\["output"\];/
+      );
+      expect(types).toMatch(
+        /export type CategoryRelations = \{[^}]*lastImport\?: Maybe<ImportJobFull>;/
+      );
     });
   });
 

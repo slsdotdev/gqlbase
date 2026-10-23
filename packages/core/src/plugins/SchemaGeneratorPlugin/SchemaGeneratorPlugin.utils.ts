@@ -15,7 +15,7 @@ import { isInternal } from "../InternalUtilsPlugin/index.js";
 import { isServerOnly, isWriteOnly } from "../UtilitiesPlugin/index.js";
 
 /**
- * Whether a field reaches the client schema. `@serverOnly` and `@writeOnly` fields are stored but never returned, internal fields are gqlbase's own, and a `@serverOnly` type has no public fields. Generators run before `cleanup` removes them, so they use this to leave them out themselves.
+ * Whether a field reaches the client schema. `@serverOnly` and `@writeOnly` fields are stored but never returned, internal fields are gqlbase's own, and a `@serverOnly` type has no public fields. Generators run before `cleanup` removes them, so the ones that describe the API (the AppSync resolver types) use this to leave them out themselves. The schema types and the Zod row schemas keep them (see `isSchemaTypeField`).
  *
  * @param field The field to check.
  * @param parent The object or interface that declares the field.
@@ -32,18 +32,20 @@ export const isPublicSchemaField = (field: FieldNode, parent: ObjectNode | Inter
 };
 
 /**
- * Collects the names of the definitions reachable from the operation types and from the directive definitions declared in the source, through the fields `includeField` accepts, their arguments, input fields, interfaces (with their implementors) and union members. Internal definitions are never reached.
+ * Collects the names of the definitions reachable from the operation types, from the directive definitions declared in the source and from `roots`, through the fields `includeField` accepts, their arguments, input fields, interfaces (with their implementors) and union members. Internal definitions are never reached.
  *
  * Plugin-declared directive definitions (those on `context.base`) are not roots: most of them are removed before the output is printed.
  *
  * @param includeField Which object and interface fields to follow.
  * @param includeDefinition Which definitions can be reached at all.
+ * @param roots More definitions to start from.
  */
 
 export const collectReachableDefinitions = (
   context: ITransformerContext,
   includeField: (field: FieldNode, parent: ObjectNode | InterfaceNode) => boolean,
-  includeDefinition: (node: DefinitionNode) => boolean = () => true
+  includeDefinition: (node: DefinitionNode) => boolean = () => true,
+  roots: Iterable<string> = []
 ): Set<string> => {
   const { document, base } = context;
   const reached = new Set<string>();
@@ -60,7 +62,7 @@ export const collectReachableDefinitions = (
     queue.push(node);
   };
 
-  for (const name of OPERATION_NODE_NAME) {
+  for (const name of [...OPERATION_NODE_NAME, ...roots]) {
     visit(name);
   }
 

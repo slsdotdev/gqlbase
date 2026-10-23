@@ -1,9 +1,9 @@
 import { randomUUID } from "node:crypto";
 import { encodeGlobalId, isGlobalId } from "dsqlbase";
-import type { Integration } from "../../generated/appsync/middy-appsync.types";
+import type { IntegrationOwnFields } from "../../generated/schema.types";
 
-// A record as the service stores it: the API type plus the vendorId claim.
-type IntegrationRecord = Integration & { vendorId: string };
+// A record as the service stores it: the schema types include the vendorId claim.
+type IntegrationRecord = IntegrationOwnFields;
 
 /**
  * A stand-in for the integrations service, which owns the `integrations` data source: there is no table, so resolvers

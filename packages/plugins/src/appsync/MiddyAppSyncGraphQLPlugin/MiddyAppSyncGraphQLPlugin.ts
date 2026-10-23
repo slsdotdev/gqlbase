@@ -20,6 +20,7 @@ import {
   isInternal,
   isPublicSchemaField,
   isRelationField,
+  isSchemaTypeField,
   isSemanticNullable,
   TypesGeneratorBase,
   createTypeReferences,
@@ -40,10 +41,11 @@ const UTILITY_TYPES = ["WithTypename", "WithRequiredTypename", "WithOptional", "
  * Writes `appsync/middy-appsync.types.ts`: the types resolvers build their values with, and the `Definition` of `@middy-appsync/graphql`.
  *
  * Each public object, interface and union has an AppSync version under its own name, built from the schema types' parts:
- * - an object is its `<Type>OwnFields` and its relations (optional, typed with the AppSync versions), `@computed` fields optional, and
- *   `__typename` allowed: `WithTypename<WithOptional<ProductOwnFields, "reviewCount"> & { vendor?: Vendor }, "Product">`;
- * - an own field whose type differs here (it holds a union, an interface or a `@computed` field, at any depth) is overridden:
- *   `Override<ProductEdgeOwnFields, { node: Product }>`;
+ * - an object is its `<Type>OwnFields` without its hidden fields (`@serverOnly`, `@writeOnly`, relation keys) and with its relations
+ *   (optional, typed with the AppSync versions), `@computed` fields optional, and `__typename` allowed:
+ *   `WithTypename<WithOptional<Omit<ProductOwnFields, "vendorId">, "reviewCount"> & { vendor?: Vendor }, "Product">`;
+ * - an own field whose type differs here (it holds a union, an interface, a `@computed` field or a hidden field, at any depth) is
+ *   overridden: `Override<ProductEdgeOwnFields, { node: Product }>`;
  * - a union, or an interface a field returns, requires `__typename` on each member: `WithRequiredTypename<Article, "Article"> | …`.
  *
  * Enums, inputs and `Scalars` are re-exported from the schema types, so resolvers import every type from this file.
@@ -160,7 +162,7 @@ export class MiddyAppSyncGraphQLPlugin extends TypesGeneratorBase {
   }
 
   /**
-   * Imports an enum or an input that a field, an argument or a hidden field references.
+   * Imports an enum or an input that a field or an argument references.
    */
   private _importNamedType(name: string) {
     const node = this.context.document.getNode(name);
@@ -321,7 +323,6 @@ export class MiddyAppSyncGraphQLPlugin extends TypesGeneratorBase {
     }
 
     nodes.push(...this._createUtilityTypes());
-    nodes.push(...this.refs.declarations.values());
     nodes.push(...this.appSyncTypes.values());
     nodes.push(...this.sourceTypes.values());
 
@@ -361,7 +362,8 @@ export class MiddyAppSyncGraphQLPlugin extends TypesGeneratorBase {
 
   /**
    * The public types whose AppSync version differs from the schema types' `<Type>Full`: unions and interfaces (they require `__typename`),
-   * types with `@computed` fields (optional here), and every type that holds one of them, through any field.
+   * types with `@computed` fields (optional here) or hidden fields (left out here), and every type that holds one of them, through any
+   * field.
    */
   private _collectChanged(types: (ObjectNode | InterfaceNode | UnionNode)[]) {
     const changed = new Set<string>();
@@ -370,7 +372,8 @@ export class MiddyAppSyncGraphQLPlugin extends TypesGeneratorBase {
       if (
         isUnionNode(node) ||
         isInterfaceNode(node) ||
-        node.fields?.some((field) => isComputed(field) && isPublicSchemaField(field, node))
+        node.fields?.some((field) => isComputed(field) && isPublicSchemaField(field, node)) ||
+        this._getHiddenFields(node).length
       ) {
         changed.add(node.name);
       }
@@ -438,7 +441,20 @@ export class MiddyAppSyncGraphQLPlugin extends TypesGeneratorBase {
   }
 
   /**
-   * `WithTypename<WithOptional<Override<TOwnFields, { … }>, "computed"> & { relation?: … }, "T">`
+   * The stored fields of a public type that the client schema leaves out (`@serverOnly`, `@writeOnly`, relation keys). They are in its
+   * `<Type>OwnFields`. Hidden relation fields are not: the row holds their key, not the related object.
+   */
+  private _getHiddenFields(node: ObjectNode | InterfaceNode) {
+    return (node.fields ?? []).filter(
+      (field) =>
+        isSchemaTypeField(field, node) &&
+        !isRelationField(field) &&
+        !isPublicSchemaField(field, node)
+    );
+  }
+
+  /**
+   * `WithTypename<WithOptional<Override<Omit<TOwnFields, "hidden">, { … }>, "computed"> & { relation?: … }, "T">`
    */
   private _createObjectVersion(node: ObjectNode | InterfaceNode) {
     const fields = (node.fields ?? []).filter((field) => isPublicSchemaField(field, node));
@@ -454,7 +470,15 @@ export class MiddyAppSyncGraphQLPlugin extends TypesGeneratorBase {
       this._importNamedType(field.type.getTypeName());
     }
 
+    const hidden = this._getHiddenFields(node);
     let type: ts.TypeNode = ts.factory.createTypeReferenceNode(ownFields);
+
+    if (hidden.length) {
+      type = ts.factory.createTypeReferenceNode("Omit", [
+        type,
+        this._createLiteralUnion(hidden.map((field) => field.name)),
+      ]);
+    }
 
     if (overridden.length) {
       type = ts.factory.createTypeReferenceNode("Override", [
@@ -539,30 +563,13 @@ export class MiddyAppSyncGraphQLPlugin extends TypesGeneratorBase {
   }
 
   /**
-   * A hidden field's type: the AppSync version or a re-exported schema type when it is public, declared in this file otherwise.
-   */
-  private _createHiddenFieldType(field: FieldNode) {
-    const name = field.type.getTypeName();
-
-    if (this.publicDefinitions?.has(name)) {
-      this._importNamedType(name);
-    } else {
-      this._referenceType(name, this.refs, this.publicDefinitions ?? new Set());
-    }
-
-    return this._createValueTypeReference(field, field.type);
-  }
-
-  /**
    * The type a resolver receives as `source`: what the parent field's resolver returned. That is the AppSync version of the parent, or
-   * `<Type>Source` when the parent has hidden stored fields (`@serverOnly`, `@writeOnly`, relation keys), since a parent resolver usually
-   * returns the stored row. Hidden relation fields are left out: the row holds their key, not the related object.
+   * `<Type>Source` when the parent has hidden fields, since a parent resolver usually returns the stored row:
+   * `Product & Partial<Pick<ProductOwnFields, "vendorId">>`. They are optional whatever their nullability: the parent's result type is
+   * the AppSync version, which leaves them out, so nothing guarantees the parent returned them.
    */
   private _getSourceTypeName(parent: ObjectNode | InterfaceNode) {
-    const hidden = (parent.fields ?? []).filter(
-      (field) =>
-        !isInternal(field) && !isRelationField(field) && !isPublicSchemaField(field, parent)
-    );
+    const hidden = this._getHiddenFields(parent);
 
     if (!hidden.length) {
       return parent.name;
@@ -571,16 +578,9 @@ export class MiddyAppSyncGraphQLPlugin extends TypesGeneratorBase {
     const name = `${parent.name}Source`;
 
     if (!this.sourceTypes.has(name)) {
-      const members = hidden.map((field) =>
-        ts.factory.createPropertySignature(
-          undefined,
-          ts.factory.createIdentifier(field.name),
-          isSemanticNullable(field)
-            ? ts.factory.createToken(ts.SyntaxKind.QuestionToken)
-            : undefined,
-          this._createHiddenFieldType(field)
-        )
-      );
+      const ownFields = this._getOwnFieldsTypeName(parent.name);
+
+      this._import(ownFields, false);
 
       this.sourceTypes.set(
         name,
@@ -590,7 +590,12 @@ export class MiddyAppSyncGraphQLPlugin extends TypesGeneratorBase {
           undefined,
           ts.factory.createIntersectionTypeNode([
             ts.factory.createTypeReferenceNode(parent.name, undefined),
-            ts.factory.createTypeLiteralNode(members),
+            ts.factory.createTypeReferenceNode("Partial", [
+              ts.factory.createTypeReferenceNode("Pick", [
+                ts.factory.createTypeReferenceNode(ownFields),
+                this._createLiteralUnion(hidden.map((field) => field.name)),
+              ]),
+            ]),
           ])
         )
       );

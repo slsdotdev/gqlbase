@@ -1,7 +1,7 @@
 # 0003 — Core plugins, transformer options, and a schema that matches its types
 
 - **Date:** 2026-09-30
-- **Status:** accepted
+- **Status:** accepted, amended by [0013](./0013-schema-types-declared-shape.md)
 - **Proposal:** `core-restructure.md`
 
 ## Context

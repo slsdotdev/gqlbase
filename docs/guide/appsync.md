@@ -68,7 +68,7 @@ export type Override<T, U> = Omit<T, keyof U> & U;
 
 export type Money = WithTypename<MoneyOwnFields, "Money">;
 export type Product = WithTypename<
-  WithOptional<ProductOwnFields, "reviewCount"> & { vendor?: Vendor; variants?: ProductVariantConnection },
+  WithOptional<Omit<ProductOwnFields, "vendorId">, "reviewCount"> & { vendor?: Vendor; variants?: ProductVariantConnection },
   "Product"
 >;
 export type ProductEdge = WithTypename<Override<ProductEdgeOwnFields, { node: Product }>, "ProductEdge">;
@@ -76,11 +76,13 @@ export type SearchResult = WithRequiredTypename<ProductSearchHit, "ProductSearch
 ```
 
 - **An object** is its `<Type>OwnFields`, with:
+  - its hidden fields (`@serverOnly` and `@writeOnly` fields and relation keys) omitted, since the schema types keep them and the API never returns them;
   - its relations, always optional and typed with the AppSync versions, so a resolver can return preloaded relations;
   - its [`@computed`](#computed-fields) fields optional, since they have their own resolver;
   - `__typename` allowed.
-- **An own field whose type differs here** is overridden with `Override`: one that holds a union, an interface or a type with `@computed` fields, at any depth (`ProductEdge.node` above). Every other own field is the schema types' own.
+- **An own field whose type differs here** is overridden with `Override`: one that holds a union, an interface, or a type with `@computed` or hidden fields, at any depth (`ProductEdge.node` above). Every other own field is the schema types' own.
 - **A union, or an interface,** requires `__typename` on each member (each public type implementing the interface), so AppSync can resolve it.
+- **Only public definitions get a version.** A `@serverOnly` type, or one nothing public reaches, has none; server code uses its schema types.
 - **Re-exports.** Enums, inputs and `Scalars` are re-exported from the schema types as they are. The `<Type>OwnFields` parts are only imported, to build the AppSync versions.
 - A schema type named like a utility (`Override`) or a source type (`ProductSource`) throws.
 
@@ -102,16 +104,13 @@ declare module "@middy-appsync/graphql" {
 }
 ```
 
-- **`source`** is `null` for root types. Otherwise it is what the parent field's resolver returned: the parent's AppSync version, or `<Type>Source` when the parent has hidden stored fields (`@serverOnly` and `@writeOnly` fields and relation keys). `<Type>Source` is the AppSync version plus those fields, since a parent resolver usually returns the stored row:
+- **`source`** is `null` for root types. Otherwise it is what the parent field's resolver returned: the parent's AppSync version, or `<Type>Source` when the parent has hidden stored fields (`@serverOnly` and `@writeOnly` fields and relation keys). `<Type>Source` is the AppSync version plus those fields, picked from the schema types, since a parent resolver usually returns the stored row:
 
   ```ts
-  export type PostSource = Post & {
-    authorId?: Maybe<Scalars["ID"]["output"]>;
-    deletedAt?: Maybe<Scalars["AWSDateTime"]["output"]>;
-  };
+  export type PostSource = Post & Partial<Pick<PostOwnFields, "deletedAt" | "authorId">>;
   ```
 
-  Hidden relation fields are not part of the row (their key is), so they are left out. A hidden field whose type is not in the schema types is declared in this file.
+  The hidden fields are **optional**, even when they are non-null, such as a required relation key or a tenancy claim. A parent's result type is the AppSync version, which leaves them out, so a resolver may return a `Post` without them. Check for the value before you use it (`if (!source.authorId) return null;`). Hidden relation fields are not part of the row (their key is), so they are left out.
 - **`args`** use the input side of each scalar (`Scalars["AWSJSON"]["input"]` is a string), and **`result`** the output side and the AppSync versions.
 - **Which fields get an entry:**
   - with `resolvers: "declared"` (the default), the fields that have their own resolver: every field of `Query`, `Mutation` and `Subscription`, every relation field (`@hasOne`, `@hasMany`, `@belongsTo`), and every `@computed` field;

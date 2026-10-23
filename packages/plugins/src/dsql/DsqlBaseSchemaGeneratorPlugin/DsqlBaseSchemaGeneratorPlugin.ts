@@ -36,7 +36,6 @@ import {
   isRelayConnection,
   isRelayEdge,
   TypesGeneratorBase,
-  collectPublicDefinitions,
   createTypeReferences,
   getScope,
   type TypeReferences,
@@ -91,7 +90,6 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
   private _imports = new Set<string>();
   private _localBuilders = new Set<LocalColumnBuilderName>();
   private _typeRefs: TypeReferences = createTypeReferences();
-  private _publicDefinitions: Set<string> | null = null;
 
   private _enums: ts.Node[] = [];
   private _tables: ts.Node[] = [];
@@ -602,11 +600,7 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
         );
       }
 
-      this._referenceType(
-        fieldTypeName,
-        this._typeRefs,
-        (this._publicDefinitions ??= collectPublicDefinitions(this.context))
-      );
+      this._referenceType(fieldTypeName, this._typeRefs);
 
       const column = this._callExp("array", [ts.factory.createStringLiteral(columnName)]);
       const columnType = ts.factory.createArrayTypeNode(this._createNamedTypeNode(fieldTypeName));
@@ -661,11 +655,7 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
     // Any other object, interface or union is a `jsonb` document.
     if (isObjectLike(typeDef) && !isModel(typeDef) && !isOperationNode(typeDef)) {
       this._imports.add("record");
-      this._referenceType(
-        fieldTypeName,
-        this._typeRefs,
-        (this._publicDefinitions ??= collectPublicDefinitions(this.context))
-      );
+      this._referenceType(fieldTypeName, this._typeRefs);
 
       const column = this._callExp("record", [ts.factory.createStringLiteral(columnName)]);
       const columnType = this._createNamedTypeNode(fieldTypeName);
@@ -1279,7 +1269,6 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
     this._imports.clear();
     this._localBuilders.clear();
     this._typeRefs = createTypeReferences();
-    this._publicDefinitions = null;
   }
 
   public match(node: DefinitionNode): boolean {
@@ -1312,8 +1301,7 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
     const importNodes: ts.Node[] = [];
 
     const imports = Array.from(this._imports);
-    const { imports: typeImports, declarations } = this._typeRefs;
-    const reExports = Array.from(typeImports);
+    const reExports = Array.from(this._typeRefs.imports);
 
     if (imports.length > 0) {
       importNodes.push(namedImportStatement("dsqlbase/schema", imports));
@@ -1323,11 +1311,8 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
       importNodes.push(createLocalColumnBuilderImport());
     }
 
-    // Locally declared types (for stored shapes the schema types do not export) use Maybe.
-    const schemaTypeImports = declarations.size > 0 ? [...reExports, "Maybe"] : reExports;
-
-    if (schemaTypeImports.length > 0) {
-      importNodes.push(namedImportStatement("../schema.types.js", schemaTypeImports, true));
+    if (reExports.length > 0) {
+      importNodes.push(namedImportStatement("../schema.types.js", reExports, true));
     }
 
     if (reExports.length > 0) {
@@ -1350,7 +1335,6 @@ export class DsqlBaseSchemaGeneratorPlugin extends TypesGeneratorBase {
         ...importNodes,
         ts.factory.createIdentifier("\n"),
         ...Array.from(this._localBuilders, createLocalColumnBuilder),
-        ...declarations.values(),
         ...this._enums,
         ...this._embedded,
         ...this._scopeDeclarations,

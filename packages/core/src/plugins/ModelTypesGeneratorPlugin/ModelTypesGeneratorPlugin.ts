@@ -16,17 +16,20 @@ import {
   isUnionNode,
   ObjectNode,
 } from "../../definition/index.js";
-import { SCHEMA_TYPES_FILE } from "./ModelTypesGeneratorPlugin.utils.js";
+import {
+  collectSchemaTypeDefinitions,
+  isSchemaTypeField,
+  SCHEMA_TYPES_FILE,
+} from "./ModelTypesGeneratorPlugin.utils.js";
 import { isRelationField } from "../RelationsPlugin/RelationsPlugin.utils.js";
 import { isInternal } from "../InternalUtilsPlugin/index.js";
 import { isSemanticNullable } from "../RfcFeaturesPlugin/RfcFeaturesPlugin.utils.js";
 import { TypesGeneratorBase } from "../TypesGeneratorBase/TypesGeneratorBase.js";
-import { collectPublicDefinitions, isPublicSchemaField } from "../SchemaGeneratorPlugin/index.js";
 
 /**
- * Writes `schema.types.ts`: support types that match the output schema, for every generator and application to build on: the definitions
- * and fields that reach the client schema (see `isPublicSchemaField` and `collectPublicDefinitions`). It runs in `generate`, before
- * `cleanup`, so it leaves out what cleanup will remove itself.
+ * Writes `schema.types.ts`: support types for every generator and for server code to build on. They describe the declared schema, not
+ * only the client one: `@serverOnly` and `@writeOnly` fields, relation keys, `@serverOnly` types and declared definitions nothing public
+ * reaches are all in it (see `isSchemaTypeField` and `collectSchemaTypeDefinitions`). Only gqlbase's internal definitions are left out.
  *
  * - Each object and interface has three parts: `<Type>OwnFields` (its fields, without relations), `<Type>Relations` (its relations, all
  *   optional, since each has its own resolver) and `<Type>Full` (both). Fields reference the `Full` part of other types.
@@ -35,7 +38,7 @@ import { collectPublicDefinitions, isPublicSchemaField } from "../SchemaGenerato
  */
 export class ModelTypesGeneratorPlugin extends TypesGeneratorBase {
   private nodes: ts.Node[] = [];
-  private publicDefinitions: Set<string> | null = null;
+  private definitions: Set<string> | null = null;
   protected useScalarsMap = true;
 
   constructor(context: ITransformerContext) {
@@ -76,7 +79,7 @@ export class ModelTypesGeneratorPlugin extends TypesGeneratorBase {
     const members: ts.TypeElement[] = [];
 
     for (const field of definition.fields ?? []) {
-      if (!isPublicSchemaField(field, definition) || isRelationField(field) !== relations) {
+      if (!isSchemaTypeField(field, definition) || isRelationField(field) !== relations) {
         continue;
       }
 
@@ -119,12 +122,12 @@ export class ModelTypesGeneratorPlugin extends TypesGeneratorBase {
   }
 
   /**
-   * `{ UUID: { input: string; output: string } }`, for the built-ins and every public scalar.
+   * `{ UUID: { input: string; output: string } }`, for the built-ins and every scalar the schema types use.
    */
-  private _createScalars(publicDefinitions: Set<string>) {
+  private _createScalars(definitions: Set<string>) {
     const names = ["ID", "String", "Int", "Float", "Boolean"];
 
-    for (const name of publicDefinitions) {
+    for (const name of definitions) {
       const node = this.context.document.getNode(name);
 
       if (node && isScalarNode(node) && !names.includes(name)) {
@@ -159,13 +162,13 @@ export class ModelTypesGeneratorPlugin extends TypesGeneratorBase {
   /**
    * The generated names live next to the schema's own: a schema type with one of them would declare it twice.
    */
-  private _checkNames(publicDefinitions: Set<string>) {
+  private _checkNames(definitions: Set<string>) {
     const generated = new Map<string, string>([
       ["Maybe", "the nullable helper"],
       ["Scalars", "the scalar map"],
     ]);
 
-    for (const name of publicDefinitions) {
+    for (const name of definitions) {
       const node = this.context.document.getNode(name);
 
       if (node && (isObjectNode(node) || isInterfaceNode(node)) && !isOperationNode(node)) {
@@ -186,7 +189,7 @@ export class ModelTypesGeneratorPlugin extends TypesGeneratorBase {
   }
 
   public before() {
-    this.publicDefinitions = null;
+    this.definitions = null;
 
     this.nodes = [...createFileHeaders()];
 
@@ -214,13 +217,13 @@ export class ModelTypesGeneratorPlugin extends TypesGeneratorBase {
 
   public generate(definition: DefinitionNode) {
     // Collected on the first call: execute has finished, and nothing changes the document during generate.
-    if (!this.publicDefinitions) {
-      this.publicDefinitions = collectPublicDefinitions(this.context);
-      this._checkNames(this.publicDefinitions);
-      this.nodes.push(this._createScalars(this.publicDefinitions));
+    if (!this.definitions) {
+      this.definitions = collectSchemaTypeDefinitions(this.context);
+      this._checkNames(this.definitions);
+      this.nodes.push(this._createScalars(this.definitions));
     }
 
-    if (!this.publicDefinitions.has(definition.name)) {
+    if (!this.definitions.has(definition.name)) {
       return;
     }
 

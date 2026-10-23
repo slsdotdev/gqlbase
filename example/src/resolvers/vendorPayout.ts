@@ -15,7 +15,8 @@ const lineItemSummary = object("VendorPayout", {
       return source.lineItemSummary;
     }
 
-    if (!source.vendorOrderIds.length) {
+    // A hidden field is optional on source: the parent's result type does not guarantee it.
+    if (!source.vendorOrderIds?.length) {
       return [];
     }
 

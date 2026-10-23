@@ -1,7 +1,7 @@
 # 0006 — Schema types as parts; AppSync types under the API's names; `@computed`
 
 - **Date:** 2026-10-03
-- **Status:** accepted
+- **Status:** accepted, amended by [0013](./0013-schema-types-declared-shape.md)
 - **Proposal:** `field-resolvers.md`
 
 ## Context

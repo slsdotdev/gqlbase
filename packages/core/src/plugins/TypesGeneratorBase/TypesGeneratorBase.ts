@@ -5,11 +5,8 @@ import { getInputTypeHint, getTupleSize, getTypeHint } from "../InternalUtilsPlu
 import {
   EnumNode,
   FieldNode,
-  isEnumNode,
-  isInputObjectNode,
   isInterfaceNode,
   isObjectNode,
-  isUnionNode,
   InputObjectNode,
   InputValueNode,
   isNullableTypeNode,
@@ -23,7 +20,7 @@ import {
 import { isSemanticNullable } from "../RfcFeaturesPlugin/index.js";
 import { TransformerPluginExecutionError } from "@gqlbase/shared/errors";
 import { isInternal } from "../InternalUtilsPlugin/index.js";
-import { collectPublicDefinitions } from "../SchemaGeneratorPlugin/SchemaGeneratorPlugin.utils.js";
+import { collectSchemaTypeDefinitions } from "../ModelTypesGeneratorPlugin/ModelTypesGeneratorPlugin.utils.js";
 
 /**
  * Which side of the API a scalar is read on: arguments and input fields are `input`, fields are `output`. They differ for a scalar whose
@@ -32,16 +29,14 @@ import { collectPublicDefinitions } from "../SchemaGeneratorPlugin/SchemaGenerat
 export type ScalarMode = "input" | "output";
 
 /**
- * The named types a generated file references: those it imports from `schema.types.ts`, and local declarations for those the schema types do not export.
+ * The named types a generated file references, all imported from `schema.types.ts`.
  */
 export interface TypeReferences {
   imports: Set<string>;
-  declarations: Map<string, ts.Node>;
 }
 
 export const createTypeReferences = (): TypeReferences => ({
   imports: new Set(),
-  declarations: new Map(),
 });
 
 export abstract class TypesGeneratorBase extends TransformerPluginBase {
@@ -50,20 +45,20 @@ export abstract class TypesGeneratorBase extends TransformerPluginBase {
    * TypeScript type.
    */
   protected useScalarsMap = false;
-  private _publicCache: { document: unknown; names: Set<string> } | null = null;
+  private _schemaTypesCache: { document: unknown; names: Set<string> } | null = null;
 
   /**
-   * The definitions in the client schema, collected once per document.
+   * The definitions the schema types declare (see `collectSchemaTypeDefinitions`), collected once per document.
    */
-  protected _getPublicDefinitions(): Set<string> {
-    if (this._publicCache?.document !== this.context.document) {
-      this._publicCache = {
+  protected _getSchemaTypeDefinitions(): Set<string> {
+    if (this._schemaTypesCache?.document !== this.context.document) {
+      this._schemaTypesCache = {
         document: this.context.document,
-        names: collectPublicDefinitions(this.context),
+        names: collectSchemaTypeDefinitions(this.context),
       };
     }
 
-    return this._publicCache.names;
+    return this._schemaTypesCache.names;
   }
 
   /**
@@ -74,104 +69,29 @@ export abstract class TypesGeneratorBase extends TransformerPluginBase {
   }
 
   /**
-   * The TypeScript name an object or interface is referenced by. A public one is the schema types' `<Type>OwnFields`, a stored shape;
-   * any other is declared locally under its own name (see `_referenceType`). Generators override it to reference another part.
+   * The TypeScript name an object or interface is referenced by: the schema types' `<Type>OwnFields`, its own fields. Generators override
+   * it to reference another part.
    */
   protected _getObjectTypeName(name: string): string {
-    return this._getPublicDefinitions().has(name) ? this._getOwnFieldsTypeName(name) : name;
+    return this._getSchemaTypeDefinitions().has(name) ? this._getOwnFieldsTypeName(name) : name;
   }
+
   /**
-   * Records a named type that generated code references. Scalars need nothing. A public definition is imported from the schema types. Any other definition is declared locally, with the stored shape (every non-internal field), and the types it references are recorded the same way.
-   *
-   * Call it during `generate`: definitions that are not public are removed from the document before `output`.
+   * Records a named type that generated code references, to import from the schema types. Scalars and internal definitions need nothing.
    *
    * @param name The referenced type name.
-   * @param refs Where imports and local declarations are collected.
-   * @param publicDefinitions The definitions the schema types export (see `collectPublicDefinitions`).
+   * @param refs Where the imports are collected.
    */
-  protected _referenceType(name: string, refs: TypeReferences, publicDefinitions: Set<string>) {
-    if (isBuildInScalar(name) || refs.imports.has(name) || refs.declarations.has(name)) {
-      return;
-    }
-
+  protected _referenceType(name: string, refs: TypeReferences) {
     const node = this.context.document.getNode(name);
 
-    if (!node || isScalarNode(node) || isInternal(node)) {
+    if (isBuildInScalar(name) || !node || isScalarNode(node) || isInternal(node)) {
       return;
     }
 
-    if (publicDefinitions.has(name)) {
-      refs.imports.add(
-        isObjectNode(node) || isInterfaceNode(node) ? this._getOwnFieldsTypeName(name) : name
-      );
-      return;
-    }
-
-    if (isEnumNode(node)) {
-      refs.declarations.set(name, this._createEnumType(node));
-      return;
-    }
-
-    if (isUnionNode(node)) {
-      const members = (node.types ?? []).map((member) => member.getTypeName());
-
-      refs.declarations.set(
-        name,
-        ts.factory.createTypeAliasDeclaration(
-          [ts.factory.createModifier(ts.SyntaxKind.ExportKeyword)],
-          ts.factory.createIdentifier(name),
-          undefined,
-          ts.factory.createUnionTypeNode(
-            members.map((member) =>
-              ts.factory.createTypeReferenceNode(this._getObjectTypeName(member))
-            )
-          )
-        )
-      );
-
-      members.forEach((member) => this._referenceType(member, refs, publicDefinitions));
-      return;
-    }
-
-    if (isInputObjectNode(node)) {
-      refs.declarations.set(name, this._createInputObjectType(node));
-
-      for (const field of node.fields ?? []) {
-        this._referenceType(field.type.getTypeName(), refs, publicDefinitions);
-      }
-
-      return;
-    }
-
-    if (isObjectNode(node) || isInterfaceNode(node)) {
-      const fields = (node.fields ?? []).filter((field) => !isInternal(field));
-
-      // Declared before its fields are followed, so a type that references itself stops the walk.
-      refs.declarations.set(
-        name,
-        ts.factory.createTypeAliasDeclaration(
-          [ts.factory.createModifier(ts.SyntaxKind.ExportKeyword)],
-          ts.factory.createIdentifier(name),
-          undefined,
-          ts.factory.createTypeLiteralNode(
-            fields.map((field) =>
-              ts.factory.createPropertySignature(
-                undefined,
-                ts.factory.createIdentifier(field.name),
-                isSemanticNullable(field)
-                  ? ts.factory.createToken(ts.SyntaxKind.QuestionToken)
-                  : undefined,
-                this._createValueTypeReference(field, field.type)
-              )
-            )
-          )
-        )
-      );
-
-      for (const field of fields) {
-        this._referenceType(field.type.getTypeName(), refs, publicDefinitions);
-      }
-    }
+    refs.imports.add(
+      isObjectNode(node) || isInterfaceNode(node) ? this._getOwnFieldsTypeName(name) : name
+    );
   }
 
   /**

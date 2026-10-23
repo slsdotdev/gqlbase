@@ -242,7 +242,7 @@ describe("ModelTypesGeneratorPlugin", () => {
   });
 });
 
-describe("ModelTypesGeneratorPlugin output schema", () => {
+describe("ModelTypesGeneratorPlugin declared schema", () => {
   let content: string;
 
   beforeAll(() => {
@@ -269,6 +269,21 @@ describe("ModelTypesGeneratorPlugin output schema", () => {
         deletedAt: String @serverOnly
         visibility: Visibility @serverOnly
       }
+
+      type ImportJob @model @serverOnly {
+        id: ID!
+        state: JobState!
+      }
+
+      enum JobState {
+        QUEUED
+        DONE
+      }
+
+      type Category @model {
+        id: ID!
+        lastImport: ImportJob @belongsTo
+      }
     `);
 
     content = output.files.find((file) => file.path === "schema.types.ts")?.content ?? "";
@@ -282,19 +297,35 @@ describe("ModelTypesGeneratorPlugin output schema", () => {
     expect(content).toContain("export type PostFull = PostOwnFields & PostRelations;");
   });
 
-  it("omits @serverOnly and @writeOnly fields and relation keys", () => {
+  it("keeps @serverOnly and @writeOnly fields and relation keys", () => {
     const post = content.match(/export type PostOwnFields = \{[^}]*\}/)?.[0] ?? "";
 
-    expect(post).not.toContain("authorId");
-    expect(post).not.toContain("importRef");
-    expect(post).not.toContain("deletedAt");
-    expect(post).not.toContain("visibility");
+    expect(post).toContain('authorId?: Maybe<Scalars["ID"]["output"]>;');
+    expect(post).toContain('importRef?: Maybe<Scalars["String"]["output"]>;');
+    expect(post).toContain('deletedAt?: Maybe<Scalars["String"]["output"]>;');
+    expect(post).toContain("visibility?: Maybe<Visibility>;");
   });
 
-  it("omits definitions that are not in the output schema", () => {
-    expect(content).not.toContain("export type Visibility");
-    expect(content).not.toContain("export type Unused");
+  it("keeps a @serverOnly type, and the hidden relation that returns it", () => {
+    expect(content).toMatch(/export type ImportJobOwnFields = \{[^}]*state: JobState;/);
+    expect(content).toContain('export type JobState = "QUEUED" | "DONE";');
+    expect(content).toMatch(/export type CategoryOwnFields = \{[^}]*lastImportId\?/);
+    expect(content).toMatch(
+      /export type CategoryRelations = \{\s+lastImport\?: Maybe<ImportJobFull>;\s+\};/
+    );
+  });
+
+  it("keeps declared definitions that nothing public reaches", () => {
+    expect(content).toContain('export type Visibility = "PUBLIC" | "HIDDEN";');
+    expect(content).toContain('export type Unused = "A";');
     expect(content).toContain("export type CreatePostInput");
+  });
+
+  it("leaves out definitions a plugin adds that nothing uses", () => {
+    expect(content).toContain("export type StringFilterInput");
+    expect(content).not.toContain("export type IntFilterInput");
+    expect(content).not.toContain("EmailAddress");
+    expect(content).not.toContain("DateTimeFilterInput");
   });
 });
 
@@ -339,7 +370,7 @@ describe("ModelTypesGeneratorPlugin parts", () => {
 
   it("splits an object into its own fields, its relations, and both", () => {
     expect(content).toMatch(
-      /export type PostOwnFields = \{\s+id: Scalars\["ID"\]\["output"\];\s+meta\?: Maybe<Scalars\["Json"\]\["output"\]>;\s+price: MoneyFull;\s+\};/
+      /export type PostOwnFields = \{\s+id: Scalars\["ID"\]\["output"\];\s+meta\?: Maybe<Scalars\["Json"\]\["output"\]>;\s+price: MoneyFull;\s+authorId\?: Maybe<Scalars\["ID"\]\["output"\]>;\s+\};/
     );
     expect(content).toMatch(/export type PostRelations = \{\s+author\?: Maybe<AuthorFull>;\s+\};/);
     expect(content).toContain("export type PostFull = PostOwnFields & PostRelations;");
@@ -385,6 +416,42 @@ describe("ModelTypesGeneratorPlugin parts", () => {
       `)
     ).toThrow(
       /The schema declares PostFull, but the schema types generate PostFull as a part of Post/
+    );
+  });
+});
+
+describe("ModelTypesGeneratorPlugin relation keys", () => {
+  let content: string;
+
+  beforeAll(() => {
+    const output = createTransformer().transform(/* GraphQL */ `
+      type Shelf @model {
+        id: ID!
+        books: [Book!] @hasMany
+        notes: Note! @hasMany
+      }
+
+      type Book @model {
+        id: ID!
+      }
+
+      type Note @model {
+        id: ID!
+      }
+    `);
+
+    content = output.files.find((file) => file.path === "schema.types.ts")?.content ?? "";
+  });
+
+  it("types the key a list @hasMany adds to its target", () => {
+    expect(content).toMatch(
+      /export type BookOwnFields = \{[^}]*shelfId\?: Maybe<Scalars\["ID"\]\["output"\]>;/
+    );
+  });
+
+  it("types the key a bare @hasMany adds to its target", () => {
+    expect(content).toMatch(
+      /export type NoteOwnFields = \{[^}]*shelfId\?: Maybe<Scalars\["ID"\]\["output"\]>;/
     );
   });
 });
