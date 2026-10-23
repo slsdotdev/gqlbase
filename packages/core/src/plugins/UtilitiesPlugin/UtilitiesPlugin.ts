@@ -14,6 +14,12 @@ import {
   ObjectNode,
   ValueNode,
 } from "../../definition/index.js";
+import { TransformerPluginExecutionError } from "@gqlbase/shared/errors";
+import { isInternal } from "../InternalUtilsPlugin/index.js";
+import {
+  hasPublicFields,
+  isPublicSchemaField,
+} from "../SchemaGeneratorPlugin/SchemaGeneratorPlugin.utils.js";
 import { isClientOnly, isServerOnly, UtilityDirective } from "./UtilitiesPlugin.utils.js";
 
 /**
@@ -23,6 +29,7 @@ import { isClientOnly, isServerOnly, UtilityDirective } from "./UtilitiesPlugin.
 export class UtilitiesPlugin implements ITransformerPlugin {
   public readonly name = "UtilitiesPlugin";
   readonly context: ITransformerContext;
+  private hiddenInterfaces: Set<string> | null = null;
 
   constructor(context: ITransformerContext) {
     this.context = context;
@@ -113,6 +120,10 @@ export class UtilitiesPlugin implements ITransformerPlugin {
       );
   }
 
+  public before(): void {
+    this.hiddenInterfaces = null;
+  }
+
   public match(definition: DefinitionNode) {
     return isObjectNode(definition) || isInterfaceNode(definition) || isInputObjectNode(definition);
   }
@@ -142,6 +153,44 @@ export class UtilitiesPlugin implements ITransformerPlugin {
     }
   }
 
+  /**
+   * The interfaces without public fields (see `hasPublicFields`). Collected on the first `cleanup` call, before any field is removed. Implementing one shares its fields, so it is removed with its implementors' references to it; a public field that returns one has nothing to return, and throws.
+   */
+  private _getHiddenInterfaces() {
+    if (this.hiddenInterfaces) {
+      return this.hiddenInterfaces;
+    }
+
+    const { definitions } = this.context.document;
+    const hidden = new Set<string>();
+
+    for (const node of definitions.values()) {
+      if (isInterfaceNode(node) && !isInternal(node) && !hasPublicFields(node)) {
+        hidden.add(node.name);
+      }
+    }
+
+    for (const node of definitions.values()) {
+      if (!isObjectNode(node) && !isInterfaceNode(node)) {
+        continue;
+      }
+
+      for (const field of node.fields ?? []) {
+        const typeName = field.type.getTypeName();
+
+        if (hidden.has(typeName) && isPublicSchemaField(field, node)) {
+          throw new TransformerPluginExecutionError(
+            this.name,
+            `${node.name}.${field.name} returns ${typeName}, which has no public fields. Mark the field @serverOnly, or give ${typeName} a public field.`
+          );
+        }
+      }
+    }
+
+    this.hiddenInterfaces = hidden;
+    return hidden;
+  }
+
   public cleanup(definition: ObjectNode | InterfaceNode | InputObjectNode): void {
     // @constraint is also allowed on input fields and arguments; its definition is removed in after().
     if (isInputObjectNode(definition)) {
@@ -150,6 +199,12 @@ export class UtilitiesPlugin implements ITransformerPlugin {
       }
 
       return;
+    }
+
+    const hiddenInterfaces = this._getHiddenInterfaces();
+
+    for (const name of hiddenInterfaces) {
+      definition.removeInterface(name);
     }
 
     for (const field of definition.fields ?? []) {
@@ -190,8 +245,8 @@ export class UtilitiesPlugin implements ITransformerPlugin {
       }
     }
 
-    // Like a @serverOnly field, a @serverOnly type is removed from the output schema.
-    if (definition.hasDirective(UtilityDirective.SERVER_ONLY)) {
+    // Like a @serverOnly field, a @serverOnly type is removed from the output schema, and so is an interface without public fields.
+    if (definition.hasDirective(UtilityDirective.SERVER_ONLY) || hiddenInterfaces.has(definition.name)) {
       this.context.document.removeNode(definition.name);
       return;
     }

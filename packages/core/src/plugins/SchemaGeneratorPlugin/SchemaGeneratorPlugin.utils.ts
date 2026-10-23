@@ -12,7 +12,8 @@ import {
   OPERATION_NODE_NAME,
 } from "../../definition/index.js";
 import { isInternal } from "../InternalUtilsPlugin/index.js";
-import { isServerOnly, isWriteOnly } from "../UtilitiesPlugin/index.js";
+// Not the index: UtilitiesPlugin imports this file.
+import { isServerOnly, isWriteOnly } from "../UtilitiesPlugin/UtilitiesPlugin.utils.js";
 
 /**
  * Whether a field reaches the client schema. `@serverOnly` and `@writeOnly` fields are stored but never returned, internal fields are gqlbase's own, and a `@serverOnly` type has no public fields. Generators run before `cleanup` removes them, so the ones that describe the API (the AppSync resolver types) use this to leave them out themselves. The schema types and the Zod row schemas keep them (see `isSchemaTypeField`).
@@ -29,6 +30,14 @@ export const isPublicSchemaField = (field: FieldNode, parent: ObjectNode | Inter
     !isServerOnly(field) &&
     !isWriteOnly(field)
   );
+};
+
+/**
+ * Whether an interface has a field that reaches the client schema. One that only declares `@serverOnly` or `@writeOnly` fields (shared server fields, such as a storage key) has none: it is left out of the client schema, and its implementors stop implementing it (`UtilitiesPlugin.cleanup`).
+ */
+
+export const hasPublicFields = (node: InterfaceNode) => {
+  return node.getFields().some((field) => isPublicSchemaField(field, node));
 };
 
 /**
@@ -121,13 +130,14 @@ export const collectReachableDefinitions = (
 };
 
 /**
- * Collects the names of the definitions that reach the client schema: everything reachable through public fields (see `isPublicSchemaField`), except `@serverOnly` types, which are not reached even as implementors of a public interface.
+ * Collects the names of the definitions that reach the client schema: everything reachable through public fields (see `isPublicSchemaField`), except `@serverOnly` types, which are not reached even as implementors of a public interface, and interfaces without public fields (see `hasPublicFields`), which are not reached from their implementors.
  */
 
 export const collectPublicDefinitions = (context: ITransformerContext): Set<string> => {
   return collectReachableDefinitions(
     context,
     isPublicSchemaField,
-    (node) => !(isObjectNode(node) && isServerOnly(node))
+    (node) =>
+      !(isObjectNode(node) && isServerOnly(node)) && !(isInterfaceNode(node) && !hasPublicFields(node))
   );
 };

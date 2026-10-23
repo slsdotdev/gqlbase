@@ -13,7 +13,7 @@ defineConfig({
 });
 ```
 
-A **data source** is a store that holds models. Every stored model (a `@model` that is not `@clientOnly`) is in one source. gqlbase only records which: capability plugins read it and generate code for the models of the source types they handle. Talking to a source (a service client, its transport, its contract) is the application's concern. A service imports the shared schema types and Zod schemas, which already hold every shape.
+A **data source** is a store that holds models. Every stored model (a `@model` that is not `@clientOnly`) is in one source. gqlbase only records which: capability plugins read it and generate code for the models of the source types they handle. Talking to a source (a service client, its transport, its contract) is the application's concern. A service imports the shared schema types and Zod schemas, which already hold every shape. Fields only the service sees stay out of the schema, and its responses go through `<Type>Schema`, which drops them (see [Zod → Which schema guards what](./zod.md#which-schema-guards-what)).
 
 The `dataSources` [transformer option](./configuration.md#transformer-options) registers the core `DataSourcesPlugin` (`packages/core/src/plugins/DataSourcesPlugin/DataSourcesPlugin.ts`), right after `ModelPlugin`. Without it, `@dataSource` is not declared, and every stored model is handled by every capability plugin, as if all were in one source.
 

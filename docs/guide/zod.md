@@ -39,6 +39,7 @@ The plugin is `ZodSchemaGeneratorPlugin` (`packages/plugins/src/zod/ZodSchemaGen
 - **Fields:** every non-internal field (`isSchemaTypeField`): `@serverOnly` and `@writeOnly` fields, relation keys and tenancy claims are kept, and so are `@clientOnly` fields. Relation fields are left out.
 - `<Type>Schema` validates a stored row, not a client payload: it requires the non-null hidden fields, such as a relation key or a claim. Mutation arguments are validated with the create/update schemas below.
 - **Nullability:** a nullable field becomes `.nullable().optional()`; nullable list items become `.nullable()`. `@semanticNonNull` counts as non-null.
+- **Unknown keys are dropped.** Object schemas are plain `z.object`s, at every depth: `parse` returns only the declared fields and drops the rest without failing.
 
 ### Model create/update schemas
 
@@ -53,7 +54,19 @@ The plugin is `ZodSchemaGeneratorPlugin` (`packages/plugins/src/zod/ZodSchemaGen
 
 The full comparison with the GraphQL inputs is in [Field visibility](./field-visibility.md).
 
-## Scalars
+## Which schema guards what
+
+Each schema guards one boundary:
+
+| Data | Schema | What it checks |
+| --- | --- | --- |
+| A client's mutation arguments | `Create<Model>InputSchema`, `Update<Model>InputSchema` | The GraphQL input's fields, with the model's `@constraint` rules. Never hidden fields. |
+| Data passed between servers: a stored row, or a service's response to the API | `<Type>Schema` | The type's public and hidden fields, so a resolver gets the `@serverOnly` values it reads. |
+
+What a client receives is not validated with Zod: the GraphQL schema leaves out the hidden fields.
+
+A service that keeps fields of its own, which the API must not see, does not declare them in the schema. It types them itself (`IntegrationOwnFields & { accessToken: string }`), and parses its response with `<Type>Schema`, which drops them. `example/src/lib/integrations.ts` does this. A field in the schema, even a `@serverOnly` one, is part of what the service returns to the API.
+
 
 | Scalar | Zod |
 | --- | --- |

@@ -81,6 +81,23 @@ type Category @model {
 - **`@clientOnly` type.** In the output schema, never stored: no table, no Zod create/update schemas and no `<Type>Input`. On a `@model`, it gets **only the read operations** (`get`, `list`) of those configured, and resolvers provide the data.
 - Fields on root types do not inherit `@clientOnly`: a query returning a client-only type is still a query.
 
+## On an interface
+
+An interface can share server fields between types, so they are declared once:
+
+```graphql
+interface DdbRecord {
+  pk: String! @serverOnly
+  sk: String! @serverOnly
+}
+
+type Post implements DdbRecord @model { … }   # gets pk and sk, stored and @serverOnly
+```
+
+An interface whose fields are all `@serverOnly` or `@writeOnly` has no public fields (`hasPublicFields`). It is removed from the output schema, and its implementors no longer implement it there (`UtilitiesPlugin.cleanup`). They keep its fields everywhere else, as hidden fields. It gets no AppSync resolver type. The TS schema types and the Zod object schemas still generate it (`DdbRecordOwnFields`, `DdbRecordSchema`).
+
+A public field cannot return such an interface, because the client would have no field to select: the transform throws. A `@serverOnly` field can return it.
+
 ## `@constraint`
 
 ```graphql

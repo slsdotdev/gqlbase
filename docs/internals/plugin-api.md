@@ -85,7 +85,7 @@ Generators accumulate state during `generate` (and sometimes `before`/`after`). 
 3. Keep `match()` narrow. It gates every per-definition hook. Read `context.options` for feature switches.
 4. Add schema in `normalize`, transform in `execute`, and collect generated output in `generate`. Anything that depends on another plugin's work must run in a later phase than that work.
    Pick the rule for what the output describes, and collect once, on the first `generate` call:
-   - **The client schema** (the AppSync resolver types): leave out what will not reach it, with `isPublicSchemaField(field, parent)` for fields and `collectPublicDefinitions(context)` for definitions.
+   - **The client schema** (the AppSync resolver types): leave out what will not reach it, with `isPublicSchemaField(field, parent)` for fields and `collectPublicDefinitions(context)` for definitions. `collectPublicDefinitions` leaves out `@serverOnly` types and interfaces without public fields (`hasPublicFields`).
    - **What server code reads** (the schema types, Zod object schemas, stored outputs): `isSchemaTypeField(field, parent)` and `collectSchemaTypeDefinitions(context)`, which keep hidden fields and declared definitions nothing public reaches. `TypesGeneratorBase._referenceType` imports any of those from the schema types.
    - Anything else: `collectReachableDefinitions` with its own field rule.
 5. Remove the plugin's directives and temporary fields in `cleanup`, and its definitions in `after`.
